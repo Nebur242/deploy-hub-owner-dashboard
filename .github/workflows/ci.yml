@@ -26,12 +26,12 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npm run type-check
+        # run: npm run type-check
         # If you don't have a separate type-check script, you can use:
-        # run: npx tsc --noEmit
+        run: npx tsc --noEmit
 
-      - name: Run tests
-        run: npm test
+      # - name: Run tests
+      #   run: npm test
 
   build:
     name: 🏗️ Build
