@@ -14,6 +14,7 @@ export const AXIOS = axios.create({
   baseURL: API_URL,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 AXIOS.interceptors.request.use(async (config: any) => {
   const { currentUser } = getAuth(firebaseApp);
   if (currentUser) {

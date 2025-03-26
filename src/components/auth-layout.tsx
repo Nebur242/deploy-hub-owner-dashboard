@@ -1,6 +1,7 @@
 "use client";
 import { GalleryVerticalEnd } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+import Image from "next/image";
 
 export default function AuthLayout({
   children,
@@ -24,10 +25,12 @@ export default function AuthLayout({
         </div>
       </div>
       <div className="relative hidden bg-muted lg:block">
-        <img
+        <Image
           src="/twigs.jpg"
           alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          fill
+          className="object-cover dark:brightness-[0.2] dark:grayscale"
+          priority
         />
       </div>
     </div>
