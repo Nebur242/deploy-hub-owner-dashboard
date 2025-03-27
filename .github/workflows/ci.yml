@@ -51,6 +51,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Fetch Doppler Secrets
+        run: |
+          doppler configure set token ${{ secrets.DOPPLER_TOKEN }}
+
+          # Fetch generic environment variables first
+          doppler secrets --project ${{ secrets.DOPPLER_PROJECT }} --config dev_owner_dashboard --token "${{ secrets.DOPPLER_TOKEN }}" download --format=env --no-file > .env
+
       - name: Build NextJS application
         run: npm run build
 
