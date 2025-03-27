@@ -59,7 +59,7 @@ jobs:
 
       # Deploy directly instead of using artifacts
       - name: Deploy to Vercel Preview
-      - uses: amondnet/vercel-action@v25 #deploy
+        uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           github-token: ${{ secrets.REPO_ACCESS_TOKEN }}
