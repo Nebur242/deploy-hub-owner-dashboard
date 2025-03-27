@@ -56,25 +56,3 @@ jobs:
 
       - name: Build NextJS application
         run: npm run build
-
-      # Comment on PR with the preview URL
-      - name: Comment on PR
-        uses: actions/github-script@v6
-        if: success() && github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.REPO_ACCESS_TOKEN }}
-          script: |
-            const issue_number = context.issue.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            // Get the deployment URL from Vercel response
-            // You might need to adjust this based on how vercel-action outputs the URL
-            const previewUrl = `https://${repo}-git-${context.payload.pull_request.head.ref}.vercel.app`;
-
-            github.rest.issues.createComment({
-              owner: owner,
-              repo: repo,
-              issue_number: issue_number,
-              body: `✅ PR preview deployed successfully!\nPreview: ${previewUrl}`
-            });
