@@ -54,7 +54,7 @@ const initialState: AuthInitialState = {
   infos: null,
   isLoggedIn: false,
   authenticate: {
-    loading: false,
+    loading: true,
     error: "",
     status: "pending",
   },

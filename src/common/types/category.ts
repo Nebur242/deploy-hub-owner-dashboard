@@ -20,3 +20,14 @@ export type Category = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type CreateCategoryDto = {
+  name: string;
+  slug: string;
+  description: string;
+  icon: string;
+  isActive: boolean;
+  sortOrder: number;
+  status: "active" | "inactive" | "pending";
+  parentId?: string | null;
+};

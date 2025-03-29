@@ -1,4 +1,4 @@
-import { Category } from "@/common/types/category";
+import { Category, CreateCategoryDto } from "@/common/types/category";
 import { axiosBaseQuery } from "@/config/api";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi } from "@reduxjs/toolkit/query/react";
@@ -21,7 +21,7 @@ const initialState: CategoriesInitialState = {
 const BASE_PATH = `/categories` as const;
 const TAG_TYPE = `Categories` as const;
 
-export const categoriessApi = createApi({
+export const categoriesApi = createApi({
   reducerPath: "categoriesApi",
   baseQuery: axiosBaseQuery(),
   tagTypes: [TAG_TYPE],
@@ -29,20 +29,31 @@ export const categoriessApi = createApi({
     findOneCategory: build.query<Category, string>({
       query: (id: string) => ({ url: `${BASE_PATH}/${id}`, method: "GET" }),
     }),
-    findAllCategories: build.query<Pagination<Category>, IPaginationOptions>({
+    findAllCategories: build.query<
+      Pagination<Category>,
+      IPaginationOptions & {
+        search: string; // Optional search parameter
+      }
+    >({
       query: (
-        pagination: IPaginationOptions = {
+        pagination: IPaginationOptions & {
+          search?: string; // Optional search parameter
+        } = {
           page: 1,
           limit: 10,
         }
       ) => {
-        const { page, limit } = pagination;
+        const { page, limit, search } = pagination;
         const params = new URLSearchParams({
           page: `${page}`,
           limit: `${limit}`,
-        }).toString();
+        });
+
+        if (search) {
+          params.append("search", search); // Append search parameter if provided
+        }
         return {
-          url: `${BASE_PATH}?${params}`,
+          url: `${BASE_PATH}?${params.toString()}`,
           method: "GET",
         };
       },
@@ -58,8 +69,8 @@ export const categoriessApi = createApi({
           : [{ type: TAG_TYPE, id: "PARTIAL-LIST" }];
       },
     }),
-    createCategory: build.mutation<Category, Omit<Category, "id">>({
-      query: (Categories: Omit<Category, "id">) => ({
+    createCategory: build.mutation<Category, CreateCategoryDto>({
+      query: (Categories: CreateCategoryDto) => ({
         url: BASE_PATH,
         method: "POST",
         data: Categories,
@@ -90,7 +101,7 @@ export const {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
-} = categoriessApi;
+} = categoriesApi;
 
 const categoriesSlice = createSlice({
   name: "categories",
