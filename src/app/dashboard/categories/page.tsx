@@ -44,8 +44,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { useFindAllCategoriesQuery } from "@/store/features/categories";
+import { useFindAllCategoriesQuery, useDeleteCategoryMutation } from "@/store/features/categories";
 import { Category } from "@/common/types/category";
+import { toast } from "sonner";
+import DashboardLayout from "@/components/dashboard-layout";
+import { BreadcrumbItem } from "@/components/breadcrumb";
 
 export default function CategoriesPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -72,6 +75,29 @@ export default function CategoriesPage() {
     search: debouncedParentSearch
   });
 
+  // Delete category mutation
+  const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
+
+  // Breadcrumb items
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { label: "Categories" }
+  ];
+
+  // Action buttons for the header
+  const actionButtons = (
+    <>
+      <Button variant="outline" onClick={() => refetch()}>
+        <RefreshCw className={`h-4 w-4 mr-1 ${categoriesFetching ? 'animate-spin' : ''}`} />
+        Refresh
+      </Button>
+      <Button asChild>
+        <Link href="/dashboard/categories/create" className="flex items-center">
+          <Plus className="h-4 w-4 mr-1" /> Add Category
+        </Link>
+      </Button>
+    </>
+  );
+
   // For handling delete confirmation
   const handleDeleteClick = (category: Category) => {
     setCategoryToDelete(category);
@@ -82,18 +108,24 @@ export default function CategoriesPage() {
     if (!categoryToDelete) return;
 
     try {
-      // Implement your delete API call here
-      // await deleteCategory(categoryToDelete.id);
+      // Call the RTK Query delete mutation
+      await deleteCategory(categoryToDelete.id).unwrap();
 
-      // Refresh the data after deletion
-      refetch();
+      // Show success toast
+      toast.success("Category deleted", {
+        description: `"${categoryToDelete.name}" has been deleted successfully.`,
+      });
 
       // Reset state
       setCategoryToDelete(null);
       setDeleteDialogOpen(false);
     } catch (error) {
       console.error("Failed to delete category:", error);
-      // Handle error (could add toast notification here)
+
+      // Show error toast
+      toast.error("Delete failed", {
+        description: "There was an error deleting the category. Please try again.",
+      });
     }
   };
 
@@ -120,7 +152,7 @@ export default function CategoriesPage() {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }: { row: { original: Category } }) => (
-        <Badge variant={row.original.isActive ? "default" : "destructive"}>
+        <Badge variant={row.original.status === 'active' ? "default" : "destructive"}>
           {row.original.status}
         </Badge>
       ),
@@ -155,8 +187,17 @@ export default function CategoriesPage() {
             variant="destructive"
             size="sm"
             onClick={() => handleDeleteClick(row.original)}
+            disabled={isDeleting && categoryToDelete?.id === row.original.id}
           >
-            <Trash2 className="h-4 w-4 mr-1" /> Delete
+            {isDeleting && categoryToDelete?.id === row.original.id ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-1" /> Delete
+              </>
+            )}
           </Button>
         </div>
       ),
@@ -200,23 +241,12 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-xl">Categories</h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${categoriesFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button asChild>
-            <Link href="/dashboard/categories/create" className="flex items-center">
-              <Plus className="h-4 w-4 mr-1" /> Add Category
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <div className="w-full">
+    <DashboardLayout
+      breadcrumbItems={breadcrumbItems}
+      title="Categories"
+      actions={actionButtons}
+    >
+      <div>
         <div className="flex items-center py-4">
           <Input
             placeholder="Search categories..."
@@ -353,12 +383,19 @@ export default function CategoriesPage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DashboardLayout>
   );
 }

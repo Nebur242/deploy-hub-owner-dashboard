@@ -51,7 +51,7 @@ export const axiosBaseQuery =
         data,
       });
       return {
-        data: result.data.data,
+        data: result.data.data || result.data,
         meta: result.data,
       };
     } catch (axiosError) {

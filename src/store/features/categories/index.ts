@@ -1,8 +1,13 @@
-import { Category, CreateCategoryDto } from "@/common/types/category";
+import { PaginatedResponse } from "@/common/type";
+import {
+  Category,
+  CategoryQueryParams,
+  CreateCategoryDto,
+  UpdateCategoryDto,
+} from "@/common/types/category";
 import { axiosBaseQuery } from "@/config/api";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { IPaginationOptions, Pagination } from "nestjs-typeorm-paginate";
 
 export interface CategoriesInitialState {
   loading: boolean;
@@ -25,72 +30,79 @@ export const categoriesApi = createApi({
   reducerPath: "categoriesApi",
   baseQuery: axiosBaseQuery(),
   tagTypes: [TAG_TYPE],
-  endpoints: (build) => ({
-    findOneCategory: build.query<Category, string>({
-      query: (id: string) => ({ url: `${BASE_PATH}/${id}`, method: "GET" }),
-    }),
-    findAllCategories: build.query<
-      Pagination<Category>,
-      IPaginationOptions & {
-        search: string; // Optional search parameter
-      }
+  endpoints: (builder) => ({
+    // Get all categories with pagination and filtering
+    findAllCategories: builder.query<
+      PaginatedResponse<Category>,
+      CategoryQueryParams
     >({
-      query: (
-        pagination: IPaginationOptions & {
-          search?: string; // Optional search parameter
-        } = {
-          page: 1,
-          limit: 10,
-        }
-      ) => {
-        const { page, limit, search } = pagination;
-        const params = new URLSearchParams({
-          page: `${page}`,
-          limit: `${limit}`,
-        });
+      query: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        if (params.page) queryParams.append("page", params.page.toString());
+        if (params.limit) queryParams.append("limit", params.limit.toString());
+        if (params.search) queryParams.append("search", params.search);
+        if (params.parentId) queryParams.append("parentId", params.parentId);
+        if (params.status) queryParams.append("status", params.status);
 
-        if (search) {
-          params.append("search", search); // Append search parameter if provided
-        }
         return {
-          url: `${BASE_PATH}?${params.toString()}`,
+          url: `${BASE_PATH}?${queryParams.toString()}`,
           method: "GET",
         };
       },
-      providesTags: (result) => {
-        return result
+      providesTags: (result) =>
+        result
           ? [
               ...result.items.map(({ id }) => ({
                 type: TAG_TYPE,
                 id,
               })),
-              { type: TAG_TYPE, id: "PARTIAL-LIST" },
+              { type: TAG_TYPE, id: "LIST" },
             ]
-          : [{ type: TAG_TYPE, id: "PARTIAL-LIST" }];
-      },
+          : [{ type: TAG_TYPE, id: "LIST" }],
     }),
-    createCategory: build.mutation<Category, CreateCategoryDto>({
-      query: (Categories: CreateCategoryDto) => ({
+
+    // Get a single category by ID
+    findOneCategory: builder.query<Category, string>({
+      query: (id) => ({
+        url: `${BASE_PATH}/${id}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: TAG_TYPE, id }],
+    }),
+
+    // Create a new category
+    createCategory: builder.mutation<Category, CreateCategoryDto>({
+      query: (categoryData) => ({
         url: BASE_PATH,
         method: "POST",
-        data: Categories,
+        data: categoryData,
       }),
-      invalidatesTags: [TAG_TYPE],
+      invalidatesTags: [{ type: TAG_TYPE, id: "LIST" }],
     }),
-    updateCategory: build.mutation<Category, Category>({
-      query: (Categories: Category) => ({
-        url: `${BASE_PATH}/${Categories.id}`,
-        method: "PATCH",
-        data: Categories,
-      }),
-      invalidatesTags: [TAG_TYPE],
+
+    // Update an existing category
+    updateCategory: builder.mutation<Category, UpdateCategoryDto>({
+      query: (categoryData) => {
+        const { id, ...data } = categoryData;
+        return {
+          url: `${BASE_PATH}/${id}`,
+          method: "PATCH",
+          data,
+        };
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: TAG_TYPE, id },
+        { type: TAG_TYPE, id: "LIST" },
+      ],
     }),
-    deleteCategory: build.mutation<Category, string>({
-      query: (id: string) => ({
+
+    // Delete a category
+    deleteCategory: builder.mutation<void, string>({
+      query: (id) => ({
         url: `${BASE_PATH}/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TAG_TYPE],
+      invalidatesTags: [{ type: TAG_TYPE, id: "LIST" }],
     }),
   }),
 });

@@ -1,5 +1,4 @@
 import { User } from "../type";
-import { Media } from "./media";
 
 export type Category = {
   id: string;
@@ -7,14 +6,11 @@ export type Category = {
   slug: string;
   description: string;
   icon: string;
-  media?: Media;
-  mediaId?: string;
   ownerId: string;
   owner: User;
   parentId?: string;
   parent?: Category;
   children: Category[];
-  isActive: boolean;
   status: "active" | "inactive" | "pending";
   sortOrder: number;
   createdAt: Date;
@@ -26,8 +22,27 @@ export type CreateCategoryDto = {
   slug: string;
   description: string;
   icon: string;
-  isActive: boolean;
   sortOrder: number;
   status: "active" | "inactive" | "pending";
   parentId?: string | null;
+};
+
+// Data transfer object for updating an existing category
+export interface UpdateCategoryDto {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  status: "active" | "inactive" | "pending";
+  parentId?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type CategoryQueryParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  parentId?: string;
+  status?: string;
 };
