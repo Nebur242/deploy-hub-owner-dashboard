@@ -79,6 +79,17 @@ export default function EditCategoryPage() {
         };
     }, [resetUpdateState]);
 
+    // Redirect after successful update
+    // In the component body:
+    useEffect(() => {
+        if (isSuccess) {
+            const timer = setTimeout(() => {
+                router.push("/dashboard/categories");
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isSuccess, router]);
+
     // Handle form submission
     const handleSubmit = async (data: CategoryFormData) => {
         try {
@@ -90,7 +101,6 @@ export default function EditCategoryPage() {
                 status: data.status,
                 ...((!!data.parentCategory && data.parentCategory !== 'none') ? { parentId: data.parentCategory } : { parentId: null }),
                 sortOrder: data.sortOrder,
-                isActive: data.status === "active",
             };
 
             // Call the RTK Query mutation
@@ -102,16 +112,6 @@ export default function EditCategoryPage() {
                 duration: 5000,
             });
 
-            // Redirect after successful update
-            // In the component body:
-            useEffect(() => {
-                if (isSuccess) {
-                    const timer = setTimeout(() => {
-                        router.push("/dashboard/categories");
-                    }, 2000);
-                    return () => clearTimeout(timer);
-                }
-            }, [isSuccess, router]);
         } catch (error) {
             // Error handling is managed by the RTK Query hook and displayed in the form
             console.error("Failed to update category:", error);
