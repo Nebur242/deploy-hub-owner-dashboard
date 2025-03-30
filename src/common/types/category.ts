@@ -36,7 +36,6 @@ export interface UpdateCategoryDto {
   status: "active" | "inactive" | "pending";
   parentId?: string | null;
   sortOrder: number;
-  isActive: boolean;
 }
 
 export type CategoryQueryParams = {
