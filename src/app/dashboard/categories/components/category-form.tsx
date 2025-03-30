@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Code, FileText, Image, MessageSquare, Music, PenTool, Video, AlertCircle, Loader2, CheckCircle2, ChevronDown } from "lucide-react";
+import { Check, Code, FileText, Image, MessageSquare, Music, PenTool, Video, Loader2, CheckCircle2, ChevronDown } from "lucide-react";
 import {
     Alert,
     AlertDescription,
@@ -115,7 +115,7 @@ export default function CategoryForm({
             description: "",
             icon: "code",
             status: "active",
-            parentCategory: "",
+            parentCategory: "root",
             sortOrder: 1
         }
     });
@@ -202,37 +202,41 @@ export default function CategoryForm({
         }
     }, [isSuccess, router, isEditing]);
 
+    // Display error toast when error changes
+    useEffect(() => {
+        if (error) {
+            // Extract error message
+            let errorMessage = "An error occurred";
+
+            if (typeof error.message === 'string') {
+                errorMessage = error.message;
+            } else if (error.data?.message) {
+                errorMessage = error.data.message;
+            } else if (error.data?.errors && Array.isArray(error.data.errors)) {
+                errorMessage = error.data.errors.join(', ');
+            }
+
+            // Show toast error at the top of the screen
+            toast.error(isEditing ? "Failed to update category" : "Failed to create category", {
+                description: errorMessage,
+                duration: 5000,
+            });
+        }
+    }, [error, isEditing]);
+
     const handleFormSubmit = async (data: CategoryFormData | CategoryUpdateFormData) => {
-        await onSubmit(data);
+        try {
+            await onSubmit(data);
+        } catch (err) {
+            // Error is handled by the error effect above
+            console.error("Form submission error:", err);
+        }
     };
 
     const handleDiscard = () => {
         form.reset();
         setSuccess(false);
     };
-
-    // Extract error message from error
-    const errorMessage = (() => {
-        if (!error) return null;
-
-        // Handle the specific error format returned by the API
-        if (typeof error === 'object' && error !== null && 'data' in error) {
-            const errorData = error.data as any;
-
-            // Check for errors array
-            if (errorData?.errors && Array.isArray(errorData.errors)) {
-                return errorData.errors.join(', ');
-            }
-
-            // Check for message
-            if (errorData?.message) {
-                return errorData.message;
-            }
-        }
-
-        // Fallback error message
-        return isEditing ? 'Failed to update category' : 'Failed to create category';
-    })();
 
     return (
         <>
@@ -430,10 +434,10 @@ export default function CategoryForm({
                                                                 )}
                                                                 disabled={isLoading || success}
                                                             >
-                                                                {field.value && field.value !== "none" ? (
+                                                                {field.value && field.value !== "root" ? (
                                                                     allCategories.find((category) => category.id === field.value)?.name || "Select a parent"
-                                                                ) : field.value === "none" ? (
-                                                                    "None (Top-level category)"
+                                                                ) : field.value === "root" ? (
+                                                                    "Root (Top-level category)"
                                                                 ) : (
                                                                     "Select a parent category (optional)"
                                                                 )}
@@ -488,18 +492,18 @@ export default function CategoryForm({
 
                                                         <DropdownMenuItem
                                                             onClick={() => {
-                                                                form.setValue("parentCategory", "none");
+                                                                form.setValue("parentCategory", "root");
                                                                 setParentCategoryOpen(false);
                                                             }}
-                                                            className={cn(field.value === "none" && "bg-accent text-accent-foreground")}
+                                                            className={cn(field.value === "root" && "bg-accent text-accent-foreground")}
                                                         >
                                                             <Check
                                                                 className={cn(
                                                                     "mr-2 h-4 w-4",
-                                                                    field.value === "none" ? "opacity-100" : "opacity-0"
+                                                                    field.value === "root" ? "opacity-100" : "opacity-0"
                                                                 )}
                                                             />
-                                                            None (Top-level category)
+                                                            Root (Top-level category)
                                                         </DropdownMenuItem>
 
                                                         {categories.length > 0 && <DropdownMenuSeparator />}
@@ -620,14 +624,6 @@ export default function CategoryForm({
                             </Card>
                         </div>
                     </div>
-
-                    {errorMessage && (
-                        <Alert variant="destructive" className="mt-4">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>{errorMessage}</AlertDescription>
-                        </Alert>
-                    )}
                 </form>
             </Form>
         </>

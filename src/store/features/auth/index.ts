@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { AuthError, UserCredential } from "firebase/auth";
 import {
+  AppUser,
   CreateUserDto,
   LoginUserDto,
   Status,
@@ -21,7 +22,7 @@ import {
 import { asyncHandler } from "@/utils/functions";
 
 export interface AuthInitialState {
-  infos: User | null;
+  infos: AppUser | null;
   isLoggedIn: boolean;
   authenticate: {
     loading: boolean;
@@ -143,7 +144,9 @@ export const registerUser = createAsyncThunk(
     if (axiosError || !user) {
       console.log(axiosError);
       await firebaseUser.user.delete();
-      return rejectWithValue(axiosError?.message || "Axios error");
+      return rejectWithValue(
+        axiosError?.response?.data.message || "Axios error"
+      );
     }
 
     const idToken = await firebaseUser.user.getIdToken();
@@ -161,7 +164,10 @@ export const registerUser = createAsyncThunk(
       rejectWithValue("Session not set");
     }
 
-    return fulfillWithValue(user);
+    return fulfillWithValue({
+      ...user,
+      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+    });
   }
 );
 
@@ -180,7 +186,6 @@ export const loginUser = createAsyncThunk(
     >(firebaseLoginUser(loginDto));
 
     if (firebaseError || !firebaseUser) {
-      console.log(firebaseError);
       return rejectWithValue(
         firebaseError?.message || "Firebase register error"
       );
@@ -193,7 +198,14 @@ export const loginUser = createAsyncThunk(
 
     if (axiosError || !user) {
       console.log(axiosError);
-      return rejectWithValue(axiosError?.message || "Axios error");
+      return rejectWithValue(
+        axiosError?.response?.data.message || "Axios error"
+      );
+    }
+
+    if (!user.roles.includes("admin")) {
+      // await firebaseUser.user.delete();
+      return rejectWithValue("You are not allowed to login");
     }
 
     const idToken = await firebaseUser.user.getIdToken();
@@ -211,23 +223,48 @@ export const loginUser = createAsyncThunk(
       rejectWithValue("Session not set");
     }
 
-    return fulfillWithValue(user);
+    return fulfillWithValue({
+      ...user,
+      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+    });
   }
 );
 
 export const authenticateUser = createAsyncThunk(
   "auth/authenticate",
   async (_, { rejectWithValue, fulfillWithValue }) => {
-    try {
-      const response = await authUser();
-      if (!response) throw new Error("User not connected");
-      const userInfos = await getUser(response.uid);
-      return fulfillWithValue(userInfos);
-    } catch (error) {
-      const err = error as Error;
-      console.log(err);
-      return rejectWithValue(err.message || "User not found");
+    const [firebaseUser, firebaseError] = await asyncHandler<
+      UserCredential["user"] | null,
+      AuthError
+    >(authUser());
+
+    if (firebaseError || !firebaseUser) {
+      return rejectWithValue(
+        firebaseError?.message || "Firebase register error"
+      );
     }
+
+    const [userInfos, axiosError] = await asyncHandler<
+      User,
+      AxiosError<{ message: string }>
+    >(getUser(firebaseUser.uid));
+
+    if (axiosError || !userInfos) {
+      console.log(axiosError);
+      return rejectWithValue(
+        axiosError?.response?.data.message || "Axios error"
+      );
+    }
+
+    if (!userInfos.roles.includes("admin")) {
+      // await firebaseUser.user.delete();
+      return rejectWithValue("You are not allowed to login");
+    }
+
+    return fulfillWithValue({
+      ...userInfos,
+      firebase: firebaseUser.toJSON() as UserCredential["user"],
+    });
   }
 );
 

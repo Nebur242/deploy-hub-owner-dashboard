@@ -9,7 +9,6 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function EditCategoryPage() {
@@ -66,7 +65,7 @@ export default function EditCategoryPage() {
                 description: category.description,
                 icon: category.icon,
                 status: category.status,
-                parentCategory: category.parentId || "none",
+                parentCategory: category.parentId || "root",
                 sortOrder: category.sortOrder
             });
         }
@@ -99,18 +98,12 @@ export default function EditCategoryPage() {
                 description: data.description,
                 icon: data.icon,
                 status: data.status,
-                ...((!!data.parentCategory && data.parentCategory !== 'none') ? { parentId: data.parentCategory } : { parentId: null }),
+                parentId: data.parentCategory,
                 sortOrder: data.sortOrder,
             };
 
             // Call the RTK Query mutation
             await updateCategory(categoryData).unwrap();
-
-            // Display success message
-            toast.success("Category updated", {
-                description: `"${data.name}" has been updated successfully.`,
-                duration: 5000,
-            });
 
         } catch (error) {
             // Error handling is managed by the RTK Query hook and displayed in the form

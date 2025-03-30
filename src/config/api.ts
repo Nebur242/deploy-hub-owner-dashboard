@@ -55,11 +55,14 @@ export const axiosBaseQuery =
         meta: result.data,
       };
     } catch (axiosError) {
-      const err = axiosError as AxiosError;
+      const err = axiosError as AxiosError<{
+        message: string;
+        statusCode: number;
+      }>;
       return {
         error: {
-          status: err.response?.status,
-          data: err.response?.data,
+          status: err.response?.data?.statusCode || err.status,
+          message: err.response?.data?.message || err.message,
         },
       };
     }

@@ -76,8 +76,8 @@ export default function CategoriesPage() {
   });
 
   // Delete category mutation
-  const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
-
+  const [deleteCategory, { isLoading: isDeleting, error }] = useDeleteCategoryMutation();
+  console.log("Delete error:", error);
   // Breadcrumb items
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: "Categories" }
@@ -120,11 +120,11 @@ export default function CategoriesPage() {
       setCategoryToDelete(null);
       setDeleteDialogOpen(false);
     } catch (error) {
-      console.error("Failed to delete category:", error);
-
+      console.log("Failed to delete category:", error);
+      const err = error as { message?: string };
       // Show error toast
       toast.error("Delete failed", {
-        description: "There was an error deleting the category. Please try again.",
+        description: err?.message || "There was an error deleting the category. Please try again.",
       });
     }
   };
@@ -381,7 +381,7 @@ export default function CategoriesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
               onClick={handleConfirmDelete}
               disabled={isDeleting}
             >

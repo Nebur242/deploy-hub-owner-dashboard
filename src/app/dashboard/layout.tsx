@@ -2,12 +2,14 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { authenticateUser } from "@/store/features/auth";
+import { authenticateUser, logoutUser } from "@/store/features/auth";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button";
 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -16,7 +18,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
     const {
         authenticate: { loading, error, status },
+        logout
     } = useAppSelector((state) => state.auth);
+
+    const handleLogout = async () => {
+        try {
+            // Dispatch logout action
+            await dispatch(logoutUser()).unwrap();
+
+            // Redirect to login page
+            router.push("/auth/login");
+        } catch (error) {
+            // Show error toast if logout fails
+            toast.error("Logout failed", {
+                description: error instanceof Error ? error.message : "Could not log out. Please try again.",
+                duration: 5000,
+            });
+            // Close the dialog even if there was an error
+        }
+    };
+
 
     useEffect(() => {
         dispatch(authenticateUser());
@@ -28,6 +49,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             router.push("/auth/login");
         }
     }, [loading, status, router]);
+
+    useEffect(() => {
+        if (logout.status === "success") {
+            router.push("/auth/login");
+        }
+        if (logout.status === "error") {
+            toast.error("Log out", {
+                description: "Could not log out. Please try again.",
+                duration: 5000,
+            });
+        }
+    }, [router, logout.status]);
 
     // Show a loading state when authenticating
     if (loading) {
@@ -65,9 +98,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <h2 className="mb-2 text-center text-xl font-bold text-gray-900">Authentication Failed</h2>
                     <p className="mb-6 text-center text-gray-600">{error}</p>
                     <div className="flex flex-col space-y-2">
-                        <button
+                        <Button
                             onClick={() => dispatch(authenticateUser())}
-                            className="flex w-full items-center justify-center rounded-md bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700"
+                            variant={'destructive'}
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -84,13 +117,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                                 />
                             </svg>
                             Try Again
-                        </button>
-                        <button
-                            onClick={() => router.push('/auth/login')}
-                            className="flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        </Button>
+                        <Button
+                            variant={'outline'}
+                            onClick={handleLogout}
+                            disabled={logout.loading}
                         >
-                            Back to Login
-                        </button>
+                            {logout.loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Loading...
+                                </>
+                            ) : (
+                                "Back to Login"
+                            )}
+                        </Button>
                     </div>
                 </div>
                 <p className="mt-6 text-sm text-gray-500">

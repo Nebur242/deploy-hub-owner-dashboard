@@ -27,7 +27,7 @@ export default function CreateCategoryPage() {
       description: data.description,
       icon: data.icon,
       status: data.status,
-      ...((!!data.parentCategory && data.parentCategory !== 'none') ? { parentId: data.parentCategory } : {}),
+      parentId: data.parentCategory,
       sortOrder: data.sortOrder,
     };
 
