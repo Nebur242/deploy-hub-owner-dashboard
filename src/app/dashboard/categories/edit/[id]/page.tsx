@@ -178,7 +178,7 @@ export default function EditCategoryPage() {
                 onSubmit={handleSubmit}
                 isLoading={isUpdating}
                 isSuccess={isSuccess}
-                error={updateError}
+                error={updateError as { message: string }}
                 excludeCategoryId={categoryId}
             />
         </DashboardLayout>

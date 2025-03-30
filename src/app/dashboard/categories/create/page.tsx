@@ -53,7 +53,7 @@ export default function CreateCategoryPage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         isSuccess={isSuccess}
-        error={error}
+        error={error as { message: string }}
       />
     </DashboardLayout>
   );
