@@ -103,9 +103,15 @@ export default function EditCategoryPage() {
             });
 
             // Redirect after successful update
-            setTimeout(() => {
-                router.push("/dashboard/categories");
-            }, 2000);
+            // In the component body:
+            useEffect(() => {
+                if (isSuccess) {
+                    const timer = setTimeout(() => {
+                        router.push("/dashboard/categories");
+                    }, 2000);
+                    return () => clearTimeout(timer);
+                }
+            }, [isSuccess, router]);
         } catch (error) {
             // Error handling is managed by the RTK Query hook and displayed in the form
             console.error("Failed to update category:", error);
