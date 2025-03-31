@@ -1,5 +1,5 @@
 export const asyncHandler = async <T, E>(
-  promise: Promise<T>,
+  promise: Promise<T>
 ): Promise<[T | null, E | null]> => {
   try {
     const result = await promise;
@@ -9,3 +9,10 @@ export const asyncHandler = async <T, E>(
     return [null, err];
   }
 };
+
+export function parseJSON<T>(json: string): T {
+  if (typeof json !== "string") {
+    return json as T;
+  }
+  return JSON.parse(json) as T;
+}

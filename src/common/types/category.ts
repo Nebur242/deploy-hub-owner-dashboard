@@ -10,6 +10,7 @@ export type Category = {
   owner: User;
   parentId?: string;
   parent?: Category;
+  image?: string | null;
   children: Category[];
   status: "active" | "inactive" | "pending";
   sortOrder: number;
@@ -25,6 +26,7 @@ export type CreateCategoryDto = {
   sortOrder: number;
   status: "active" | "inactive" | "pending";
   parentId?: string | null;
+  image?: string | null;
 };
 
 // Data transfer object for updating an existing category
@@ -36,6 +38,7 @@ export interface UpdateCategoryDto {
   status: "active" | "inactive" | "pending";
   parentId?: string | null;
   sortOrder: number;
+  image?: string | null;
 }
 
 export type CategoryQueryParams = {

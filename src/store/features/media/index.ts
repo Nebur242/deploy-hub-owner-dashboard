@@ -8,6 +8,56 @@ import {
 import { axiosBaseQuery } from "@/config/api";
 import { PaginatedResponse as DefaultPaginatedResponse } from "@/common/type";
 
+function buildMediaQueryString(params: MediaQueryParams): URLSearchParams {
+  const queryString = new URLSearchParams();
+
+  // Add number parameters
+  if (params.page !== undefined) {
+    queryString.append("page", params.page.toString());
+  }
+
+  if (params.limit !== undefined) {
+    queryString.append("limit", params.limit.toString());
+  }
+
+  // Add string parameters
+  if (params.sortBy) {
+    queryString.append("sortBy", params.sortBy);
+  }
+
+  if (params.order) {
+    queryString.append("order", params.order);
+  }
+
+  if (params.type) {
+    queryString.append("type", params.type.toString());
+  }
+
+  if (params.ownerId) {
+    queryString.append("ownerId", params.ownerId);
+  }
+
+  // Handle array of tags
+  if (params.tags && params.tags.length > 0) {
+    // Option 1: Append each tag separately (results in multiple "tags" parameters)
+    // queryString.append("tags", JSON.stringify(params.tags));
+
+    // Option 2: Join tags with comma (results in a single "tags" parameter)
+    queryString.append("tags", params.tags.join(","));
+  }
+
+  // Handle boolean
+  if (params.isPublic !== undefined) {
+    queryString.append("isPublic", params.isPublic.toString());
+  }
+
+  if (params.search) {
+    queryString.append("search", params.search);
+  }
+
+  return queryString;
+}
+
 export const mediaApi = createApi({
   reducerPath: "mediaApi",
   baseQuery: axiosBaseQuery(),
@@ -16,17 +66,7 @@ export const mediaApi = createApi({
     getMedia: builder.query<PaginatedResponse<Media>, MediaQueryParams>({
       query: (params) => {
         // Build query string from params
-        const queryString = Object.entries(params)
-          .filter(([, value]) => value !== undefined && value !== null)
-          .map(([key, value]) => {
-            if (Array.isArray(value)) {
-              return value
-                .map((v) => `${key}=${encodeURIComponent(v)}`)
-                .join("&");
-            }
-            return `${key}=${encodeURIComponent(value)}`;
-          })
-          .join("&");
+        const queryString = buildMediaQueryString(params).toString();
 
         return {
           url: `/media${queryString ? `?${queryString}` : ""}`,
