@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { getApps, initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_REST_API_KEY,
@@ -18,5 +19,7 @@ const app =
 
 const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
 
+const storage = getStorage(app);
+
 export default app;
-export { analytics };
+export { analytics, storage };

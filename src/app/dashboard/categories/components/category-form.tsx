@@ -17,6 +17,8 @@ import { IconSelectionCard } from "./icon-selection-card";
 import { OrganizationStatusCard } from "./organization-status-card";
 import { ActionCard } from "./action-card";
 import { SuccessAlert } from "./success-alert";
+import { Media } from "@/common/types/media";
+import { SingleMediaSelector } from "../../media/components/media-selector";
 
 // Export types from schema for external use
 export type CategoryFormData = z.infer<typeof categorySchema>;
@@ -33,6 +35,8 @@ export default function CategoryForm({
 }: CategoryFormProps) {
     const router = useRouter();
     const [success, setSuccess] = useState(false);
+    const [featuredImage, setFeaturedImage] = useState<Media | null>(null);
+
 
     // Initialize the form
     const form = useForm<CategoryFormData | CategoryUpdateFormData>({
@@ -129,6 +133,13 @@ export default function CategoryForm({
                                 success={success}
                                 isEditing={isEditing}
                                 initialData={initialData}
+                            />
+
+                            <SingleMediaSelector
+                                label="Featured Image"
+                                value={featuredImage}
+                                onChange={setFeaturedImage}
+                                required
                             />
 
                             <IconSelectionCard

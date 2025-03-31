@@ -12,8 +12,6 @@ import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 
-
-
 const schema = z.object({
     email: z.string().email('Invalid email address'),
 });
@@ -87,7 +85,7 @@ export default function ForgotPasswordPage() {
                 )}
             </div>
             <div className="text-center text-sm">
-                Already have an account?{" "}
+                Already have an account ?
                 <Link href="/auth/login" className="underline underline-offset-4">
                     Sign in
                 </Link>
