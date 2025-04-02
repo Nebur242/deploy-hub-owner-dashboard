@@ -18,6 +18,7 @@ export const categorySchema = z.object({
     .max(500, { message: "Description must be less than 500 characters" }),
   icon: z.string(),
   status: z.enum(["active", "inactive", "pending"]),
+  image: z.string().nullable().optional(),
   parentCategory: z.string().optional(),
   sortOrder: z
     .number()

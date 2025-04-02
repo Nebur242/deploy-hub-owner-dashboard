@@ -29,6 +29,7 @@ export default function CreateCategoryPage() {
       status: data.status,
       parentId: data.parentCategory,
       sortOrder: data.sortOrder,
+      image: data.image ? JSON.stringify(data.image) : null,
     };
 
     // Call the RTK Query mutation

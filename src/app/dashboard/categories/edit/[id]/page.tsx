@@ -66,7 +66,8 @@ export default function EditCategoryPage() {
                 icon: category.icon,
                 status: category.status,
                 parentCategory: category.parentId || "root",
-                sortOrder: category.sortOrder
+                sortOrder: category.sortOrder,
+                image: category.image || null,
             });
         }
     }, [category]);
@@ -100,6 +101,7 @@ export default function EditCategoryPage() {
                 status: data.status,
                 parentId: data.parentCategory,
                 sortOrder: data.sortOrder,
+                image: data.image || null,
             };
 
             // Call the RTK Query mutation

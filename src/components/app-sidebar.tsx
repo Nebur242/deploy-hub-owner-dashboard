@@ -47,6 +47,11 @@ const data = {
       url: "/dashboard/categories",
       icon: IconListDetails,
     },
+    {
+      title: "Media",
+      url: "/dashboard/media",
+      icon: IconDatabase,
+    },
     // {
     //   title: "Analytics",
     //   url: "#",

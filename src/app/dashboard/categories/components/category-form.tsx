@@ -17,6 +17,7 @@ import { IconSelectionCard } from "./icon-selection-card";
 import { OrganizationStatusCard } from "./organization-status-card";
 import { ActionCard } from "./action-card";
 import { SuccessAlert } from "./success-alert";
+import { FeaturedImageCard } from "./featured-image-card";
 
 // Export types from schema for external use
 export type CategoryFormData = z.infer<typeof categorySchema>;
@@ -44,7 +45,8 @@ export default function CategoryForm({
             icon: "code",
             status: "active",
             parentCategory: "root",
-            sortOrder: 1
+            sortOrder: 1,
+            image: null,
         }
     });
 
@@ -129,6 +131,12 @@ export default function CategoryForm({
                                 success={success}
                                 isEditing={isEditing}
                                 initialData={initialData}
+                            />
+
+                            <FeaturedImageCard
+                                form={form}
+                                isLoading={isLoading}
+                                success={success}
                             />
 
                             <IconSelectionCard
