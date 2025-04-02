@@ -12,11 +12,11 @@ function buildMediaQueryString(params: MediaQueryParams): URLSearchParams {
   const queryString = new URLSearchParams();
 
   // Add number parameters
-  if (params.page !== undefined) {
+  if (params.page) {
     queryString.append("page", params.page.toString());
   }
 
-  if (params.limit !== undefined) {
+  if (params.limit) {
     queryString.append("limit", params.limit.toString());
   }
 
@@ -39,10 +39,6 @@ function buildMediaQueryString(params: MediaQueryParams): URLSearchParams {
 
   // Handle array of tags
   if (params.tags && params.tags.length > 0) {
-    // Option 1: Append each tag separately (results in multiple "tags" parameters)
-    // queryString.append("tags", JSON.stringify(params.tags));
-
-    // Option 2: Join tags with comma (results in a single "tags" parameter)
     queryString.append("tags", params.tags.join(","));
   }
 
@@ -75,18 +71,6 @@ export const mediaApi = createApi({
       },
       // Transform the response from nestjs-typeorm-paginate to match our expected PaginatedResponse format
       transformResponse: (response: DefaultPaginatedResponse<Media>) => {
-        // nestjs-typeorm-paginate returns a response with the following structure:
-        // {
-        //   items: Media[], // The actual items
-        //   meta: {
-        //     itemCount: number, // Items on this page
-        //     totalItems: number, // Total items across all pages
-        //     itemsPerPage: number, // Page size
-        //     totalPages: number, // Total number of pages
-        //     currentPage: number, // Current page number (1-based)
-        //   }
-        // }
-
         return {
           data: response.items || [],
           meta: {

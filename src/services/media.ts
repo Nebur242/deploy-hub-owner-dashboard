@@ -6,15 +6,13 @@ import {
 } from "firebase/storage";
 import { MediaType } from "@/common/types/media";
 import { storage } from "@/config/firebase";
+import { v4 as uuidv4 } from "uuid";
 
 // Generate thumbnail URL (this is a placeholder - you might want to implement actual thumbnail generation)
-export const generateThumbnail = async (
-  file: File,
-  type: MediaType
-): Promise<string | undefined> => {
+export const generateThumbnail = (file: File, type: MediaType) => {
   if (type === MediaType.IMAGE) {
     // For images, you might return the same URL or generate a smaller version
-    return undefined; // In this case, we'll use the original image
+    return URL.createObjectURL(file); // In this case, we'll use the original image
   }
 
   if (type === MediaType.VIDEO) {
@@ -73,7 +71,14 @@ export const deleteFileFromFirebase = async (path: string): Promise<void> => {
   }
 };
 
-// Other existing Firebase utility functions...
+/**
+  * Upload a file to Firebase Storage
+  * @param file - The file to upload
+  * @param path - The storage path (default: "media")
+  * @param onProgress - Optional callback for upload progress
+  * @param onError - Optional callback for upload errors
+  * @returns Promise resolving to the download URL and storage path
++  */
 export const uploadFileToFirebase = (
   file: File,
   path = "media",
@@ -83,7 +88,8 @@ export const uploadFileToFirebase = (
   return new Promise<{ url: string; path: string }>((resolve, reject) => {
     try {
       const uniqueFilename = generateUniqueFilename(file);
-      const storagePath = `${path}/${uniqueFilename}`;
+      const sanitizedPath = path.replace(/\.\.\//g, "").replace(/\\/g, "/");
+      const storagePath = `${sanitizedPath}/${uniqueFilename}`;
       const storageRef = ref(storage, storagePath);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -113,9 +119,8 @@ export const uploadFileToFirebase = (
 // Helper functions
 export const generateUniqueFilename = (file: File) => {
   const timestamp = Date.now();
-  const randomString = Math.random().toString(36).substring(2, 15);
   const extension = file.name.split(".").pop();
-  return `${timestamp}-${randomString}.${extension}`;
+  return `${timestamp}-${uuidv4()}.${extension}`;
 };
 
 export const getMediaTypeFromMimeType = (mimeType: string): MediaType => {

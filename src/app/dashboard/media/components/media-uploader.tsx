@@ -15,6 +15,8 @@ import {
     generateThumbnail
 } from '@/services/media';
 import { useCreateMediaMutation } from '@/store/features/media';
+import { v4 as uuidv4 } from 'uuid';
+
 
 interface MediaUploaderProps {
     onUploadComplete: (media: Media) => void;
@@ -55,7 +57,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             const filesToUpload = acceptedFiles.map((file) => ({
                 file: Object.assign(file, {
                     preview: URL.createObjectURL(file),
-                    id: Math.random().toString(36).substr(2, 9),
+                    id: uuidv4(),
                 }),
                 progress: 0,
                 error: null,
