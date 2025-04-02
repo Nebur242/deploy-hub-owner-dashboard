@@ -24,7 +24,7 @@ export const generateThumbnail = (file: File, type: MediaType) => {
   const thumbnails = {
     [MediaType.AUDIO]: "/assets/audio-thumbnail.png",
     [MediaType.DOCUMENT]: "/assets/document-thumbnail.png",
-    [MediaType.OTHER]: "/assets/file-thumbnail.png",
+    [MediaType.OTHER]: "/assets/document-thumbnail.png",
   };
 
   return thumbnails[type as keyof typeof thumbnails];

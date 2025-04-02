@@ -24,6 +24,13 @@ export function NavMain({
 }) {
   const pathname = usePathname();
 
+  const isRouteActive = (url: string) => {
+    if (pathname === "/dashboard") {
+      return url === "/dashboard";
+    }
+    return pathname.includes(url) && url !== "/dashboard";
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -52,7 +59,7 @@ export function NavMain({
               <SidebarMenuButton
                 tooltip={item.title}
                 asChild
-                isActive={pathname === item.url}
+                isActive={isRouteActive(item.url)}
               >
                 <Link href={item.url}>
                   {item.icon && <item.icon />}
