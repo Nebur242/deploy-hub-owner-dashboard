@@ -57,6 +57,13 @@ export interface SuccessAlertProps {
   isEditing: boolean;
 }
 
+// Props for the ErrorAlert component
+export interface ErrorAlertProps {
+  title?: string;
+  message: string;
+  className?: string;
+}
+
 // Props for the ParentCategorySelector component
 export interface ParentCategorySelectorProps {
   form: UseFormReturn<CategoryFormData | CategoryUpdateFormData>;

@@ -4,7 +4,7 @@ import * as React from "react";
 import {
   // IconChartBar,
   // IconUsers,
-  // IconFolder,
+  IconFolder,
   IconDashboard,
   IconDatabase,
   IconFileWord,
@@ -57,11 +57,11 @@ const data = {
     //   url: "#",
     //   icon: IconChartBar,
     // },
-    // {
-    //   title: "Projects",
-    //   url: "#",
-    //   icon: IconFolder,
-    // },
+    {
+      title: "Projects",
+      url: "/dashboard/projects",
+      icon: IconFolder,
+    },
     // {
     //   title: "Team",
     //   url: "#",
@@ -105,7 +105,6 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>

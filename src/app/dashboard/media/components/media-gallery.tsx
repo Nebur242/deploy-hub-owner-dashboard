@@ -12,15 +12,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from '@/components/ui/pagination';
+// Removed pagination components as we're using a simpler UI now
 import { toast } from 'sonner';
 import { Media, MediaQueryParams, MediaType } from '@/common/types/media';
 import {
@@ -270,106 +262,81 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
         onSelect([]);
     };
 
+    const handlePreviousPage = () => {
+        if (pagination.page > 1) {
+            handlePageChange(pagination.page - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (pagination.page < pagination.totalPages) {
+            handlePageChange(pagination.page + 1);
+        }
+    };
+
     const renderPagination = () => {
         if (pagination.totalPages <= 1) return null;
 
         const currentPage = pagination.page;
         const totalPages = pagination.totalPages;
 
-        // Create array of page numbers to display
-        let pageNumbers = [];
-
-        // Always show first page, last page, current page, and one page before and after current
-        if (totalPages <= 7) {
-            // If 7 or fewer pages, show all
-            pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-        } else {
-            // Always include first and last page
-            pageNumbers.push(1);
-
-            // Add ellipsis if needed before current page area
-            if (currentPage > 3) {
-                pageNumbers.push(-1); // -1 represents ellipsis
-            }
-
-            // Add pages around current page
-            const startPage = Math.max(2, currentPage - 1);
-            const endPage = Math.min(totalPages - 1, currentPage + 1);
-
-            for (let i = startPage; i <= endPage; i++) {
-                pageNumbers.push(i);
-            }
-
-            // Add ellipsis if needed after current page area
-            if (currentPage < totalPages - 2) {
-                pageNumbers.push(-1); // -1 represents ellipsis
-            }
-
-            // Add last page
-            pageNumbers.push(totalPages);
-        }
-
         return (
-            <Pagination>
-                <PaginationContent>
-                    <PaginationItem>
-                        <PaginationPrevious
-                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1 || isLoading || isFetching}
-                        />
-                    </PaginationItem>
-
-                    {pageNumbers.map((page, index) =>
-                        page === -1 ? (
-                            <PaginationItem key={`ellipsis-${index}`}>
-                                <PaginationEllipsis />
-                            </PaginationItem>
-                        ) : (
-                            <PaginationItem key={page}>
-                                <PaginationLink
-                                    isActive={page === currentPage}
-                                    onClick={() => handlePageChange(page)}
-                                    disabled={isLoading || isFetching}
-                                >
-                                    {page}
-                                </PaginationLink>
-                            </PaginationItem>
-                        )
-                    )}
-
-                    <PaginationItem>
-                        <PaginationNext
-                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                            disabled={currentPage === totalPages || isLoading || isFetching}
-                        />
-                    </PaginationItem>
-                </PaginationContent>
-            </Pagination>
+            <div className="space-x-2 flex items-center">
+                <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage <= 1 || isLoading || isFetching}
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage >= totalPages || isLoading || isFetching}
+                >
+                    Next
+                </Button>
+            </div>
         );
     };
 
     const renderContent = () => {
         if (isLoading) {
             return (
-                <div className="text-center py-12">
-                    <div className="animate-spin h-8 w-8 border-b-2 border-gray-900 rounded-full mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading media...</p>
+                <div className="text-center py-16 animate-in fade-in">
+                    <div className="inline-flex items-center justify-center rounded-md border border-muted p-4 mb-4 bg-card">
+                        <div className="animate-spin h-10 w-10 border-[3px] border-primary/30 border-t-primary rounded-full mx-auto"></div>
+                    </div>
+                    <p className="text-muted-foreground">Loading media files...</p>
                 </div>
             );
         }
 
         if (media.length === 0) {
             return (
-                <div className="text-center py-16">
-                    <div className="text-5xl mb-4">📁</div>
-                    <h3 className="text-xl font-medium mb-2">No media found</h3>
-                    <p className="text-gray-500 mb-6">
+                <div className="text-center py-16 px-4 max-w-md mx-auto animate-in fade-in">
+                    <div className="mb-6 bg-muted/50 inline-block p-6 rounded-full">
+                        <div className="relative w-16 h-16">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground h-16 w-16">
+                                <path d="M20 20a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2Z" />
+                                <path d="M14 20H2a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h2" />
+                                <path d="M13.9 7.58a2 2 0 1 0-2.8-2.85" />
+                                <path d="M13.1 6.58a2 2 0 1 0 2.8-2.85" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 className="text-xl font-medium mb-3 text-foreground">No media found</h3>
+                    <p className="text-muted-foreground mb-6">
                         {Object.keys(filters).length > 2
-                            ? "Try adjusting your filters or"
-                            : "Get started by"}
-                        {" "}uploading your first media file.
+                            ? "Try adjusting your filters or upload a new media file."
+                            : "Upload images, videos, audio files, and documents to your media library."}
                     </p>
-                    <Button onClick={() => setIsUploadModalOpen(true)}>
+                    <Button onClick={() => setIsUploadModalOpen(true)} size="lg" className="shadow-sm">
                         <Plus className="h-4 w-4 mr-2" />
                         Upload Media
                     </Button>
@@ -379,7 +346,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
         if (viewMode === 'grid') {
             return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6 animate-in fade-in duration-300">
                     {media.map((item) => (
                         selectable ? (
                             <SelectableMediaCard
@@ -413,24 +380,26 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
         // List view
         return (
-            <div className="space-y-2">
+            <div className="space-y-2 animate-in fade-in duration-300">
                 {media.map((item) => (
                     <div
                         key={item.id}
                         className={cn(
-                            "flex items-center border rounded-lg p-3 transition-colors",
+                            "flex items-center border rounded-lg p-4 transition-all duration-200",
+                            "hover:shadow-sm hover:bg-muted/30",
                             selectable && isItemSelected(item)
-                                ? "bg-primary/5 border-primary"
-                                : "hover:bg-gray-50"
+                                ? "bg-primary/5 border-primary ring-1 ring-primary/30"
+                                : "hover:border-muted-foreground/20"
                         )}
                     >
+                        {/* Selection indicator */}
                         {selectable && (
                             <div
                                 className={cn(
-                                    "flex-shrink-0 w-6 h-6 mr-3 rounded-full border flex items-center justify-center",
+                                    "flex-shrink-0 w-6 h-6 mr-3 rounded-full border shadow-sm flex items-center justify-center transition-all cursor-pointer",
                                     isItemSelected(item)
-                                        ? "bg-primary border-primary text-white"
-                                        : "border-gray-300"
+                                        ? "bg-primary border-primary text-primary-foreground"
+                                        : "bg-background border-muted-foreground/30"
                                 )}
                                 onClick={() => handleSelectItem(item)}
                             >
@@ -438,7 +407,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                             </div>
                         )}
 
-                        <div className="h-12 w-12 mr-4 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                        {/* Media thumbnail with improved styling */}
+                        <div className="h-20 w-20 mr-5 flex-shrink-0 bg-muted/50 rounded-md overflow-hidden border border-muted shadow-sm">
                             {item.type === MediaType.IMAGE ? (
                                 <img
                                     src={item.thumbnailUrl || item.url}
@@ -446,61 +416,135 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <div className="h-full w-full flex items-center justify-center">
-                                    {item.type === MediaType.VIDEO && '🎬'}
-                                    {item.type === MediaType.AUDIO && '🎵'}
-                                    {item.type === MediaType.DOCUMENT && '📄'}
-                                    {item.type === MediaType.OTHER && '📁'}
+                                <div className="h-full w-full flex items-center justify-center bg-background/50">
+                                    {item.type === MediaType.VIDEO && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground h-6 w-6">
+                                            <polygon points="23 7 16 12 23 17 23 7" />
+                                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                                        </svg>
+                                    )}
+                                    {item.type === MediaType.AUDIO && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground h-6 w-6">
+                                            <path d="M9 18V5l12-2v13" />
+                                            <circle cx="6" cy="18" r="3" />
+                                            <circle cx="18" cy="16" r="3" />
+                                        </svg>
+                                    )}
+                                    {item.type === MediaType.DOCUMENT && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground h-6 w-6">
+                                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg>
+                                    )}
+                                    {item.type === MediaType.OTHER && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground h-6 w-6">
+                                            <path d="M18 3v4c0 2-2 4-4 4H2" />
+                                            <path d="M18 3a2 2 0 1 1 4 0v14a2 2 0 1 1-4 0V3z" />
+                                            <path d="M2 7v10c0 2 2 4 4 4h8" />
+                                        </svg>
+                                    )}
                                 </div>
                             )}
                         </div>
+
+                        {/* Media information with improved typography */}
                         <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate" title={item.filename}>
+                            <p className="font-medium truncate text-foreground mb-1" title={item.filename}>
                                 {item.filename}
                             </p>
-                            <p className="text-sm text-gray-500">
-                                {item.type} • {new Intl.DateTimeFormat().format(new Date(item.createdAt))}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className={cn(
+                                    "px-2 py-0.5 rounded-full text-xs font-medium",
+                                    item.type === MediaType.IMAGE && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                    item.type === MediaType.VIDEO && "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                                    item.type === MediaType.AUDIO && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                    item.type === MediaType.DOCUMENT && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                                    item.type === MediaType.OTHER && "bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-400"
+                                )}>
+                                    {item.type}
+                                </span>
+                                <span className="text-muted-foreground flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-3 w-3">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                    {new Intl.DateTimeFormat().format(new Date(item.createdAt))}
+                                </span>
+                                {item.isPublic ? (
+                                    <span className="text-muted-foreground flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-3 w-3">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <circle cx="12" cy="12" r="4" />
+                                        </svg>
+                                        Public
+                                    </span>
+                                ) : (
+                                    <span className="text-muted-foreground flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-3 w-3">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        </svg>
+                                        Private
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
+                        {/* Action buttons with improved styling */}
                         {selectable ? (
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => openMediaDetails(item)}
+                                className="flex items-center gap-1"
                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="16" x2="12" y2="12" />
+                                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
                                 Preview
                             </Button>
                         ) : (
                             <div className="flex space-x-2">
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => openMediaDetails(item)}
+                                    className="flex items-center gap-1"
                                 >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
                                     View
                                 </Button>
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => {
                                         setSelectedMedia(item);
                                         setIsDetailsModalOpen(true);
                                         setIsEditing(true);
                                     }}
+                                    className="flex items-center gap-1"
                                 >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                                        <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                        <path d="m15 5 4 4" />
+                                    </svg>
                                     Edit
                                 </Button>
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="text-red-500 hover:text-red-700"
+                                    className="text-destructive hover:text-destructive hover:border-destructive/30 hover:bg-destructive/10"
                                     onClick={() => {
                                         setMediaToDelete(item);
                                         setIsDeleteDialogOpen(true);
                                     }}
                                 >
-                                    Delete
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
                         )}
@@ -516,8 +560,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
             return (
                 <div className="flex justify-between items-center border-b pb-4">
                     <div>
-                        <h2 className="text-xl font-semibold">Select Media</h2>
-                        <p className="text-sm text-gray-500">
+                        <h2 className="text-xl font-semibold text-foreground">Select Media</h2>
+                        <p className="text-sm text-muted-foreground">
                             {mode === 'single'
                                 ? 'Select one media file'
                                 : limit
@@ -543,7 +587,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                         )}
 
                         {/* View mode toggle */}
-                        <div className="bg-gray-100 rounded-md p-1 flex">
+                        <div className="bg-muted rounded-md p-1 flex">
                             <Button
                                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                                 size="sm"
@@ -575,9 +619,9 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
         // Default non-selectable header
         return (
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Media Library</h1>
+                <h1 className="text-2xl font-bold text-foreground">Media Library</h1>
                 <div className="flex items-center space-x-2">
-                    <div className="bg-gray-100 rounded-md p-1 flex">
+                    <div className="bg-muted rounded-md p-1 flex">
                         <Button
                             variant={viewMode === 'grid' ? 'default' : 'ghost'}
                             size="sm"
@@ -612,7 +656,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
             <div>
                 {isFetching && !isLoading && (
-                    <div className="w-full h-1 bg-gray-100 overflow-hidden">
+                    <div className="w-full h-1 bg-muted overflow-hidden">
                         <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }}></div>
                     </div>
                 )}
@@ -621,7 +665,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
                 {media.length > 0 && (
                     <div className="mt-6 flex items-center justify-between">
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                             Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
                             {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                             {pagination.total} items

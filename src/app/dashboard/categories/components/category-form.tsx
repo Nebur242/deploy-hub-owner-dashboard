@@ -17,6 +17,7 @@ import { IconSelectionCard } from "./icon-selection-card";
 import { OrganizationStatusCard } from "./organization-status-card";
 import { ActionCard } from "./action-card";
 import { SuccessAlert } from "./success-alert";
+import { ErrorAlert } from "./error-alert";
 import { FeaturedImageCard } from "./featured-image-card";
 
 // Export types from schema for external use
@@ -118,6 +119,12 @@ export default function CategoryForm({
     return (
         <>
             {success && <SuccessAlert isEditing={isEditing} />}
+            
+            {error && (
+                <ErrorAlert 
+                    message={error?.message || (isEditing ? "Failed to update category" : "Failed to create category")} 
+                />
+            )}
 
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleFormSubmit)}>
