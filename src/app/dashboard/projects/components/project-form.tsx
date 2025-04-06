@@ -62,6 +62,22 @@ interface ProjectFormProps {
   error: { message: string } | null;
 }
 
+/**
+ * Renders a form for creating or updating project details.
+ *
+ * This component utilizes react-hook-form for state management and integrates zod for schema validation.
+ * It conditionally auto-generates a URL-friendly slug from the project name when not in editing mode, unless
+ * the slug has been manually edited, and disables slug modifications when editing an existing project.
+ * The form is organized into sections for basic project information and additional settings including
+ * visibility, categories, and tech stack, and it provides user feedback through success and error alerts.
+ *
+ * @param isEditing - Determines if the form is in edit mode, affecting slug behavior and field states.
+ * @param initialData - Optional initial values for pre-filling the form when editing an existing project.
+ * @param onSubmit - Callback function invoked with validated form data upon submission.
+ * @param isLoading - Indicates whether the form submission is in progress.
+ * @param isSuccess - Indicates whether the most recent form submission was successful.
+ * @param error - Contains error information if form submission fails.
+ */
 export default function ProjectForm({
   isEditing,
   initialData,

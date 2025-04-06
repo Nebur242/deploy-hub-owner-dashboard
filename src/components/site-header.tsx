@@ -42,6 +42,17 @@ import { logoutUser } from "@/store/features/auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+/**
+ * Renders the application header with navigation and user interaction controls.
+ *
+ * This component displays the top header for the application, featuring a desktop search input,
+ * a mobile search toggle, notifications dropdown with badge count, theme toggle, help menu, and user account dropdown.
+ * It monitors scroll position to apply a shadow effect and manages state for mobile search, notifications, and a logout confirmation dialog.
+ * The logout process dispatches an action, displays toast notifications for success or failure, and redirects to the login page.
+ *
+ * @remarks
+ * The notifications dropdown marks notifications as read upon opening and the logout dialog prompts the user for confirmation.
+ */
 export function SiteHeader() {
   const {
     infos: user,

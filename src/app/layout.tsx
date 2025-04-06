@@ -25,6 +25,16 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Renders the root layout for the application.
+ *
+ * This component sets up the HTML document with a specified language attribute and suppresses hydration warnings.
+ * It applies global font classes and wraps its children with providers for state management and theming,
+ * ensuring that the application content is rendered within a global context.
+ *
+ * @param children - The React nodes to be rendered within the layout.
+ * @returns The structured HTML layout with global state and theme contexts.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

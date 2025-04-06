@@ -104,6 +104,20 @@ const data = {
   ],
 };
 
+/**
+ * Renders the application sidebar layout.
+ *
+ * The component composes a sidebar with a header displaying the company branding,
+ * a main navigation section combined with a secondary navigation section,
+ * and a footer for user-related actions. All additional properties are forwarded
+ * to the underlying Sidebar component.
+ *
+ * @example
+ * <AppSidebar className="custom-sidebar" />
+ *
+ * @param props Additional properties passed to the Sidebar component.
+ * @returns A JSX element representing the sidebar.
+ */
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>

@@ -48,6 +48,27 @@ export interface CategorySelectorProps {
   limit?: number; // Number of items to load per page
 }
 
+/**
+ * Renders a category selection dropdown with search, pagination, and exclusion options.
+ *
+ * This component fetches and displays categories dynamically, allowing for single or multiple selections.
+ * It supports debounced searching, paginated loading, and the exclusion of categories by specific IDs or a matching field value.
+ * An optional root category option is provided to represent the top-level category.
+ *
+ * @param form - The form instance used for managing field values.
+ * @param fieldName - The name of the form field associated with the selected category or categories.
+ * @param label - Field label displayed above the selection button (default: "Category").
+ * @param description - Optional description text shown below the field.
+ * @param placeholder - Text displayed when no category is selected (default: "Select a category").
+ * @param isLoading - Indicates whether category data is loading and disables the dropdown if true.
+ * @param success - Disables further selection when the operation has been successfully completed.
+ * @param multiple - If true, enables the selection of multiple categories.
+ * @param excludeIds - Array of category IDs to be excluded from the dropdown options.
+ * @param excludeByField - Criteria for excluding categories based on a specific field's value.
+ * @param rootOption - If true, includes an option for selecting a top-level (root) category.
+ * @param rootLabel - Label for the root category option (default: "Root (Top-level category)").
+ * @param limit - Maximum number of categories to fetch per page.
+ */
 export function CategorySelector({
   form,
   isLoading = false,
@@ -473,7 +494,21 @@ export function CategorySelector({
   );
 }
 
-// Legacy component for backward compatibility
+/**
+ * Legacy component for selecting a parent category.
+ *
+ * This component wraps the {@link CategorySelector} with preset properties tailored for parent
+ * category selection. It restricts selection to a single category, and when applicable, excludes a
+ * specific category by its ID or by matching the provided form name.
+ *
+ * @param form - The form control object.
+ * @param isLoading - Flag indicating if category data is currently loading.
+ * @param success - Flag indicating the success state of previous operations.
+ * @param formName - Optional; the current form's name used to filter out a category matching this name.
+ * @param excludeCategoryId - Optional; the ID of a category to be excluded from selection.
+ *
+ * @returns A preconfigured {@link CategorySelector} element for parent category selection.
+ */
 export function ParentCategorySelector({
   form,
   isLoading,

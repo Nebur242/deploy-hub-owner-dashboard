@@ -9,6 +9,16 @@ export interface ErrorAlertProps {
   className?: string;
 }
 
+/**
+ * Renders an error alert message.
+ *
+ * Displays a styled alert with an error icon, title, and description. The description defaults to a message indicating a failure to create or update a configuration based on the editing mode, unless a custom message is provided.
+ *
+ * @param isEditing - Indicates whether the alert pertains to an editing operation. When true, the default message warns of a configuration update failure.
+ * @param title - The title displayed in the alert; defaults to "Error".
+ * @param message - An optional custom error message. If not provided, a default message based on the editing state is used.
+ * @param className - Optional additional CSS classes for custom styling.
+ */
 export function ErrorAlert({ 
   isEditing = false,
   title = "Error", 

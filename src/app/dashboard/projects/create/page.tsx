@@ -10,6 +10,13 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import ProjectForm, { ProjectFormData } from "../components/project-form";
 import { toast } from "sonner";
 
+/**
+ * Renders the dashboard page for creating a new project.
+ *
+ * This page displays a project creation form, breadcrumb navigation, and a back-to-projects button.
+ * When a new project is successfully created, a success toast is shown and the user is redirected
+ * to the projects list after a short delay.
+ */
 export default function CreateProjectPage() {
   const router = useRouter();
   const [createProject, { isLoading, error, isSuccess }] =

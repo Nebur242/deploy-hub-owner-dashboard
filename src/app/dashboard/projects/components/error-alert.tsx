@@ -9,6 +9,18 @@ export interface ErrorAlertProps {
   className?: string;
 }
 
+/**
+ * Renders an error alert with a customizable title and message.
+ *
+ * This component displays an error alert styled with a red theme and an accompanying icon.
+ * It uses a default error message that varies based on the editing state—indicating either a failure
+ * to create or update a project—unless a custom message is provided.
+ *
+ * @param isEditing - When true, sets the default message to indicate an update failure. Defaults to false.
+ * @param title - The alert's title text. Defaults to "Error".
+ * @param message - A custom error message; if not provided, a default message based on the editing state is shown.
+ * @param className - Additional CSS classes for custom styling of the alert.
+ */
 export function ErrorAlert({ 
   isEditing = false,
   title = "Error", 

@@ -8,6 +8,17 @@ export interface ErrorAlertProps {
     className?: string;
 }
 
+/**
+ * Renders a styled error alert with an icon, title, and message.
+ *
+ * This component displays an error alert using predefined error styles. It shows an error icon,
+ * a title (defaulting to "Error" if unspecified), and a descriptive error message. Optionally,
+ * additional CSS classes can be provided to customize the alert's appearance.
+ *
+ * @param title - The title displayed in the alert header. Defaults to "Error" when not provided.
+ * @param message - The error message shown in the alert body.
+ * @param className - Additional CSS classes to apply to the alert component.
+ */
 export function ErrorAlert({ title = "Error", message, className }: ErrorAlertProps) {
     return (
         <Alert 

@@ -9,6 +9,20 @@ export interface SuccessAlertProps {
   className?: string;
 }
 
+/**
+ * Renders a styled success alert message.
+ *
+ * Displays an alert with a title and message that indicate a successful project update or creation.
+ * The alert uses a default title of "Success" and selects a default message based on the value of
+ * the isEditing prop unless a custom message is provided.
+ *
+ * @param isEditing - Indicates if the alert pertains to an update operation (true) or a creation (false).
+ * @param title - Optional custom title for the alert; defaults to "Success".
+ * @param message - Optional custom message; if omitted, a default message is shown based on isEditing.
+ * @param className - Optional additional CSS classes for the alert container.
+ *
+ * @returns A React element representing the success alert.
+ */
 export function SuccessAlert({ 
   isEditing, 
   title = "Success", 

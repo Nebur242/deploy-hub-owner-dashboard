@@ -16,6 +16,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ConfigurationForm from "../../components/configuration-form";
 import { CreateProjectConfigurationDto } from "@/common/types/project";
 
+/**
+ * Renders the configuration editing page for a project.
+ *
+ * This React component retrieves a project's details and its configuration using RTK Query hooks based on URL parameters.
+ * It manages the loading, error, and update states, initializing the form with existing configuration data when available.
+ * Upon form submission, it updates the configuration and redirects back to the project page after showing a success notification.
+ */
 export default function EditConfigurationPage() {
   const params = useParams<{ id: string; configId: string }>();
   const router = useRouter();

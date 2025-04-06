@@ -15,6 +15,16 @@ import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreateProjectConfigurationDto } from "@/common/types/project";
 
+/**
+ * Renders the Create Configuration page for a specific project within the dashboard.
+ *
+ * This component extracts the project ID from the URL and fetches project details to provide
+ * context in the form of breadcrumbs and layout actions. It displays a loading state while
+ * retrieving project data and shows an error alert if the project is not found. Upon a valid project,
+ * it renders a configuration form that triggers a mutation to create a new configuration. After a
+ * successful creation, a toast notification is shown and the user is redirected back to the project
+ * edit page after a short delay.
+ */
 export default function CreateConfigurationPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();

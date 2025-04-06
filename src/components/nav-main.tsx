@@ -13,6 +13,15 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
+/**
+ * Renders a navigation sidebar featuring a "Quick Create" button and a list of navigation links.
+ *
+ * The component displays a dedicated button that navigates to the project creation page when clicked,
+ * along with a set of navigation items. Each navigation item is presented as a link, optionally with an icon,
+ * and is visually marked as active based on the current URL.
+ *
+ * @param items - An array of navigation items where each item includes a title, a URL, and an optional icon.
+ */
 export function NavMain({
   items,
 }: {

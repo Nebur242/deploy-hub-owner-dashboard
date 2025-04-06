@@ -9,6 +9,18 @@ export interface SuccessAlertProps {
   className?: string;
 }
 
+/**
+ * Renders a success alert message with an accompanying check icon.
+ *
+ * Displays an alert with a title and description that varies based on the editing state.
+ * When isEditing is true, the alert indicates a configuration update; otherwise, it indicates a configuration creation.
+ * A custom message can override the default description, and additional CSS classes may be applied via the className prop.
+ *
+ * @param isEditing - Indicates whether the alert corresponds to an editing action.
+ * @param title - The title of the alert; defaults to "Success".
+ * @param message - An optional custom message to display instead of the default.
+ * @param className - Additional CSS classes for custom styling.
+ */
 export function SuccessAlert({ 
   isEditing, 
   title = "Success", 

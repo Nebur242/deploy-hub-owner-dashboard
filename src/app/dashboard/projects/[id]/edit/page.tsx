@@ -17,6 +17,11 @@ import { IconPlus } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+/**
+ * Renders the Edit Project page for updating project details and managing deployment configurations.
+ *
+ * This component fetches project data based on the URL parameter and initializes the form with the retrieved project information. It handles loading and error states during data retrieval and update operations using RTK Query hooks. On a successful update, it redirects the user back to the projects list after a brief delay. Additionally, the page displays existing deployment configurations with options to edit or add new ones, and includes breadcrumb navigation and action buttons for smooth user experience.
+ */
 export default function EditProjectPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();

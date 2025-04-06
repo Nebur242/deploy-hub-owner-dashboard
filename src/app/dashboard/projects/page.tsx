@@ -47,6 +47,16 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 
+/**
+ * Renders the projects management dashboard.
+ *
+ * Displays a comprehensive interface for managing projects with features for searching,
+ * filtering by visibility and tech stack, and paginating through the project list.
+ * It also provides controls for refreshing the project data, navigating to project creation,
+ * and deleting projects with a confirmation dialog.
+ *
+ * @returns A React element representing the projects dashboard.
+ */
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");

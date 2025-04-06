@@ -24,6 +24,23 @@ import { FeaturedImageCard } from "./featured-image-card";
 export type CategoryFormData = z.infer<typeof categorySchema>;
 export type CategoryUpdateFormData = z.infer<typeof categoryUpdateSchema>;
 
+/**
+ * Renders a form for creating or editing a category.
+ *
+ * This component manages category details using react-hook-form and zod for validation. It supports both creation and editing modes,
+ * automatically generating a slug based on the category name when applicable. The component provides feedback via toast notifications
+ * and conditionally renders success and error alerts. On successful submission, it redirects the user to the categories dashboard after a short delay.
+ *
+ * @param isEditing - Indicates if the form is used for editing an existing category.
+ * @param initialData - Optional initial values to pre-populate the form.
+ * @param onSubmit - Callback to handle form submission with the current form data.
+ * @param isLoading - Flag indicating whether a submission is in progress.
+ * @param isSuccess - Flag indicating whether the submission was successful.
+ * @param error - Contains error details if the submission fails.
+ * @param excludeCategoryId - Identifier for a category to exclude from selection options.
+ *
+ * @returns A React component that renders the category form.
+ */
 export default function CategoryForm({
     isEditing,
     initialData,

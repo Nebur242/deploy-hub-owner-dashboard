@@ -3,6 +3,14 @@ import { CheckCircle2 } from "lucide-react";
 import { SuccessAlertProps } from "./types";
 import { cn } from "@/lib/utils";
 
+/**
+ * Renders a success alert for category operations.
+ *
+ * Displays a styled alert with a success icon, title, and description. The description indicates
+ * whether a category was updated or created based on the provided "isEditing" flag.
+ *
+ * @param isEditing - If true, the alert indicates that the category was updated; if false, it indicates a creation.
+ */
 export function SuccessAlert({ isEditing }: SuccessAlertProps) {
     return (
         <Alert className={cn(

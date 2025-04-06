@@ -17,6 +17,14 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+/**
+ * Renders the Edit Category page.
+ *
+ * This component fetches a category's details based on the route parameter using an RTK Query hook and initializes
+ * the edit form with the fetched data. It manages form submission via a mutation, provides feedback for loading
+ * and error states, and redirects back to the categories list after a successful update. A retry mechanism is also
+ * available to refetch category data if fetching fails.
+ */
 export default function EditCategoryPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();

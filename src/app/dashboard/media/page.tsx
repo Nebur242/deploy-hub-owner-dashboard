@@ -5,6 +5,12 @@ import MediaGallery from './components/media-gallery';
 import DashboardLayout from '@/components/dashboard-layout';
 import { BreadcrumbItem } from '@/components/breadcrumb';
 
+/**
+ * Renders the media page layout with dashboard navigation and a styled media gallery.
+ *
+ * The MediaPage component constructs a page layout by passing a breadcrumb labeled "Media page" to the dashboard layout.
+ * A styled container wraps the MediaGallery component to enhance its visual presentation.
+ */
 export default function MediaPage() {
     // Breadcrumb items
     const breadcrumbItems: BreadcrumbItem[] = [

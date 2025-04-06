@@ -60,6 +60,13 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 
+/**
+ * Renders the Categories management page within the dashboard.
+ *
+ * This component displays a searchable, sortable, and paginated table of categories. It provides
+ * controls for refreshing the list, adding new categories, editing existing ones, and deleting categories
+ * through a confirmation dialog. The table supports column visibility toggling and manual pagination.
+ */
 export default function CategoriesPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);

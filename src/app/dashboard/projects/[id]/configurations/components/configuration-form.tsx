@@ -95,6 +95,21 @@ interface ConfigurationFormProps {
   error: { message: string } | null;
 }
 
+/**
+ * Renders a configuration form for creating or updating project configurations.
+ *
+ * This component uses react-hook-form together with a Zod schema for validation. It supports dynamic
+ * fields for GitHub accounts, build commands, deployment providers, and environment variables, allowing
+ * users to add or remove entries as needed. The form initializes with provided data when editing an existing
+ * configuration.
+ *
+ * @param isEditing - Whether the form is being used to edit an existing configuration.
+ * @param initialData - Optional initial form data for pre-populating the fields when editing.
+ * @param onSubmit - Callback function invoked with the form's values upon submission.
+ * @param isLoading - Indicates whether the form submission is currently in progress.
+ * @param isSuccess - Signifies whether the submission was successful, triggering a success alert.
+ * @param error - Contains error details if the form submission fails.
+ */
 export default function ConfigurationForm({
   // projectId,
   isEditing,
