@@ -15,7 +15,7 @@ export default function DashboardLayout({
     actions
 }: DashboardLayoutProps) {
     return (
-        <div className="container mx-auto py-6 max-w-6xl">
+        <div>
             {/* Breadcrumb */}
             <Breadcrumb items={breadcrumbItems} />
 
