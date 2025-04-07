@@ -4,12 +4,12 @@ import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-    Eye, 
-    FileIcon, 
-    Music, 
-    FileText, 
-    Film, 
+import {
+    Eye,
+    FileIcon,
+    Music,
+    FileText,
+    Film,
     Check,
     Calendar,
     HardDrive
@@ -37,7 +37,7 @@ const SelectableMediaCard: React.FC<SelectableMediaCardProps> = ({
     const getMediaPreview = () => {
         if (media.type === MediaType.IMAGE) {
             return (
-                <div className="relative w-full aspect-square bg-muted rounded-t-md overflow-hidden group-hover:opacity-90 transition-opacity">
+                <div className="relative w-full aspect-video bg-muted rounded-t-md overflow-hidden group-hover:opacity-90 transition-opacity">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <Image
                         src={media.url}
@@ -123,9 +123,9 @@ const SelectableMediaCard: React.FC<SelectableMediaCardProps> = ({
         <Card
             className={cn(
                 "overflow-hidden group transition-all duration-200 relative py-0",
-                "hover:shadow-md hover:scale-[1.02]",
-                selected 
-                    ? "ring-2 ring-primary ring-offset-1 bg-primary/5" 
+                "hover:shadow-md hover:scale-[1.02] gap-2",
+                selected
+                    ? "ring-2 ring-primary ring-offset-1 bg-primary/5"
                     : "hover:bg-muted/5",
                 className
             )}
@@ -143,7 +143,7 @@ const SelectableMediaCard: React.FC<SelectableMediaCardProps> = ({
 
             {getMediaPreview()}
 
-            <CardContent className="p-4 pt-5">
+            <CardContent className="p-4">
                 <div className="space-y-3">
                     {/* Filename */}
                     <div>
@@ -165,7 +165,7 @@ const SelectableMediaCard: React.FC<SelectableMediaCardProps> = ({
                     </div>
 
                     {/* Preview button appears on hover */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div>
                         <Button
                             variant="secondary"
                             size="sm"

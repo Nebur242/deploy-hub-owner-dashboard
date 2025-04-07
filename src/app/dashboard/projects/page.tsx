@@ -41,6 +41,8 @@ import {
   IconRefresh,
   IconEdit,
   IconTrash,
+  IconGitBranch,
+  IconEye,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -235,7 +237,14 @@ export default function ProjectsPage() {
                   {projects.map((project) => (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">
-                        {project.name}
+                        <div className="flex items-center">
+                          <span>{project.name}</span>
+                          {project.versions && project.versions.length > 0 && (
+                            <Badge variant="outline" className="ml-2">
+                              {project.versions.length} version{project.versions.length !== 1 ? 's' : ''}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate">
                         {project.description}
@@ -260,8 +269,8 @@ export default function ProjectsPage() {
                             project.visibility === Visibility.PRIVATE
                               ? "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
                               : project.visibility === Visibility.FEATURED
-                              ? "bg-primary"
-                              : ""
+                                ? "bg-primary"
+                                : ""
                           }
                         >
                           {project.visibility}
@@ -272,6 +281,28 @@ export default function ProjectsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
+                          >
+                            <Link href={`/dashboard/projects/${project.id}`}>
+                              <IconEye className="h-4 w-4 mr-1" /> View
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            className="text-purple-500 hover:text-purple-700 hover:bg-purple-50"
+                          >
+                            <Link
+                              href={`/dashboard/projects/${project.id}/versions`}
+                            >
+                              <IconGitBranch className="h-4 w-4 mr-1" /> Versions
+                            </Link>
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -294,7 +325,7 @@ export default function ProjectsPage() {
                             }
                           >
                             {isDeleting &&
-                            projectToDelete?.id === project.id ? (
+                              projectToDelete?.id === project.id ? (
                               <>
                                 <IconLoader className="h-4 w-4 mr-1 animate-spin" />{" "}
                                 Deleting...

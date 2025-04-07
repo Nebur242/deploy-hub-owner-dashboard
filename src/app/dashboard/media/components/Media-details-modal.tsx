@@ -115,7 +115,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
             src={media.url}
             alt={media.alt || media.filename}
             fill
-            className="object-contain"
+            className="object-cover"
             sizes="(max-width: 768px) 100vw, 800px"
             priority
           />
@@ -198,7 +198,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl p-0 h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-4xl p-0 max-h-[90vh] flex flex-col overflow-hidden">
         {/* Fixed Header */}
         <DialogHeader className="p-6 border-b sticky top-0 z-10 bg-background">
           <DialogTitle className="text-xl font-semibold">
@@ -364,7 +364,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                       </p>
                     </div>
                   )}
-                  {media.duration && media.duration > 0 && (
+                  {!!media.duration && media.duration > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">
                         Duration

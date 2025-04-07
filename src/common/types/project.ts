@@ -30,10 +30,10 @@ export enum DeploymentStatus {
 export enum DeploymentProvider {
   NETLIFY = "netlify",
   VERCEL = "vercel",
-  AWS = "aws",
-  GCP = "gcp",
-  AZURE = "azure",
-  GITHUB_PAGES = "github_pages",
+  // AWS = "aws",
+  // GCP = "gcp",
+  // AZURE = "azure",
+  // GITHUB_PAGES = "github_pages",
 }
 
 export enum Currency {
@@ -93,15 +93,17 @@ export interface DeploymentOption {
 export interface EnvironmentVariable {
   key: string;
   defaultValue: string;
+  description: string;
   isRequired: boolean;
   isSecret: boolean;
+  video: string;
 }
 
 export interface ProjectConfiguration {
   id: string;
   projectId: string;
   githubAccounts: GithubAccount[];
-  deploymentOptions: DeploymentOption[];
+  deploymentOption: DeploymentOption;
   project: Project;
 }
 
@@ -172,7 +174,7 @@ export interface Deployment {
 
 export interface CreateProjectConfigurationDto {
   githubAccounts: GithubAccount[];
-  deploymentOptions: DeploymentOption[];
+  deploymentOption: DeploymentOption;
 }
 
 export interface CreateProjectDto {

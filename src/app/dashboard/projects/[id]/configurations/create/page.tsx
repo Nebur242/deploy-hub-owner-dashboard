@@ -18,7 +18,7 @@ import { CreateProjectConfigurationDto } from "@/common/types/project";
 export default function CreateConfigurationPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const projectId = params.id;
+  const projectId = params?.id || "";
 
   // Get project details for breadcrumb
   const { data: project, isLoading: isLoadingProject } =
@@ -133,10 +133,10 @@ export default function CreateConfigurationPage() {
         error={
           error
             ? {
-                message:
-                  (error as { message: string })?.message ||
-                  "Failed to create configuration.",
-              }
+              message:
+                (error as { message: string })?.message ||
+                "Failed to create configuration.",
+            }
             : null
         }
       />

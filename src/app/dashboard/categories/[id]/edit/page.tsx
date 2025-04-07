@@ -19,8 +19,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function EditCategoryPage() {
   const params = useParams<{ id: string }>();
+  const categoryId = params?.id as string;
   const router = useRouter();
-  const categoryId = params.id;
 
   const [initialValues, setInitialValues] = useState<
     CategoryUpdateFormData | undefined

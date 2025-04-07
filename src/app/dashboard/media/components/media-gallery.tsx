@@ -346,7 +346,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
         if (viewMode === 'grid') {
             return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
                     {media.map((item) => (
                         selectable ? (
                             <SelectableMediaCard

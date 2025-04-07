@@ -172,11 +172,30 @@ export const projectsApi = createApi({
       query: ({ projectId, body }) => ({
         url: `projects/${projectId}/versions`,
         method: "POST",
-        body,
+        data: body,
       }),
       invalidatesTags: (result, error, { projectId }) => [
         { type: "ProjectVersion", id: projectId },
         { type: "Project", id: projectId },
+      ],
+    }),
+
+    updateVersion: builder.mutation<
+      ProjectVersion,
+      {
+        projectId: string;
+        id: string;
+        body: Pick<ProjectVersion, "commitHash" | "releaseNotes">;
+      }
+    >({
+      query: ({ projectId, body, id }) => ({
+        url: `projects/${projectId}/versions/${id}`,
+        method: "PATCH",
+        data: body,
+      }),
+      invalidatesTags: (result, error, { projectId, id }) => [
+        { type: "ProjectVersion", id },
+        { type: "ProjectVersion", id: projectId },
       ],
     }),
 
@@ -453,6 +472,7 @@ export const {
   useCreateVersionMutation,
   useSetVersionAsStableMutation,
   useDeleteVersionMutation,
+  useUpdateVersionMutation,
 
   // Project Configurations
   useGetConfigurationsQuery,

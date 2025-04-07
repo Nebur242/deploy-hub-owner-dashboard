@@ -14,7 +14,7 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ProjectForm, { ProjectFormData } from "../../components/project-form";
 import Link from "next/link";
-import { IconPlus } from "@tabler/icons-react";
+import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,7 +23,7 @@ import { toast } from "sonner";
 export default function EditProjectPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const projectId = params.id;
+  const projectId = params?.id || "";
 
   const [initialValues, setInitialValues] = useState<
     ProjectFormData | undefined
@@ -256,19 +256,24 @@ export default function EditProjectPage() {
                   </div>
                   <CardContent className="px-6 pb-6">
                     <div className="space-y-4">
-
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground">
+                          Deployment Provider
+                        </h4>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <Badge variant="outline">
+                            {config.deploymentOption.provider}
+                          </Badge>
+                        </div>
+                      </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground">
-                          Deployment Providers
+                          Environment Variables
                         </h4>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {config.deploymentOptions.map((option, idx) => (
-                            <Badge key={idx} variant="outline">
-                              {option.provider}
-                            </Badge>
-                          ))}
-                        </div>
+                        <p className="text-sm mt-1">
+                          {config.deploymentOption.environmentVariables.length} variables defined
+                        </p>
                       </div>
 
                       <div>
@@ -285,6 +290,7 @@ export default function EditProjectPage() {
                           <Link
                             href={`/dashboard/projects/${projectId}/configurations/${config.id}/edit`}
                           >
+                            <IconEdit className="h-4 w-4" />
                             Edit Configuration
                           </Link>
                         </Button>
@@ -296,7 +302,10 @@ export default function EditProjectPage() {
                           {isDeletingConfig ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
-                            "Delete"
+                            <>
+                              <IconTrash className="h-4 w-4" />
+                              Delete
+                            </>
                           )}
                         </Button>
                       </div>

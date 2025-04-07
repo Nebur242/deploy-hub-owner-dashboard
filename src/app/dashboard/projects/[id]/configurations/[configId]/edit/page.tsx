@@ -19,8 +19,8 @@ import { CreateProjectConfigurationDto } from "@/common/types/project";
 export default function EditConfigurationPage() {
   const params = useParams<{ id: string; configId: string }>();
   const router = useRouter();
-  const projectId = params.id;
-  const configId = params.configId;
+  const projectId = params?.id || "";
+  const configId = params?.configId || "";
 
   const [initialValues, setInitialValues] = useState<
     CreateProjectConfigurationDto | undefined
@@ -74,7 +74,7 @@ export default function EditConfigurationPage() {
     if (configuration) {
       setInitialValues({
         githubAccounts: configuration.githubAccounts || [],
-        deploymentOptions: configuration.deploymentOptions,
+        deploymentOption: configuration.deploymentOption,
       });
     }
   }, [configuration]);

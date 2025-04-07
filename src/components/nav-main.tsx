@@ -29,7 +29,7 @@ export function NavMain({
     if (pathname === "/dashboard") {
       return url === "/dashboard";
     }
-    return pathname.includes(url) && url !== "/dashboard";
+    return pathname?.includes(url) && url !== "/dashboard";
   };
 
   return (
