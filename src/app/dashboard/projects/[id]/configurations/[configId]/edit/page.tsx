@@ -75,8 +75,6 @@ export default function EditConfigurationPage() {
       setInitialValues({
         githubAccounts: configuration.githubAccounts || [],
         deploymentOptions: configuration.deploymentOptions,
-        buildCommands: configuration.buildCommands,
-        environmentVariables: configuration.environmentVariables,
       });
     }
   }, [configuration]);
@@ -195,10 +193,10 @@ export default function EditConfigurationPage() {
         error={
           updateError
             ? {
-                message:
-                  (updateError as { data?: { message?: string } })?.data
-                    ?.message || "Failed to update configuration.",
-              }
+              message:
+                (updateError as { data?: { message?: string } })?.data
+                  ?.message || "Failed to update configuration.",
+            }
             : null
         }
       />

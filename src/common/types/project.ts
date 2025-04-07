@@ -1,3 +1,5 @@
+import { Category } from "./category";
+
 export enum TechStack {
   REACT = "react",
   NEXTJS = "nextjs",
@@ -47,52 +49,45 @@ export enum PurchaseStatus {
   EXPIRED = "expired",
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  icon?: string;
-}
-
 export interface Project {
   id: string;
   name: string;
   description: string;
   slug: string;
   ownerId: string;
-  repository?: string;
+  repository: string;
   techStack: TechStack[];
   visibility: Visibility;
   categories: Category[];
-  createdAt: string;
-  updatedAt: string;
   versions?: ProjectVersion[];
   configurations?: ProjectConfiguration[];
   licenses?: LicenseOption[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProjectVersion {
   id: string;
   projectId: string;
   version: string;
-  releaseNotes?: string;
+  releaseNotes: string;
   commitHash?: string;
   isLatest: boolean;
   isStable: boolean;
   createdAt: string;
-  project?: Project;
+  project: Project;
 }
 
 export interface GithubAccount {
-  id: string;
   username: string;
   accessToken: string;
-  repositories: string[];
+  repository: string;
+  workflowFile: string;
 }
 
 export interface DeploymentOption {
   provider: DeploymentProvider;
-  configTemplate: string;
+  environmentVariables: EnvironmentVariable[];
 }
 
 export interface EnvironmentVariable {
@@ -107,9 +102,7 @@ export interface ProjectConfiguration {
   projectId: string;
   githubAccounts: GithubAccount[];
   deploymentOptions: DeploymentOption[];
-  buildCommands: string[];
-  environmentVariables: EnvironmentVariable[];
-  project?: Project;
+  project: Project;
 }
 
 export interface LicenseOption {
@@ -178,10 +171,8 @@ export interface Deployment {
 // Additional types for creating/updating entities
 
 export interface CreateProjectConfigurationDto {
-  githubAccounts: Omit<GithubAccount, "id">[];
+  githubAccounts: GithubAccount[];
   deploymentOptions: DeploymentOption[];
-  buildCommands: string[];
-  environmentVariables: EnvironmentVariable[];
 }
 
 export interface CreateProjectDto {

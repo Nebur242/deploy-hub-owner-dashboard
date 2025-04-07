@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  useDeleteConfigurationMutation,
   useGetProjectQuery,
   useUpdateProjectMutation,
 } from "@/store/features/projects";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,6 +17,8 @@ import Link from "next/link";
 import { IconPlus } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function EditProjectPage() {
   const params = useParams<{ id: string }>();
@@ -25,6 +28,10 @@ export default function EditProjectPage() {
   const [initialValues, setInitialValues] = useState<
     ProjectFormData | undefined
   >(undefined);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<{ id: string, name: string } | null>(null);
+
 
   // RTK Query hooks
   const {
@@ -43,6 +50,40 @@ export default function EditProjectPage() {
       reset: resetUpdateState,
     },
   ] = useUpdateProjectMutation();
+
+  const [deleteConfiguration, { isLoading: isDeletingConfig }] = useDeleteConfigurationMutation();
+
+  // Handle configuration deletion
+  const handleDeleteConfig = async () => {
+    if (!configToDelete) return;
+
+    try {
+      await deleteConfiguration({
+        projectId,
+        configId: configToDelete.id
+      }).unwrap();
+
+      toast.success("Configuration deleted", {
+        description: `${configToDelete.name || "Configuration"} has been removed`,
+      });
+
+      setDeleteModalOpen(false);
+      setConfigToDelete(null);
+
+      // Refetch project to update the UI
+      refetch();
+    } catch (error) {
+      console.error("Failed to delete configuration:", error);
+      toast.error("Failed to delete", {
+        description: "An error occurred while deleting the configuration.",
+      });
+    }
+  };
+
+  const confirmDeleteConfig = (configId: string, configName: string = "Configuration") => {
+    setConfigToDelete({ id: configId, name: configName });
+    setDeleteModalOpen(true);
+  };
 
   // Breadcrumb items
   const breadcrumbItems: BreadcrumbItem[] = [
@@ -215,16 +256,7 @@ export default function EditProjectPage() {
                   </div>
                   <CardContent className="px-6 pb-6">
                     <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground">
-                          Build Commands
-                        </h4>
-                        <div className="mt-1">
-                          <code className="bg-muted text-sm p-1 rounded">
-                            {config.buildCommands.join(", ")}
-                          </code>
-                        </div>
-                      </div>
+
 
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground">
@@ -241,10 +273,10 @@ export default function EditProjectPage() {
 
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground">
-                          Environment Variables
+                          Github Accounts
                         </h4>
                         <p className="text-sm mt-1">
-                          {config.environmentVariables.length} variables defined
+                          {config.githubAccounts.length} accounts defined
                         </p>
                       </div>
 
@@ -255,6 +287,17 @@ export default function EditProjectPage() {
                           >
                             Edit Configuration
                           </Link>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => confirmDeleteConfig(config.id, `Configuration #${config.id.substring(0, 4)}`)}
+                        >
+                          {isDeletingConfig ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            "Delete"
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -288,6 +331,39 @@ export default function EditProjectPage() {
           )}
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <DialogTitle>Delete Configuration</DialogTitle>
+            </div>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this configuration? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)} disabled={isDeletingConfig}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfig}
+              disabled={isDeletingConfig}
+            >
+              {isDeletingConfig ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
