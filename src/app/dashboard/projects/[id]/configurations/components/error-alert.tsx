@@ -5,21 +5,14 @@ import { cn } from "@/lib/utils";
 export interface ErrorAlertProps {
   isEditing?: boolean;
   title?: string;
-  message?: string;
-  className?: string;
-}
-
-export interface ErrorAlertProps {
-  isEditing?: boolean;
-  title?: string;
   message: string;
   className?: string;
   entityName?: string;
 }
 
-export function ErrorAlert({ 
+export function ErrorAlert({
   isEditing = false,
-  title = "Error", 
+  title = "Error",
   message,
   className,
   entityName
@@ -29,7 +22,7 @@ export function ErrorAlert({
     : `Failed to create ${entityName || 'item'}. Please try again.`;
 
   return (
-    <Alert 
+    <Alert
       className={cn(
         "border-red-200 dark:border-red-900",
         "bg-red-50 dark:bg-red-950/50",
