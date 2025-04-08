@@ -50,7 +50,11 @@ export default function CreateProjectPage() {
   }, [isSuccess, router]);
 
   const handleSubmit = async (data: ProjectFormData) => {
-    createProject(data);
+    try {
+      await createProject(data).unwrap();
+    } catch (error) {
+      console.error("Failed to create project:", error);
+    }
   };
 
   return (
