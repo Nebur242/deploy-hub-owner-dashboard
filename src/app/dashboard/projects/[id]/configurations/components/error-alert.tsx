@@ -9,15 +9,24 @@ export interface ErrorAlertProps {
   className?: string;
 }
 
+export interface ErrorAlertProps {
+  isEditing?: boolean;
+  title?: string;
+  message: string;
+  className?: string;
+  entityName?: string;
+}
+
 export function ErrorAlert({ 
   isEditing = false,
   title = "Error", 
   message,
-  className
+  className,
+  entityName
 }: ErrorAlertProps) {
   const defaultMessage = isEditing
-    ? "Failed to update configuration. Please try again."
-    : "Failed to create configuration. Please try again.";
+    ? `Failed to update ${entityName || 'item'}. Please try again.`
+    : `Failed to create ${entityName || 'item'}. Please try again.`;
 
   return (
     <Alert 
