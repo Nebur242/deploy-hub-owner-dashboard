@@ -19,8 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { IconLoader } from "@tabler/icons-react";
-import { ProjectVersion } from "@/common/types/project";
 import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
+import { ProjectVersion } from "@/common/types";
 
 // Form schema validation
 const formSchema = z.object({

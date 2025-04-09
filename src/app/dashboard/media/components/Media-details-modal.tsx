@@ -16,9 +16,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { X, Download, ExternalLink, Edit, Save, Loader2 } from "lucide-react";
-import { Media, MediaType } from "@/common/types/media";
 import { formatFileSize, formatDate } from "@/utils/media";
 import { useUpdateMediaMutation } from "@/store/features/media";
+import { Media } from "@/common/types";
+import { MediaType } from "@/common/dtos";
 
 interface MediaDetailsModalProps {
   media: Media | null;

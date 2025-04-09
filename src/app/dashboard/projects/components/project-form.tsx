@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { TechStack, Visibility } from "@/common/types/project";
+import { TechStack, Visibility } from "@/common/enums/project";
 import {
   Form,
   FormControl,

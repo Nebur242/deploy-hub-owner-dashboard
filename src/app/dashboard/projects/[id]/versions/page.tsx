@@ -36,7 +36,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ProjectVersion } from "@/common/types/project";
+import { ProjectVersion } from "@/common/types";
 import {
     IconPlus,
     IconSearch,

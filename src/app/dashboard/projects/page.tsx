@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Project, Visibility, TechStack } from "@/common/types/project";
+import { Visibility, TechStack } from "@/common/enums/project";
 import {
   IconPlus,
   IconSearch,
@@ -48,6 +48,7 @@ import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
+import { Project } from "@/common/types";
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -251,7 +252,7 @@ export default function ProjectsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {project.techStack.map((tech) => (
+                          {project.techStack.map((tech: TechStack) => (
                             <Badge key={tech} variant="outline">
                               {tech}
                             </Badge>

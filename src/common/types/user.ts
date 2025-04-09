@@ -15,24 +15,3 @@ export type User = {
 };
 
 export type AppUser = User & { firebase: UserCredential["user"] };
-
-export type CreateUserDto = {
-  email: string;
-  password: string;
-};
-
-export type LoginUserDto = {
-  email: string;
-  password: string;
-};
-
-export type PaginatedResponse<T> = {
-  items: T[];
-  meta: {
-    totalItems: number;
-    itemCount: number;
-    itemsPerPage: number;
-    totalPages: number;
-    currentPage: number;
-  };
-};

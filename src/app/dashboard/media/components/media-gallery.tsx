@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/alert-dialog';
 // Removed pagination components as we're using a simpler UI now
 import { toast } from 'sonner';
-import { Media, MediaQueryParams, MediaType } from '@/common/types/media';
 import {
     useGetMediaQuery,
     useDeleteMediaMutation,
@@ -27,9 +26,11 @@ import MediaUploadModal from './media-upload';
 import MediaDetailsModal from './Media-details-modal';
 import { cn } from '@/lib/utils';
 import { deleteFileFromFirebase } from '@/services/media';
+import { MediaQueryParamsDto, MediaType } from '@/common/dtos';
+import { Media } from '@/common/types';
 
 interface MediaGalleryProps {
-    initialFilters?: MediaQueryParams;
+    initialFilters?: MediaQueryParamsDto;
     selectable?: boolean;
     mode?: 'single' | 'multiple';
     selectedMedia?: Media[];
@@ -49,7 +50,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
     limit,
     className,
 }) => {
-    const [filters, setFilters] = useState<MediaQueryParams>(initialFilters);
+    const [filters, setFilters] = useState<MediaQueryParamsDto>(initialFilters);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedItems, setSelectedItems] = useState<Media[]>(selectedMedia || []);
     const [selectedMedia2, setSelectedMedia] = useState<Media | null>(null);
@@ -72,15 +73,15 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
     const [updateMedia] = useUpdateMediaMutation();
 
     // Derived state from RTK Query results
-    const media = mediaResponse?.data || [];
+    const media = mediaResponse?.items || [];
     const pagination = mediaResponse?.meta || {
-        total: 0,
-        page: 1,
-        limit: 20,
-        totalPages: 0
-    };
+        totalItems: 0,
+        itemsPerPage: 10,
+        totalPages: 0,
+        currentPage: 1
+    }
 
-    const handleFilterChange = (newFilters: MediaQueryParams) => {
+    const handleFilterChange = (newFilters: MediaQueryParamsDto) => {
         setFilters({ ...filters, ...newFilters });
     };
 
@@ -202,8 +203,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                 });
 
                 // If we just deleted the last item on a page, go to the previous page
-                if (media.length === 1 && pagination.page > 1) {
-                    setFilters({ ...filters, page: pagination.page - 1 });
+                if (media.length === 1 && pagination.totalPages > 1) {
+                    setFilters({ ...filters, page: pagination.totalPages - 1 });
                 }
             }
         } catch (error) {
@@ -263,21 +264,21 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
     };
 
     const handlePreviousPage = () => {
-        if (pagination.page > 1) {
-            handlePageChange(pagination.page - 1);
+        if (pagination.currentPage > 1) {
+            handlePageChange(pagination.currentPage - 1);
         }
     };
 
     const handleNextPage = () => {
-        if (pagination.page < pagination.totalPages) {
-            handlePageChange(pagination.page + 1);
+        if (pagination.currentPage < pagination.totalPages) {
+            handlePageChange(pagination.currentPage + 1);
         }
     };
 
     const renderPagination = () => {
         if (pagination.totalPages <= 1) return null;
 
-        const currentPage = pagination.page;
+        const currentPage = pagination.currentPage;
         const totalPages = pagination.totalPages;
 
         return (
@@ -666,9 +667,9 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                 {media.length > 0 && (
                     <div className="mt-6 flex items-center justify-between">
                         <div className="text-sm text-muted-foreground">
-                            Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                            {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                            {pagination.total} items
+                            Showing {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} to{' '}
+                            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of{' '}
+                            {pagination.totalItems} items
                         </div>
                         {renderPagination()}
                     </div>

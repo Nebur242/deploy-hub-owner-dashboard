@@ -49,7 +49,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Visibility } from "@/common/types/project";
+import { Visibility } from "@/common/enums/project";
 
 export default function ProjectPreviewPage() {
     const router = useRouter();

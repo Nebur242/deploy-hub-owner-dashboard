@@ -1,14 +1,9 @@
-// services/mediaApi.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
-import {
-  Media,
-  MediaQueryParams,
-  PaginatedResponse,
-} from "@/common/types/media";
 import { axiosBaseQuery } from "@/config/api";
-import { PaginatedResponse as DefaultPaginatedResponse } from "@/common/type";
+import { MediaQueryParamsDto } from "@/common/dtos";
+import { Media, PaginatedResponse } from "@/common/types";
 
-function buildMediaQueryString(params: MediaQueryParams): URLSearchParams {
+function buildMediaQueryString(params: MediaQueryParamsDto): URLSearchParams {
   const queryString = new URLSearchParams();
 
   // Add number parameters
@@ -59,7 +54,7 @@ export const mediaApi = createApi({
   baseQuery: axiosBaseQuery(),
   tagTypes: ["Media"],
   endpoints: (builder) => ({
-    getMedia: builder.query<PaginatedResponse<Media>, MediaQueryParams>({
+    getMedia: builder.query<PaginatedResponse<Media>, MediaQueryParamsDto>({
       query: (params) => {
         // Build query string from params
         const queryString = buildMediaQueryString(params).toString();
@@ -69,22 +64,10 @@ export const mediaApi = createApi({
           method: "GET",
         };
       },
-      // Transform the response from nestjs-typeorm-paginate to match our expected PaginatedResponse format
-      transformResponse: (response: DefaultPaginatedResponse<Media>) => {
-        return {
-          data: response.items || [],
-          meta: {
-            total: response.meta?.totalItems || 0,
-            page: response.meta?.currentPage || 1,
-            limit: response.meta?.itemsPerPage || 10,
-            totalPages: response.meta?.totalPages || 0,
-          },
-        };
-      },
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: "Media" as const, id })),
+              ...result.items.map(({ id }) => ({ type: "Media" as const, id })),
               { type: "Media", id: "LIST" },
             ]
           : [{ type: "Media", id: "LIST" }],

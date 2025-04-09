@@ -2,11 +2,12 @@
 
 import { useCreateCategoryMutation } from "@/store/features/categories";
 import CategoryForm, { CategoryFormData } from "../components/category-form";
-import { CreateCategoryDto } from "@/common/types/category";
+// import { CreateCategoryDto } from "@/common/types/category";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { CreateCategoryDto } from "@/common/dtos";
 
 export default function CreateCategoryPage() {
   const router = useRouter();

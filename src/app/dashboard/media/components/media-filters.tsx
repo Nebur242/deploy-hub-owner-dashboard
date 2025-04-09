@@ -4,11 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { MediaType, MediaQueryParams } from '@/common/types/media';
+import { MediaQueryParamsDto, MediaType } from '@/common/dtos';
 
 interface MediaFiltersProps {
-    filters: MediaQueryParams;
-    onFilterChange: (filters: MediaQueryParams) => void;
+    filters: MediaQueryParamsDto;
+    onFilterChange: (filters: MediaQueryParamsDto) => void;
 }
 
 const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) => {

@@ -14,9 +14,10 @@ import {
     Calendar,
     HardDrive
 } from 'lucide-react';
-import { Media, MediaType } from '@/common/types/media';
 import { formatFileSize, formatDate } from '@/utils/media';
 import { cn } from '@/lib/utils';
+import { Media } from '@/common/types';
+import { MediaType } from '@/common/dtos';
 
 interface SelectableMediaCardProps {
     media: Media;

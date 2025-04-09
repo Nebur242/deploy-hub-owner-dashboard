@@ -11,16 +11,17 @@ import {
     PaginationPrevious,
 } from '@/components/ui/pagination';
 import { toast } from 'sonner';
-import { Media, MediaQueryParams } from '@/common/types/media';
 import { useGetMediaQuery } from '@/store/features/media';
 import MediaFilters from './media-filters';
 import MediaUploadModal from './media-upload';
 import MediaDetailsModal from './Media-details-modal';
 import SelectableMediaCard from './selectable-media-card';
 import { cn } from '@/lib/utils';
+import { MediaQueryParamsDto } from '@/common/dtos';
+import { Media } from '@/common/types';
 
 interface SelectableMediaGalleryProps {
-    initialFilters?: MediaQueryParams;
+    initialFilters?: MediaQueryParamsDto;
     mode: 'single' | 'multiple';
     selectedMedia?: Media[];
     onSelect: (media: Media[]) => void;
@@ -40,7 +41,7 @@ const SelectableMediaGallery: React.FC<SelectableMediaGalleryProps> = ({
     limit,
     className,
 }) => {
-    const [filters, setFilters] = useState<MediaQueryParams>(initialFilters);
+    const [filters, setFilters] = useState<MediaQueryParamsDto>(initialFilters);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selected, setSelected] = useState<Media[]>(selectedMedia || []);
     const [previewMedia, setPreviewMedia] = useState<Media | null>(null);
@@ -63,15 +64,16 @@ const SelectableMediaGallery: React.FC<SelectableMediaGalleryProps> = ({
     }, [selectedMedia]);
 
     // Derived state from RTK Query results
-    const media = mediaResponse?.data || [];
+    const media = mediaResponse?.items || [];
     const pagination = mediaResponse?.meta || {
-        total: 0,
-        page: 1,
-        limit: 20,
-        totalPages: 0
-    };
+        totalItems: 0,
+        itemCount: 0,
+        itemsPerPage: 10,
+        totalPages: 0,
+        currentPage: 1
+    }
 
-    const handleFilterChange = (newFilters: MediaQueryParams) => {
+    const handleFilterChange = (newFilters: MediaQueryParamsDto) => {
         setFilters({ ...filters, ...newFilters });
     };
 
@@ -141,7 +143,7 @@ const SelectableMediaGallery: React.FC<SelectableMediaGalleryProps> = ({
     const renderPagination = () => {
         if (pagination.totalPages <= 1) return null;
 
-        const currentPage = pagination.page;
+        const currentPage = pagination.totalPages;
         const totalPages = pagination.totalPages;
 
         // Create array of page numbers to display
@@ -398,9 +400,12 @@ const SelectableMediaGallery: React.FC<SelectableMediaGalleryProps> = ({
                 {media.length > 0 && (
                     <div className="mt-6 flex items-center justify-between">
                         <div className="text-sm text-gray-500">
-                            Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                            {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                            {pagination.total} items
+                            {pagination.itemCount} items found
+                            {pagination.totalPages > 1 && (
+                                <span className="ml-2">
+                                    Page {pagination.currentPage} of {pagination.totalPages}
+                                </span>
+                            )}
                         </div>
                         {renderPagination()}
                     </div>

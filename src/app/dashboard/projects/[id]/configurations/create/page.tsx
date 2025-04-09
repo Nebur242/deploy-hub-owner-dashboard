@@ -13,7 +13,7 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import ConfigurationForm from "../components/configuration-form";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CreateProjectConfigurationDto } from "@/common/types/project";
+import { CreateConfigurationDto } from "@/common/dtos";
 
 export default function CreateConfigurationPage() {
   const params = useParams<{ id: string }>();
@@ -66,7 +66,7 @@ export default function CreateConfigurationPage() {
     }
   }, [isSuccess, router, projectId]);
 
-  const handleSubmit = async (body: CreateProjectConfigurationDto) => {
+  const handleSubmit = async (body: CreateConfigurationDto) => {
     console.log("Creating configuration with body:", body);
     createConfiguration({
       projectId,

@@ -15,12 +15,11 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema } from "@/common/schemas";
-import { CreateUserDto } from "@/common/type";
 import { registerUser } from "@/store/features/auth";
 import { useEffect } from "react";
 import { z } from "zod";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { RegisterDto, registerSchema } from "@/common/dtos";
 
 type FormData = z.infer<typeof registerSchema>;
 
@@ -45,7 +44,7 @@ export default function RegisterForm() {
         },
     });
 
-    const onSubmit = (data: CreateUserDto) => {
+    const onSubmit = (data: RegisterDto) => {
         dispatch(registerUser(data));
     };
 

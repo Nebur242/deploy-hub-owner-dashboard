@@ -7,18 +7,17 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { CreateUserDto, LoginUserDto, Role, User } from "../common/type";
 import { API_ROUTES, AXIOS } from "../config/api";
+import { Role, User } from "@/common/types";
+import { LoginDto, RegisterDto } from "@/common/dtos";
 
-export const createUser = async (
-  createUserDto: Omit<CreateUserDto, "email" | "password"> & {
-    uid: string;
-    roles: Role[];
-  },
-) => {
+export const createUser = async (createUserDto: {
+  uid: string;
+  roles: Role[];
+}) => {
   const response = await AXIOS.post<{ data: User }>(
     API_ROUTES.users,
-    createUserDto,
+    createUserDto
   );
   return response.data.data;
 };
@@ -33,13 +32,13 @@ export const getUser = async (uid: string): Promise<User> => {
   return response.data.data;
 };
 
-export const firebaseCreateUser = async (infos: CreateUserDto) => {
+export const firebaseCreateUser = async (infos: RegisterDto) => {
   const auth = getAuth();
   const { email, password } = infos;
   return createUserWithEmailAndPassword(auth, email, password);
 };
 
-export const firebaseLoginUser = async (infos: LoginUserDto) => {
+export const firebaseLoginUser = async (infos: LoginDto) => {
   const auth = getAuth();
   const { email, password } = infos;
   return signInWithEmailAndPassword(auth, email, password);

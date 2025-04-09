@@ -55,10 +55,11 @@ import {
   useFindAllCategoriesQuery,
   useDeleteCategoryMutation,
 } from "@/store/features/categories";
-import { Category } from "@/common/types/category";
+// import { Category } from "@/common/types/category";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
+import { Category } from "@/common/types";
 
 export default function CategoriesPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -315,9 +316,9 @@ export default function CategoriesPage() {
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     );
                   })}

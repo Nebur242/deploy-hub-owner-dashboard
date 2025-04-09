@@ -10,12 +10,12 @@ import CategoryForm, {
   CategoryUpdateFormData,
   CategoryFormData,
 } from "../../components/category-form";
-import { UpdateCategoryDto } from "@/common/types/category";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { UpdateCategoryDto } from "@/common/dtos";
 
 export default function EditCategoryPage() {
   const params = useParams<{ id: string }>();

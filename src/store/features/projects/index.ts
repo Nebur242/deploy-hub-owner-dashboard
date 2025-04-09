@@ -1,17 +1,17 @@
 // src/services/api.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
-import {
-  Project,
-  ProjectVersion,
-  ProjectConfiguration,
-  LicenseOption,
-  Deployment,
-  LicensePurchase,
-  CreateProjectConfigurationDto,
-} from "@/common/types/project";
 import { axiosBaseQuery } from "@/config/api";
-import { PaginatedResponse } from "@/common/type";
 import { ProjectFormData } from "@/app/dashboard/projects/components/project-form";
+import {
+  Deployment,
+  LicenseOption,
+  LicensePurchase,
+  PaginatedResponse,
+  Project,
+  ProjectConfiguration,
+  ProjectVersion,
+} from "@/common/types";
+import { CreateConfigurationDto } from "@/common/dtos";
 
 // Define search parameters
 export interface ProjectSearchParams {
@@ -252,7 +252,7 @@ export const projectsApi = createApi({
 
     createConfiguration: builder.mutation<
       ProjectConfiguration,
-      { projectId: string; body: Partial<CreateProjectConfigurationDto> }
+      { projectId: string; body: Partial<CreateConfigurationDto> }
     >({
       query: ({ projectId, body }) => ({
         url: `projects/${projectId}/configurations`,
@@ -270,7 +270,7 @@ export const projectsApi = createApi({
       {
         projectId: string;
         configId: string;
-        body: Partial<CreateProjectConfigurationDto>;
+        body: Partial<CreateConfigurationDto>;
       }
     >({
       query: ({ projectId, configId, body }) => ({

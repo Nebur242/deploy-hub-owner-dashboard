@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ImagePlus, Trash2, Edit } from "lucide-react";
-import { Media } from "@/common/types/media";
 import MediaGallery from "./media-gallery";
 import Image from "next/image";
+import { Media } from "@/common/types";
 
 interface SingleMediaSelectorProps {
   label: string;

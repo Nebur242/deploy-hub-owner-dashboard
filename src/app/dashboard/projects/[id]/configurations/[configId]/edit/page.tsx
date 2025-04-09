@@ -14,7 +14,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ConfigurationForm from "../../components/configuration-form";
-import { CreateProjectConfigurationDto } from "@/common/types/project";
+import { CreateConfigurationDto } from "@/common/dtos";
 
 export default function EditConfigurationPage() {
   const params = useParams<{ id: string; configId: string }>();
@@ -23,7 +23,7 @@ export default function EditConfigurationPage() {
   const configId = params?.configId || "";
 
   const [initialValues, setInitialValues] = useState<
-    CreateProjectConfigurationDto | undefined
+    CreateConfigurationDto | undefined
   >(undefined);
 
   // RTK Query hooks
@@ -73,11 +73,12 @@ export default function EditConfigurationPage() {
   useEffect(() => {
     if (configuration) {
       setInitialValues({
+        projectId,
         githubAccounts: configuration.githubAccounts || [],
         deploymentOption: configuration.deploymentOption,
       });
     }
-  }, [configuration]);
+  }, [configuration, projectId]);
 
   // Clean up when component unmounts
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function EditConfigurationPage() {
   }, [isSuccess, router, projectId]);
 
   // Handle form submission
-  const handleSubmit = async (data: CreateProjectConfigurationDto) => {
+  const handleSubmit = async (data: CreateConfigurationDto) => {
     updateConfiguration({
       projectId,
       configId,

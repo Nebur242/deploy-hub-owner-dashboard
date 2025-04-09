@@ -5,13 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  DeploymentProvider,
-  DeploymentOption,
-  EnvironmentVariable,
-  ProjectConfiguration,
-  CreateProjectConfigurationDto,
-} from "@/common/types/project";
+
 import {
   Form,
   FormControl,
@@ -48,6 +42,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DeploymentProvider } from "@/common/enums/project";
+import { DeploymentOption, EnvironmentVariable, ProjectConfiguration } from "@/common/types";
+import { CreateConfigurationDto } from "@/common/dtos";
 
 // Form schema with validation for duplicates
 const formSchema = z.object({
@@ -137,8 +134,8 @@ export interface ConfigurationUpdateFormData
 interface ConfigurationFormProps {
   projectId: string;
   isEditing: boolean;
-  initialData?: CreateProjectConfigurationDto;
-  onSubmit: (data: CreateProjectConfigurationDto) => Promise<void>;
+  initialData?: CreateConfigurationDto;
+  onSubmit: (data: CreateConfigurationDto) => Promise<void>;
   isLoading: boolean;
   isSuccess: boolean;
   error: { message: string } | null;
@@ -830,7 +827,7 @@ export default function ConfigurationForm({
 
   const handleSubmit = async (values: ConfigurationFormData) => {
     setSubmitAttempted(true);
-    await onSubmit(values as CreateProjectConfigurationDto);
+    await onSubmit(values as CreateConfigurationDto);
   };
 
   return (
