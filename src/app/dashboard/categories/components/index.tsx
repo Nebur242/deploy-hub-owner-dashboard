@@ -7,5 +7,5 @@ export * from "./icon-selection-card";
 export * from "./organization-status-card";
 export * from "./parent-category-selector"; // Includes both CategorySelector and ParentCategorySelector
 export * from "./action-card";
-export * from "./success-alert";
-export { ErrorAlert } from "./error-alert";
+export { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
+export type { SuccessAlertProps, ErrorAlertProps } from "@/components/ui/alerts";

@@ -27,8 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconLoader } from "@tabler/icons-react";
-import { SuccessAlert } from "./success-alert";
-import { ErrorAlert } from "./error-alert";
+import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { CategorySelector } from "@/app/dashboard/categories/components";
 
 // Form schema
@@ -86,12 +85,12 @@ export default function ProjectForm({
       categories: [], // Will store [{id: string}] objects
     },
   });
-  
+
   // Function to generate slug from name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     form.setValue("name", name);
-    
+
     // Only auto-generate slug if:
     // 1. We're not in edit mode (since slug can't be changed after creation)
     // 2. The slug hasn't been manually edited
@@ -101,11 +100,11 @@ export default function ProjectForm({
         .replace(/\s+/g, "-") // Replace spaces with hyphens
         .replace(/--+/g, "-") // Replace multiple hyphens with single hyphen
         .trim(); // Trim leading/trailing spaces
-      
+
       form.setValue("slug", slug, { shouldValidate: true });
     }
   };
-  
+
   // Handle manual slug edits
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsSlugManuallyEdited(true);
@@ -121,13 +120,14 @@ export default function ProjectForm({
   return (
     <div className="space-y-6">
       {/* Success Alert */}
-      {isSuccess && <SuccessAlert isEditing={isEditing} />}
+      {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-6" />}
 
       {/* Error Alert */}
       {submitAttempted && error && (
-        <ErrorAlert 
+        <ErrorAlert
           isEditing={isEditing}
           message={error.message}
+          className="mb-6"
         />
       )}
 
@@ -147,9 +147,9 @@ export default function ProjectForm({
                   <FormItem>
                     <FormLabel>Project Name</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="My Awesome Project" 
-                        {...field} 
+                      <Input
+                        placeholder="My Awesome Project"
+                        {...field}
                         onChange={handleNameChange}
                         disabled={isLoading || isSuccess}
                       />
@@ -161,7 +161,7 @@ export default function ProjectForm({
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="slug"
@@ -206,13 +206,13 @@ export default function ProjectForm({
                       )}
                     </div>
                     <FormControl>
-                      <Input 
-                        placeholder="my-awesome-project" 
-                        {...field} 
+                      <Input
+                        placeholder="my-awesome-project"
+                        {...field}
                         onChange={(e) => !isEditing && handleSlugChange(e)}
                         disabled={
-                          isLoading || 
-                          isSuccess || 
+                          isLoading ||
+                          isSuccess ||
                           isEditing || // Always disable in edit mode
                           (!isSlugManuallyEdited && !isEditing)
                         }
@@ -317,7 +317,7 @@ export default function ProjectForm({
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Using the new CategorySelector for multi-select categories */}
                 <CategorySelector
                   form={form}
@@ -329,7 +329,7 @@ export default function ProjectForm({
                   isLoading={isLoading}
                   success={isSuccess}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="techStack"
@@ -356,14 +356,14 @@ export default function ProjectForm({
                                       onCheckedChange={(checked) => {
                                         return checked
                                           ? field.onChange([
-                                              ...field.value,
-                                              tech,
-                                            ])
+                                            ...field.value,
+                                            tech,
+                                          ])
                                           : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== tech
-                                              )
-                                            );
+                                            field.value?.filter(
+                                              (value) => value !== tech
+                                            )
+                                          );
                                       }}
                                     />
                                   </FormControl>

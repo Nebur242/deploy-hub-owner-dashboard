@@ -383,7 +383,7 @@ export const projectsApi = createApi({
       query: (body) => ({
         url: "licenses/purchases",
         method: "POST",
-        body,
+        data: body,
       }),
       invalidatesTags: [{ type: "LicensePurchase", id: "LIST" }],
     }),

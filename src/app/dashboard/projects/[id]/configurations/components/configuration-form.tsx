@@ -24,8 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { SuccessAlert } from "./success-alert";
-import { ErrorAlert } from "./error-alert";
+import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import {
   Select,
   SelectContent,
@@ -836,12 +835,13 @@ export default function ConfigurationForm({
 
   return (
     <div className="space-y-6">
-      {isSuccess && <SuccessAlert isEditing={isEditing} />}
+      {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-6" />}
 
       {submitAttempted && error && (
         <ErrorAlert
           isEditing={isEditing}
           message={error.message}
+          className="mb-6"
         />
       )}
 

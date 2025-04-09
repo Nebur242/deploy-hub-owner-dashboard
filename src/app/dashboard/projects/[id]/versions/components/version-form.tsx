@@ -20,8 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { IconLoader } from "@tabler/icons-react";
 import { ProjectVersion } from "@/common/types/project";
-import { SuccessAlert } from "./success-alert";
-import { ErrorAlert } from "./error-alert";
+import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 
 // Form schema validation
 const formSchema = z.object({
@@ -89,13 +88,14 @@ export default function VersionForm({
     return (
         <div className="space-y-6">
             {/* Success Alert */}
-            {isSuccess && <SuccessAlert isEditing={isEditing} />}
+            {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-6" />}
 
             {/* Error Alert */}
             {submitAttempted && error && (
                 <ErrorAlert
                     isEditing={isEditing}
                     message={error.message}
+                    className="mb-6"
                 />
             )}
 

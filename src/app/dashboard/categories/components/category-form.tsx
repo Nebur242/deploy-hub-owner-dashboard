@@ -16,8 +16,7 @@ import { BasicInformationCard } from "./basic-information-card";
 import { IconSelectionCard } from "./icon-selection-card";
 import { OrganizationStatusCard } from "./organization-status-card";
 import { ActionCard } from "./action-card";
-import { SuccessAlert } from "./success-alert";
-import { ErrorAlert } from "./error-alert";
+import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { FeaturedImageCard } from "./featured-image-card";
 
 // Export types from schema for external use
@@ -118,11 +117,12 @@ export default function CategoryForm({
 
     return (
         <>
-            {success && <SuccessAlert isEditing={isEditing} />}
-            
+            {success && <SuccessAlert isEditing={isEditing} className="mb-6" />}
+
             {error && (
-                <ErrorAlert 
-                    message={error?.message || (isEditing ? "Failed to update category" : "Failed to create category")} 
+                <ErrorAlert
+                    message={error?.message || (isEditing ? "Failed to update category" : "Failed to create category")}
+                    className="mb-6"
                 />
             )}
 

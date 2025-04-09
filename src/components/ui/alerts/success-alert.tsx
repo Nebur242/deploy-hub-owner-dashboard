@@ -1,33 +1,36 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Check } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface SuccessAlertProps {
-  isEditing: boolean;
+export type SuccessAlertProps = {
   title?: string;
   message?: string;
   className?: string;
+  isEditing?: boolean;
+  entityName?: string;
 }
 
-export function SuccessAlert({ 
-  isEditing, 
-  title = "Success", 
+export function SuccessAlert({
+  title = "Success",
   message,
-  className
+  className,
+  isEditing = false,
+  entityName = "item"
 }: SuccessAlertProps) {
+  // Generate default message based on context if no message provided
   const defaultMessage = isEditing
-    ? "Project updated successfully. Redirecting to projects list..."
-    : "Project created successfully. You can now create another project or go back to the list.";
+    ? `${entityName} updated successfully. Redirecting...`
+    : `${entityName} created successfully.`;
 
   return (
-    <Alert 
+    <Alert
       className={cn(
         "border-green-200 dark:border-green-900",
         "bg-green-50 dark:bg-green-950/50",
         className
       )}
     >
-      <Check className="h-5 w-5 text-green-600 dark:text-green-500" />
+      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
       <AlertTitle className="text-green-800 dark:text-green-400">{title}</AlertTitle>
       <AlertDescription className="text-green-700 dark:text-green-400/90">
         {message || defaultMessage}
