@@ -233,9 +233,9 @@ export default function EditProjectPage() {
           onSubmit={handleSubmit}
           isLoading={isUpdating}
           isSuccess={isSuccess}
-          error={{
+          error={updateError ? {
             message: getErrorMessage(updateError) || "An error occurred",
-          }}
+          } : null}
         />
 
         {/* Configurations Section */}

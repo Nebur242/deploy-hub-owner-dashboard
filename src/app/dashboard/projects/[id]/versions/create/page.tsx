@@ -85,9 +85,9 @@ export default function CreateVersionPage() {
                         onSubmit={onSubmit}
                         isLoading={isLoading}
                         isSuccess={isSuccess}
-                        error={{
+                        error={error ? {
                             message: getErrorMessage(error) || "An error occurred",
-                        }}
+                        } : null}
                     />
                 )}
             </div>

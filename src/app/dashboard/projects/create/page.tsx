@@ -70,7 +70,7 @@ export default function CreateProjectPage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         isSuccess={isSuccess}
-        error={getErrorMessage(error) ? { message: getErrorMessage(error) || 'An error occured...' } : null}
+        error={error ? { message: getErrorMessage(error) || 'An error occured...' } : null}
       />
     </DashboardLayout>
   );
