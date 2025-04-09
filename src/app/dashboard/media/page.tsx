@@ -11,12 +11,12 @@ export default function MediaPage() {
         { label: "Media page" }
     ];
     return (
-        <div className="container mx-auto py-8 px-4">
-            <DashboardLayout
-                breadcrumbItems={breadcrumbItems}
-            >
+        <DashboardLayout
+            breadcrumbItems={breadcrumbItems}
+        >
+            <div className="bg-background rounded-lg shadow-sm border p-6">
                 <MediaGallery />
-            </DashboardLayout>
-        </div>
+            </div>
+        </DashboardLayout>
     );
 }

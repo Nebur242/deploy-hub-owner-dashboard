@@ -1,11 +1,9 @@
 "use client";
-import { LoginUserDto } from "@/common/type";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser } from "@/store/features/auth";
-import { loginSchema } from "@/common/schemas";
 
 import Link from "next/link";
 import { z } from "zod";
@@ -21,6 +19,7 @@ import {
     AlertTitle,
 } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { LoginDto, loginSchema } from "@/common/dtos";
 
 type FormData = z.infer<typeof loginSchema>;
 
@@ -44,7 +43,7 @@ export default function LoginPage() {
         },
     });
 
-    const onSubmit = (data: LoginUserDto) => {
+    const onSubmit = (data: LoginDto) => {
         dispatch(loginUser(data));
     };
 

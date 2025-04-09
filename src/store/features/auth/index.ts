@@ -1,13 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { AuthError, UserCredential } from "firebase/auth";
-import {
-  AppUser,
-  CreateUserDto,
-  LoginUserDto,
-  Status,
-  User,
-} from "../../../common/type";
 import "../../../config/firebase";
 import {
   authUser,
@@ -20,6 +13,8 @@ import {
   logout,
 } from "../../../services/users";
 import { asyncHandler } from "@/utils/functions";
+import { AppUser, Status, User } from "@/common/types";
+import { LoginDto, RegisterDto } from "@/common/dtos";
 
 export interface AuthInitialState {
   infos: AppUser | null;
@@ -111,7 +106,7 @@ export const resetPassword = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (
-    registerDto: CreateUserDto & {
+    registerDto: RegisterDto & {
       onSuccess?: () => void;
       onFailed?: () => void;
     },
@@ -174,7 +169,7 @@ export const registerUser = createAsyncThunk(
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (
-    loginDto: LoginUserDto & {
+    loginDto: LoginDto & {
       onSuccess?: () => void;
       onFailed?: () => void;
     },

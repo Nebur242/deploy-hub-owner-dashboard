@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import auth from "./features/auth";
 import { categoriesApi } from "./features/categories";
 import { mediaApi } from "./features/media";
+import { projectsApi } from "./features/projects";
 
 export const makeStore = () => {
   return configureStore({
@@ -9,11 +10,13 @@ export const makeStore = () => {
       auth,
       [categoriesApi.reducerPath]: categoriesApi.reducer,
       [mediaApi.reducerPath]: mediaApi.reducer,
+      [projectsApi.reducerPath]: projectsApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware()
         .concat(categoriesApi.middleware)
-        .concat(mediaApi.middleware),
+        .concat(mediaApi.middleware)
+        .concat(projectsApi.middleware),
     devTools: process.env.NODE_ENV !== "production",
   });
 };

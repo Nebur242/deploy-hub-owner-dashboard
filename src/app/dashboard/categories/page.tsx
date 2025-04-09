@@ -12,7 +12,14 @@ import {
   ColumnFiltersState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, Plus, Pencil, Trash2, Loader2, RefreshCw } from "lucide-react";
+import {
+  ChevronDown,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,11 +51,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { useFindAllCategoriesQuery, useDeleteCategoryMutation } from "@/store/features/categories";
-import { Category } from "@/common/types/category";
+import {
+  useFindAllCategoriesQuery,
+  useDeleteCategoryMutation,
+} from "@/store/features/categories";
+// import { Category } from "@/common/types/category";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
+import { Category } from "@/common/types";
 
 export default function CategoriesPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -61,33 +72,36 @@ export default function CategoriesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const debouncedParentSearch = useDebounce(categorySearchQuery, 300);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null
+  );
 
   // Data fetching with loading states
   const {
     data: categoriesData,
     isLoading: categoriesLoading,
     isFetching: categoriesFetching,
-    refetch
+    refetch,
   } = useFindAllCategoriesQuery({
     page: currentPage,
     limit: 10,
-    search: debouncedParentSearch
+    search: debouncedParentSearch,
   });
 
   // Delete category mutation
-  const [deleteCategory, { isLoading: isDeleting, error }] = useDeleteCategoryMutation();
+  const [deleteCategory, { isLoading: isDeleting, error }] =
+    useDeleteCategoryMutation();
   console.log("Delete error:", error);
   // Breadcrumb items
-  const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "Categories" }
-  ];
+  const breadcrumbItems: BreadcrumbItem[] = [{ label: "Categories" }];
 
   // Action buttons for the header
   const actionButtons = (
     <>
       <Button variant="outline" onClick={() => refetch()}>
-        <RefreshCw className={`h-4 w-4 mr-1 ${categoriesFetching ? 'animate-spin' : ''}`} />
+        <RefreshCw
+          className={`h-4 w-4 mr-1 ${categoriesFetching ? "animate-spin" : ""}`}
+        />
         Refresh
       </Button>
       <Button asChild>
@@ -124,7 +138,9 @@ export default function CategoriesPage() {
       const err = error as { message?: string };
       // Show error toast
       toast.error("Delete failed", {
-        description: err?.message || "There was an error deleting the category. Please try again.",
+        description:
+          err?.message ||
+          "There was an error deleting the category. Please try again.",
       });
     }
   };
@@ -141,18 +157,24 @@ export default function CategoriesPage() {
     {
       accessorKey: "slug",
       header: "Slug",
-      cell: ({ row }: { row: { original: Category } }) => <div>{row.original.slug}</div>,
+      cell: ({ row }: { row: { original: Category } }) => (
+        <div>{row.original.slug}</div>
+      ),
     },
     {
       accessorKey: "icon",
       header: "Icon",
-      cell: ({ row }: { row: { original: Category } }) => <div>{row.original.icon}</div>,
+      cell: ({ row }: { row: { original: Category } }) => (
+        <div>{row.original.icon}</div>
+      ),
     },
     {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }: { row: { original: Category } }) => (
-        <Badge variant={row.original.status === 'active' ? "default" : "destructive"}>
+        <Badge
+          variant={row.original.status === "active" ? "default" : "destructive"}
+        >
           {row.original.status}
         </Badge>
       ),
@@ -160,13 +182,19 @@ export default function CategoriesPage() {
     {
       accessorKey: "parentId",
       header: "Parent",
-      cell: ({ row }: { row: { original: Category } }) => <div>{row.original.parentId ? "Yes" : "No"}</div>,
+      cell: ({ row }: { row: { original: Category } }) => (
+        <div>{row.original.parentId ? "Yes" : "No"}</div>
+      ),
     },
     {
       accessorKey: "createdAt",
       header: "Created",
       cell: ({ row }: { row: { original: Category } }) => (
-        <div>{formatDistanceToNow(new Date(row.original.createdAt), { addSuffix: true })}</div>
+        <div>
+          {formatDistanceToNow(new Date(row.original.createdAt), {
+            addSuffix: true,
+          })}
+        </div>
       ),
     },
     {
@@ -174,12 +202,8 @@ export default function CategoriesPage() {
       header: "Actions",
       cell: ({ row }: { row: { original: Category } }) => (
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-          >
-            <Link href={`/dashboard/categories/edit/${row.original.id}`}>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/categories/${row.original.id}/edit`}>
               <Pencil className="h-4 w-4 mr-1" /> Edit
             </Link>
           </Button>
@@ -230,13 +254,13 @@ export default function CategoriesPage() {
   // Handle pagination manually since we're using API pagination
   const handlePreviousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev) => prev - 1);
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < (categoriesData?.meta?.totalPages || 1)) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   };
 
@@ -304,7 +328,10 @@ export default function CategoriesPage() {
             <TableBody>
               {categoriesLoading ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
                     <div className="flex justify-center items-center">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
                       Loading categories...
@@ -342,7 +369,8 @@ export default function CategoriesPage() {
         </div>
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">
-            Showing {categoriesData?.items?.length || 0} of {categoriesData?.meta?.totalItems || 0} categories
+            Showing {categoriesData?.items?.length || 0} of{" "}
+            {categoriesData?.meta?.totalItems || 0} categories
           </div>
           <div className="space-x-2 flex items-center">
             <span className="text-sm text-muted-foreground">
@@ -360,7 +388,10 @@ export default function CategoriesPage() {
               variant="outline"
               size="sm"
               onClick={handleNextPage}
-              disabled={currentPage >= (categoriesData?.meta?.totalPages || 1) || categoriesLoading}
+              disabled={
+                currentPage >= (categoriesData?.meta?.totalPages || 1) ||
+                categoriesLoading
+              }
             >
               Next
             </Button>
@@ -374,8 +405,8 @@ export default function CategoriesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the category &quot;{categoryToDelete?.name}&quot;.
-              This action cannot be undone.
+              This will permanently delete the category &quot;
+              {categoryToDelete?.name}&quot;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

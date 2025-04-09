@@ -6,7 +6,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Media } from '@/common/types/media';
+import { Media } from '@/common/types';
 import MediaUploader from './media-uploader';
 
 interface MediaUploadModalProps {

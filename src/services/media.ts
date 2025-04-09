@@ -4,9 +4,9 @@ import {
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
-import { MediaType } from "@/common/types/media";
 import { storage } from "@/config/firebase";
 import { v4 as uuidv4 } from "uuid";
+import { MediaType } from "@/common/dtos";
 
 // Generate thumbnail URL (this is a placeholder - you might want to implement actual thumbnail generation)
 export const generateThumbnail = (file: File, type: MediaType) => {

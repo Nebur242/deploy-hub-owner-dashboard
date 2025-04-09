@@ -1,10 +1,9 @@
-import { PaginatedResponse } from "@/common/type";
 import {
-  Category,
-  CategoryQueryParams,
+  CategoryQueryParamsDto,
   CreateCategoryDto,
   UpdateCategoryDto,
-} from "@/common/types/category";
+} from "@/common/dtos";
+import { Category, PaginatedResponse } from "@/common/types";
 import { axiosBaseQuery } from "@/config/api";
 import { createSlice } from "@reduxjs/toolkit";
 import { createApi } from "@reduxjs/toolkit/query/react";
@@ -34,7 +33,7 @@ export const categoriesApi = createApi({
     // Get all categories with pagination and filtering
     findAllCategories: builder.query<
       PaginatedResponse<Category>,
-      CategoryQueryParams
+      CategoryQueryParamsDto
     >({
       query: (params = {}) => {
         const queryParams = new URLSearchParams();

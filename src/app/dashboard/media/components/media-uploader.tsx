@@ -5,7 +5,6 @@ import { Upload, X, FileText, Image, Video, Music, File, Loader2 } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Media, MediaType } from '@/common/types/media';
 import { formatFileSize } from '@/utils/media';
 import {
     uploadFileToFirebase,
@@ -16,6 +15,8 @@ import {
 } from '@/services/media';
 import { useCreateMediaMutation } from '@/store/features/media';
 import { v4 as uuidv4 } from 'uuid';
+import { Media } from '@/common/types';
+import { MediaType } from '@/common/dtos';
 
 
 interface MediaUploaderProps {

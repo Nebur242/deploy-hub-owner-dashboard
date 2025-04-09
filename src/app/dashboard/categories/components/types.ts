@@ -52,10 +52,8 @@ export interface ActionCardProps {
   isEditing: boolean;
 }
 
-// Props for the SuccessAlert component
-export interface SuccessAlertProps {
-  isEditing: boolean;
-}
+// Alert props are now defined in the global components
+// No need to define them here anymore
 
 // Props for the ParentCategorySelector component
 export interface ParentCategorySelectorProps {
