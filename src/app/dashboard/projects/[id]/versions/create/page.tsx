@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
 import VersionForm, { VersionFormValues } from "../components/version-form";
+import { getErrorMessage } from "@/utils/functions";
 
 export default function CreateVersionPage() {
     const router = useRouter();
@@ -84,7 +85,9 @@ export default function CreateVersionPage() {
                         onSubmit={onSubmit}
                         isLoading={isLoading}
                         isSuccess={isSuccess}
-                        error={(error as { message: string }) || null}
+                        error={{
+                            message: getErrorMessage(error) || "An error occurred",
+                        }}
                     />
                 )}
             </div>

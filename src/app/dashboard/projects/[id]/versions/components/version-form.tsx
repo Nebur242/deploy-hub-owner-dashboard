@@ -185,7 +185,7 @@ export default function VersionForm({
                     <Card className="p-6">
                         <h3 className="text-lg font-semibold">Version Settings</h3>
                         <Form {...form}>
-                            <form className="space-y-4">
+                            <div className="space-y-4">
                                 <FormField
                                     control={form.control}
                                     name="isStable"
@@ -222,7 +222,7 @@ export default function VersionForm({
                                         </FormItem>
                                     )}
                                 />
-                            </form>
+                            </div>
                         </Form>
                     </Card>
 

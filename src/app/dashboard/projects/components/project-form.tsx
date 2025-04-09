@@ -281,7 +281,7 @@ export default function ProjectForm({
           <Card className="p-6">
             <h3 className="text-lg font-semibold">Visibility & Categories</h3>
             <Form {...form}>
-              <form className="space-y-4">
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="visibility"
@@ -380,7 +380,7 @@ export default function ProjectForm({
                     </FormItem>
                   )}
                 />
-              </form>
+              </div>
             </Form>
           </Card>
 

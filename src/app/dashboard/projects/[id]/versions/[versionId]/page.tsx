@@ -215,8 +215,7 @@ export default function VersionPreviewPage() {
                                             )}
                                         </CardTitle>
                                         <CardDescription>
-                                            Created {formatDate(version.createdAt)}
-                                        </CardDescription>
+                                            Created {version?.createdAt ? formatDate(version.createdAt) : 'Unknown date'}                                        </CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>

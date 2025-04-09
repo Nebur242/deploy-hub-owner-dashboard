@@ -14,6 +14,7 @@ import ConfigurationForm from "../components/configuration-form";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreateConfigurationDto } from "@/common/dtos";
+import { getErrorMessage } from "@/utils/functions";
 
 export default function CreateConfigurationPage() {
   const params = useParams<{ id: string }>();
@@ -134,7 +135,7 @@ export default function CreateConfigurationPage() {
           error
             ? {
               message:
-                (error as { message: string })?.message ||
+                getErrorMessage(error) ||
                 "Failed to create configuration.",
             }
             : null

@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import ProjectForm, { ProjectFormData } from "../components/project-form";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/utils/functions";
 
 export default function CreateProjectPage() {
   const router = useRouter();
@@ -68,7 +69,9 @@ export default function CreateProjectPage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         isSuccess={isSuccess}
-        error={(error as { message: string }) || null}
+        error={{
+          message: getErrorMessage(error) || "An error occurred while creating the project.",
+        }}
       />
     </DashboardLayout>
   );

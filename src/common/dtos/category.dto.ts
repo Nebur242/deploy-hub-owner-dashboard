@@ -40,10 +40,12 @@ export const categoryQueryParamsDtoSchema = z.object({
   limit: z.number().optional(),
   search: z.string().optional(),
   parentId: z.string().optional(),
-  status: z.string().optional(),
+  status: z.enum(["active", "inactive", "pending"]).optional(),
 });
 
 // Type definitions from schemas
 export type CreateCategoryDto = z.infer<typeof createCategoryDtoSchema>;
 export type UpdateCategoryDto = z.infer<typeof updateCategoryDtoSchema>;
-export type CategoryQueryParamsDto = z.infer<typeof categoryQueryParamsDtoSchema>;
+export type CategoryQueryParamsDto = z.infer<
+  typeof categoryQueryParamsDtoSchema
+>;

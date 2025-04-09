@@ -2,7 +2,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useForm } from 'react-hook-form';
@@ -11,10 +10,9 @@ import { resetPassword } from "@/store/features/auth";
 import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { forgotPasswordSchema } from "@/common/dtos";
 
-const schema = z.object({
-    email: z.string().email('Invalid email address'),
-});
+
 
 export default function ForgotPasswordPage() {
 
@@ -31,7 +29,7 @@ export default function ForgotPasswordPage() {
         handleSubmit,
         formState: { errors },
     } = useForm<{ email: string }>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(forgotPasswordSchema),
     });
 
     const onSubmit = (data: { email: string }) => {
