@@ -10,7 +10,9 @@ const projectBaseDtoSchema = z.object({
     .array(z.nativeEnum(TechStack))
     .min(1, "Select at least one technology"),
   visibility: z.nativeEnum(Visibility),
-  categoryIds: z.array(z.string()).min(1, "Select at least one category"),
+  categories: z
+    .array(z.object({ id: z.string() }))
+    .min(1, "Select at least one category"),
 });
 
 // Schema for creating new projects
@@ -31,8 +33,8 @@ export const updateProjectDtoSchema = projectBaseDtoSchema.extend({
 
 // Schema for project query parameters
 export const projectQueryParamsDtoSchema = z.object({
-  page: z.number().optional(),
-  limit: z.number().optional(),
+  page: z.number().min(1, { message: "Page must be at least 1" }).optional(),
+  limit: z.number().min(1, { message: "Limit must be at least 1" }).optional(),
   search: z.string().optional(),
   techStack: z.nativeEnum(TechStack).optional(),
   visibility: z.nativeEnum(Visibility).optional(),

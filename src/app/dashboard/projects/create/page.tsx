@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
-import ProjectForm, { ProjectFormData } from "../components/project-form";
+import ProjectForm from "../components/project-form";
 import { toast } from "sonner";
+import { CreateProjectDto } from "@/common/dtos";
 import { getErrorMessage } from "@/utils/functions";
 
 export default function CreateProjectPage() {
@@ -50,7 +51,7 @@ export default function CreateProjectPage() {
     }
   }, [isSuccess, router]);
 
-  const handleSubmit = async (data: ProjectFormData) => {
+  const handleSubmit = async (data: CreateProjectDto) => {
     try {
       await createProject(data).unwrap();
     } catch (error) {
@@ -69,9 +70,7 @@ export default function CreateProjectPage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         isSuccess={isSuccess}
-        error={{
-          message: getErrorMessage(error) || "An error occurred while creating the project.",
-        }}
+        error={getErrorMessage(error) ? { message: getErrorMessage(error) || 'An error occured...' } : null}
       />
     </DashboardLayout>
   );

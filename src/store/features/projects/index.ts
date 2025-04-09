@@ -1,7 +1,6 @@
 // src/services/api.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { axiosBaseQuery } from "@/config/api";
-import { ProjectFormData } from "@/app/dashboard/projects/components/project-form";
 import {
   Deployment,
   LicenseOption,
@@ -11,7 +10,7 @@ import {
   ProjectConfiguration,
   ProjectVersion,
 } from "@/common/types";
-import { CreateConfigurationDto } from "@/common/dtos";
+import { CreateConfigurationDto, CreateProjectDto } from "@/common/dtos";
 
 // Define search parameters
 export interface ProjectSearchParams {
@@ -84,7 +83,7 @@ export const projectsApi = createApi({
       providesTags: (result, error, id) => [{ type: "Project", id }],
     }),
 
-    createProject: builder.mutation<Project, ProjectFormData>({
+    createProject: builder.mutation<Project, CreateProjectDto>({
       query: (data) => ({
         url: "projects",
         method: "POST",
@@ -95,7 +94,7 @@ export const projectsApi = createApi({
 
     updateProject: builder.mutation<
       Project,
-      { id: string; body: ProjectFormData }
+      { id: string; body: CreateProjectDto }
     >({
       query: ({ id, body: data }) => ({
         url: `projects/${id}`,

@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 
 import {
   Form,
@@ -43,96 +42,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DeploymentProvider } from "@/common/enums/project";
-import { DeploymentOption, EnvironmentVariable, ProjectConfiguration } from "@/common/types";
-import { CreateConfigurationDto } from "@/common/dtos";
-
-// Form schema with validation for duplicates
-const formSchema = z.object({
-  githubAccounts: z.array(
-    z.object({
-      username: z.string().min(2, "Username must be at least 2 characters"),
-      accessToken: z.string().min(5, "Access token is required"),
-      repository: z.string(),
-      workflowFile: z.string(),
-    })
-  )
-    .optional()
-    .default([])
-    .refine(
-      (accounts) => {
-        // Check for duplicate username/repository combinations
-        const seen = new Set();
-        for (const account of accounts) {
-          // Skip empty fields
-          if (!account.username.trim() || !account.repository.trim()) continue;
-
-          const key = `${account.username}:${account.repository}`;
-          if (seen.has(key)) {
-            return false;
-          }
-          seen.add(key);
-        }
-        return true;
-      },
-      {
-        message: "Duplicate username and repository combinations are not allowed",
-        path: ["githubAccounts"],
-      }
-    ),
-
-  deploymentOption: z.object({
-    provider: z.nativeEnum(DeploymentProvider),
-    environmentVariables: z.array(
-      z.object({
-        key: z.string()
-          .min(1, "Key is required")
-          .regex(/^[^\s]+$/, "Key must not contain spaces"),
-        defaultValue: z.string().optional().default(""),
-        description: z.string(),
-        video: z.string().url("Must be a url").optional().nullable(),
-        isRequired: z.boolean().default(true),
-        isSecret: z.boolean().default(false),
-      })
-    )
-      .default([])
-      .refine(
-        (variables) => {
-          // Check for duplicate env var keys within a deployment option
-          const keys = variables
-            .map(v => v.key.trim())
-            .filter(k => k !== '');
-          return new Set(keys).size === keys.length;
-        },
-        {
-          message: "Environment variable keys must be unique",
-          path: ["environmentVariables"],
-        }
-      )
-      .refine(
-        (variables) => {
-          // Check if non-required variables have a default value
-          return variables.every(v => v.isRequired || v.defaultValue.trim() !== "");
-        },
-        {
-          message: "Non-required variables must have a default value",
-          path: ["environmentVariables"],
-        }
-      ),
-  }),
-});
-
-// Type for form data derived from the Zod schema
-export type ConfigurationFormData = z.infer<typeof formSchema>;
-
-// Type for updating existing configurations - extends the form data with an ID
-export interface ConfigurationUpdateFormData
-  extends ConfigurationFormData,
-  Pick<ProjectConfiguration, "id"> {
-  // id field is already included from ProjectConfiguration
-}
+import { DeploymentOption, EnvironmentVariable } from "@/common/types";
+import { CreateConfigurationDto, createConfigurationDtoSchema } from "@/common/dtos";
 
 interface ConfigurationFormProps {
-  projectId: string;
   isEditing: boolean;
   initialData?: CreateConfigurationDto;
   onSubmit: (data: CreateConfigurationDto) => Promise<void>;
@@ -337,7 +250,7 @@ function GithubAccountFields({ index }: { index: number }) {
 
 // Provider Fields
 function ProviderFields() {
-  const form = useFormContext<ConfigurationFormData>();
+  const form = useFormContext<CreateConfigurationDto>();
   const { control, setValue, watch } = form;
 
   // Setup provider field watching
@@ -778,7 +691,6 @@ function LeftColumnWithTabs({
 
 // Main Configuration Form component
 export default function ConfigurationForm({
-  // projectId,
   isEditing,
   initialData,
   onSubmit,
@@ -788,8 +700,8 @@ export default function ConfigurationForm({
 }: ConfigurationFormProps) {
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  const form = useForm<ConfigurationFormData>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<CreateConfigurationDto>({
+    resolver: zodResolver(createConfigurationDtoSchema),
     defaultValues: initialData || {
       githubAccounts: [
         {
@@ -825,7 +737,7 @@ export default function ConfigurationForm({
     name: "githubAccounts",
   });
 
-  const handleSubmit = async (values: ConfigurationFormData) => {
+  const handleSubmit = async (values: CreateConfigurationDto) => {
     setSubmitAttempted(true);
     await onSubmit(values as CreateConfigurationDto);
   };

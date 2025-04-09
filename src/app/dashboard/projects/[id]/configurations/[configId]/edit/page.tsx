@@ -73,7 +73,6 @@ export default function EditConfigurationPage() {
   useEffect(() => {
     if (configuration) {
       setInitialValues({
-        projectId,
         githubAccounts: configuration.githubAccounts || [],
         deploymentOption: configuration.deploymentOption,
       });
@@ -185,7 +184,6 @@ export default function EditConfigurationPage() {
       actions={actionButtons}
     >
       <ConfigurationForm
-        projectId={projectId}
         isEditing={true}
         initialData={initialValues}
         onSubmit={handleSubmit}

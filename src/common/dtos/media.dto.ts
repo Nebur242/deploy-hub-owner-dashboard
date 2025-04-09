@@ -40,8 +40,8 @@ export const updateMediaDtoSchema = z.object({
 
 // Schema for media query parameters
 export const mediaQueryParamsDtoSchema = z.object({
-  page: z.number().optional(),
-  limit: z.number().optional(),
+  page: z.number().min(1, { message: "Page must be at least 1" }).optional(),
+  limit: z.number().min(1, { message: "Limit must be at least 1" }).optional(),
   sortBy: z.string().optional(),
   order: z.enum(["ASC", "DESC"]).optional(),
   type: z.nativeEnum(MediaType).optional(),

@@ -126,7 +126,6 @@ export default function CreateConfigurationPage() {
       actions={actionButtons}
     >
       <ConfigurationForm
-        projectId={projectId}
         isEditing={false}
         onSubmit={handleSubmit}
         isLoading={isLoading}

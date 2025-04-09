@@ -27,7 +27,6 @@ export const deploymentOptionDtoSchema = z.object({
 
 // Schema for creating project configurations
 export const createConfigurationDtoSchema = z.object({
-  projectId: z.string(),
   githubAccounts: z.array(githubAccountDtoSchema),
   deploymentOption: deploymentOptionDtoSchema,
 });

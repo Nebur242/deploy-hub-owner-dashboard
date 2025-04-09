@@ -12,13 +12,15 @@ import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import ProjectForm, { ProjectFormData } from "../../components/project-form";
 import Link from "next/link";
 import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { CreateProjectDto } from "@/common/dtos";
+import ProjectForm from "../../components/project-form";
+import { getErrorMessage } from "@/utils/functions";
 
 export default function EditProjectPage() {
   const params = useParams<{ id: string }>();
@@ -26,7 +28,7 @@ export default function EditProjectPage() {
   const projectId = params?.id || "";
 
   const [initialValues, setInitialValues] = useState<
-    ProjectFormData | undefined
+    CreateProjectDto | undefined
   >(undefined);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -137,7 +139,7 @@ export default function EditProjectPage() {
   }, [isSuccess, router]);
 
   // Handle form submission
-  const handleSubmit = async (data: ProjectFormData) => {
+  const handleSubmit = async (data: CreateProjectDto) => {
     try {
       await updateProject({
         id: projectId,
@@ -231,7 +233,9 @@ export default function EditProjectPage() {
           onSubmit={handleSubmit}
           isLoading={isUpdating}
           isSuccess={isSuccess}
-          error={(updateError as { message: string }) || null}
+          error={{
+            message: getErrorMessage(updateError) || "An error occurred",
+          }}
         />
 
         {/* Configurations Section */}

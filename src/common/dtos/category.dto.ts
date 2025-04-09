@@ -36,8 +36,8 @@ export const updateCategoryDtoSchema = categoryBaseSchema.extend({
 
 // Query params for fetching categories
 export const categoryQueryParamsDtoSchema = z.object({
-  page: z.number().optional(),
-  limit: z.number().optional(),
+  page: z.number().min(1, { message: "Page must be at least 1" }).optional(),
+  limit: z.number().min(1, { message: "Limit must be at least 1" }).optional(),
   search: z.string().optional(),
   parentId: z.string().optional(),
   status: z.enum(["active", "inactive", "pending"]).optional(),
