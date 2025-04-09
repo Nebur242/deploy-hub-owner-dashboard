@@ -22,7 +22,7 @@ export interface LicensePurchase extends BaseEntity {
   transactionId?: string;
   status: PurchaseStatus;
   amount: number;
-  currency: string;
+  currency: Currency;
   deploymentsUsed: number;
   deploymentsAllowed: number;
   expiresAt?: string;
