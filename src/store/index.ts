@@ -3,6 +3,7 @@ import auth from "./features/auth";
 import { categoriesApi } from "./features/categories";
 import { mediaApi } from "./features/media";
 import { projectsApi } from "./features/projects";
+import { licensesApi } from "./features/licenses";
 
 export const makeStore = () => {
   return configureStore({
@@ -11,12 +12,14 @@ export const makeStore = () => {
       [categoriesApi.reducerPath]: categoriesApi.reducer,
       [mediaApi.reducerPath]: mediaApi.reducer,
       [projectsApi.reducerPath]: projectsApi.reducer,
+      [licensesApi.reducerPath]: licensesApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware()
         .concat(categoriesApi.middleware)
         .concat(mediaApi.middleware)
-        .concat(projectsApi.middleware),
+        .concat(projectsApi.middleware)
+        .concat(licensesApi.middleware),
     devTools: process.env.NODE_ENV !== "production",
   });
 };

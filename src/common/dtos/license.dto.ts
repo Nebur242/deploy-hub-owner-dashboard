@@ -37,6 +37,15 @@ export const confirmPaymentDtoSchema = z.object({
   transactionId: z.string(),
 });
 
+export type LicenseSearchParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  currency?: string;
+  sortBy?: string;
+  sortDirection?: "ASC" | "DESC";
+};
+
 // Type definitions from schemas
 export type CreateLicenseDto = z.infer<typeof createLicenseDtoSchema>;
 export type UpdateLicenseDto = z.infer<typeof updateLicenseDtoSchema>;
