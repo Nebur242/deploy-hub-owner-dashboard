@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PurchaseStatus } from "@/common/enums/project";
 import Link from "next/link";
 import { IconEdit } from "@tabler/icons-react";
+import { formatCurrency, formatDate, formatDuration } from "@/utils/functions";
 
 export default function ViewLicensePage() {
     const params = useParams<{ id: string }>();
@@ -69,32 +70,6 @@ export default function ViewLicensePage() {
         </>
     );
 
-    // Format currency display
-    const formatCurrency = (currency: string, amount: number) => {
-        const formatter = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency,
-        });
-        return formatter.format(amount);
-    };
-
-    // Format duration display
-    const formatDuration = (days: number) => {
-        if (days === 0) return "Unlimited";
-        if (days === 1) return "1 day";
-        if (days < 30) return `${days} days`;
-        const months = Math.floor(days / 30);
-        return months === 1 ? "1 month" : `${months} months`;
-    };
-
-    // Format date
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    };
 
     // Function to retry loading if there was an error
     const handleRetryFetch = () => {

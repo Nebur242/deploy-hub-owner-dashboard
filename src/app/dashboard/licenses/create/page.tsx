@@ -56,6 +56,7 @@ export default function CreateLicensePage() {
             await createLicense(data).unwrap();
         } catch (error) {
             console.error("Failed to create license:", error);
+            toast.error(getErrorMessage(error) || "Failed to create license");
         }
     };
 

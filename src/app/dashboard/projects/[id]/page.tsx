@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Visibility } from "@/common/enums/project";
+import { formatDate } from "@/utils/functions";
 
 export default function ProjectPreviewPage() {
     const router = useRouter();
@@ -95,16 +96,6 @@ export default function ProjectPreviewPage() {
 
     // Get the latest version if available
     const latestVersion = versions.find(v => v.isLatest);
-
-    // Format date for display
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        }).format(date);
-    };
 
     // Breadcrumb items
     const breadcrumbItems: BreadcrumbItem[] = [

@@ -106,6 +106,9 @@ export default function EditLicensePage() {
             }).unwrap();
         } catch (error) {
             console.error("Failed to update license:", error);
+            toast.error("Failed to update license", {
+                description: getErrorMessage(error) || "An error occurred. Please try again.",
+            });
         }
     };
 
