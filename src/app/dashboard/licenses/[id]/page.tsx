@@ -30,12 +30,12 @@ export default function ViewLicensePage() {
 
     // Fetch purchases related to this license
     const {
-        data: purchases,
+        data: purchasesResponse,
         isLoading: isLoadingPurchases,
-    } = useGetLicensePurchasesQuery();
+    } = useGetLicensePurchasesQuery(undefined);
 
-    // Filter purchases for this license
-    const licensePurchases = purchases?.filter(purchase => purchase.licenseId === licenseId) || [];
+    // Get purchases from paginated response and filter for this license
+    const licensePurchases = purchasesResponse?.items?.filter(purchase => purchase.licenseId === licenseId) || [];
 
     // Breadcrumb items
     const breadcrumbItems: BreadcrumbItem[] = [

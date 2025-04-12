@@ -91,12 +91,34 @@ export const licensesApi = createApi({
     }),
 
     // LICENSE PURCHASES
-    getLicensePurchases: builder.query<LicensePurchase[], void>({
-      query: () => ({
-        url: "licenses/purchases",
-        method: "GET",
-      }),
-      providesTags: [{ type: "LicensePurchase", id: "LIST" }],
+    getLicensePurchases: builder.query<
+      PaginatedResponse<LicensePurchase>,
+      { page?: number; limit?: number } | undefined
+    >({
+      query: (params) => {
+        const queryParams = new URLSearchParams();
+
+        if (params) {
+          if (params.limit)
+            queryParams.append("limit", params.limit.toString());
+          if (params.page) queryParams.append("page", params.page.toString());
+        }
+
+        return {
+          url: `licenses/purchases?${queryParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ id }) => ({
+                type: "LicensePurchase" as const,
+                id,
+              })),
+              { type: "LicensePurchase", id: "LIST" },
+            ]
+          : [{ type: "LicensePurchase", id: "LIST" }],
     }),
 
     getLicensePurchase: builder.query<LicensePurchase, string>({
