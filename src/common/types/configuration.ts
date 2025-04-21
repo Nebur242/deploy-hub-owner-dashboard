@@ -17,7 +17,7 @@ export interface EnvironmentVariable {
   description: string;
   isRequired: boolean;
   isSecret: boolean;
-  video: string;
+  video: string | null;
 }
 
 // Deployment Option entity
