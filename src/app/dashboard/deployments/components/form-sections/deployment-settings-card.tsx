@@ -21,15 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { DeploymentEnvironment } from "@/store/features/deployments";
 import { FormSectionProps } from "../types";
+
+
+const versionRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+
+export interface DeploymentSettingsCardProps extends FormSectionProps {
+  projectVersions?: string[];
+  isLoadingVersions?: boolean;
+}
 
 export function DeploymentSettingsCard({
   form,
   isLoading,
   success,
-}: FormSectionProps) {
+  projectVersions = ['main'],
+  isLoadingVersions,
+}: DeploymentSettingsCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -74,12 +83,38 @@ export function DeploymentSettingsCard({
           name="branch"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Branch</FormLabel>
+              <FormLabel>Branch/Version</FormLabel>
               <FormControl>
-                <Input {...field} disabled={isLoading || success} />
+                {isLoadingVersions ? (
+                  <Select disabled value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Loading versions..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="main">Loading...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={isLoading || success}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select branch or version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectVersions.map((version) => (
+                        <SelectItem key={version} value={version}>
+                          {versionRegex.test(version) ? `v${version}` : "main"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </FormControl>
               <FormDescription>
-                The Git branch to deploy (default: main)
+                The Git branch or version tag to deploy
               </FormDescription>
               <FormMessage />
             </FormItem>

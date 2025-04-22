@@ -26,7 +26,8 @@ import {
   IconBrandGithub,
   IconServer,
   IconArrowRight,
-  IconRefresh
+  IconRefresh,
+  IconTerminal
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useGetDeploymentsQuery, DeploymentEnvironment } from "@/store/features/deployments";
@@ -50,6 +51,11 @@ export default function ProjectDeploymentsPage() {
     projectId,
     page: currentPage,
     limit: 10,
+  }, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pollingInterval: 45000,
   });
 
   const deployments = data?.items || [];
@@ -211,6 +217,16 @@ export default function ProjectDeploymentsPage() {
                       >
                         <Link href={`/dashboard/deployments/${deployment.id}`}>
                           <IconArrowRight className="h-4 w-4 mr-1" /> View Details
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Link href={`/dashboard/deployments/${deployment.id}/logs`}>
+                          <IconTerminal className="h-4 w-4 mr-1" /> View Logs
                         </Link>
                       </Button>
                     </TableCell>

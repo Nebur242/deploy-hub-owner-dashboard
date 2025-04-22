@@ -84,7 +84,7 @@ export function ProjectDetailsCard({
                 </FormControl>
                 <SelectContent>
                   {projects.length > 0 ? (
-                    projects.map((project) => (
+                    projects.filter(p => p.configurations && p.configurations?.length > 0).map((project) => (
                       <SelectItem key={project.id} value={project.id}>
                         {project.name}
                       </SelectItem>

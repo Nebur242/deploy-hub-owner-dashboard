@@ -68,7 +68,12 @@ export default function DeploymentDetailPage() {
     isLoading,
     isError,
     refetch
-  } = useGetDeploymentQuery(deploymentId);
+  } = useGetDeploymentQuery(deploymentId, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pollingInterval: 45000,
+  });
 
   // Fetch logs only when the logs tab is active, to avoid unnecessary requests
   const {
@@ -165,6 +170,15 @@ export default function DeploymentDetailPage() {
           className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
         />
         Refresh
+      </Button>
+
+      <Button
+        variant="outline"
+        asChild
+      >
+        <Link href={`/dashboard/deployments/${deploymentId}/logs`}>
+          <IconTerminal className="h-4 w-4 mr-2" /> View Full Logs
+        </Link>
       </Button>
 
       {deployment.status === DeploymentStatus.FAILED && (

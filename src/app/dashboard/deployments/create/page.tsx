@@ -13,7 +13,7 @@ import { AlertCircle } from "lucide-react";
 import {
   useCreateDeploymentMutation
 } from "@/store/features/deployments";
-import { useGetProjectsQuery, useGetConfigurationsQuery } from "@/store/features/projects";
+import { useGetProjectsQuery, useGetConfigurationsQuery, useGetVersionsQuery } from "@/store/features/projects";
 import DeploymentForm from "../components/deployment-form";
 // import { DeploymentUpdateFormValues } from "../components";
 
@@ -27,6 +27,8 @@ export default function CreateDeploymentPage() {
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(initialProjectId);
   // State for tracking environment variable values entered by users
   const [envVarValues, setEnvVarValues] = useState<Record<string, string>>({});
+  // State for project versions
+  const [projectVersions, setProjectVersions] = useState<string[]>(['main']);
 
   // Set initial project ID from URL on component mount
   useEffect(() => {
@@ -54,6 +56,31 @@ export default function CreateDeploymentPage() {
   } = useGetConfigurationsQuery(currentProjectId || '', {
     skip: !currentProjectId
   });
+
+  // Fetch project versions using the current project ID
+  const {
+    data: versionsData,
+    isLoading: isLoadingVersions
+  } = useGetVersionsQuery(currentProjectId || '', {
+    skip: !currentProjectId
+  });
+
+  // Update versions when data is loaded
+  useEffect(() => {
+    if (versionsData && Array.isArray(versionsData)) {
+      // Ensure 'main' is always included and at the beginning
+      const versions = ['main'];
+      versionsData.forEach(({ version }) => {
+        if (version !== 'main' && !versions.includes(version)) {
+          versions.push(version);
+        }
+      });
+      setProjectVersions(versions);
+    } else {
+      // Default to just 'main' if no versions were returned
+      setProjectVersions(['main']);
+    }
+  }, [versionsData]);
 
   // Handler for project change
   const handleProjectChange = (selectedProjectId: string) => {
@@ -84,13 +111,11 @@ export default function CreateDeploymentPage() {
   );
 
   // Process projects data for form use
-  const projects = projectsData?.items?.map(project => ({
-    id: project.id,
-    name: project.name
-  })) || [];
+  const projects = projectsData?.items || [];
 
   // Process configurations data for form use
   const configurations = configurationsData?.map(config => ({
+    ...config,
     id: config.id,
     name: `Configuration ${config.id.substring(0, 4)} (${config.deploymentOption.provider})`
   })) || [];
@@ -128,9 +153,6 @@ export default function CreateDeploymentPage() {
     }
   };
 
-  // Determine if we're still loading data
-  // const isDataLoading = isLoadingProjects || (currentProjectId && isLoadingConfigurations);
-
   // Determine if we're still loading initial data only (not configurations after project change)
   const isInitialDataLoading = isLoadingProjects;
 
@@ -166,12 +188,14 @@ export default function CreateDeploymentPage() {
           initialConfigurationId={initialConfigurationId}
           projects={projects}
           configurations={configurations}
+          projectVersions={projectVersions}
           isLoading={isLoading}
           isSuccess={isSuccess}
           error={error as { message: string } | null}
           onProjectChange={handleProjectChange}
           onEnvVarChange={handleEnvVarChange}
           envVarValues={envVarValues}
+          isLoadingVersions={isLoadingVersions}
         />
       )}
     </DashboardLayout>

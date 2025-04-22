@@ -22,7 +22,12 @@ export default function EditDeploymentPage() {
     data: deployment,
     isLoading: isLoadingDeployment,
     isError
-  } = useGetDeploymentQuery(deploymentId);
+  } = useGetDeploymentQuery(deploymentId, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pollingInterval: 45000,
+  });
 
   // Set initial project ID once deployment data is loaded
   useEffect(() => {
@@ -67,14 +72,11 @@ export default function EditDeploymentPage() {
   ];
 
   // Process projects data for form use
-  const projects = projectsData?.items?.map(project => ({
-    id: project.id,
-    name: project.name
-  })) || [];
+  const projects = projectsData?.items || [];
 
   // Process configurations data for form use
   const configurations = configurationsData?.map(config => ({
-    id: config.id,
+    ...config,
     name: `Configuration ${config.id.substring(0, 4)} (${config.deploymentOption.provider})`
   })) || [];
 

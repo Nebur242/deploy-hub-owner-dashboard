@@ -21,6 +21,7 @@ import {
     IconServer,
     IconChevronRight,
     IconArrowRight,
+    IconTerminal,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -82,6 +83,11 @@ export default function ProjectPreviewPage() {
         projectId,
         limit: 5,
         page: 1
+    }, {
+        refetchOnMountOrArgChange: true,
+        refetchOnFocus: true,
+        refetchOnReconnect: true,
+        pollingInterval: 45000,
     });
 
     // Access the deployments items array
@@ -456,17 +462,30 @@ export default function ProjectPreviewPage() {
                                                                 {formatDistanceToNow(new Date(deployment.createdAt), { addSuffix: true })}
                                                             </TableCell>
                                                             <TableCell className="text-right">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    asChild
-                                                                    className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
-                                                                >
-                                                                    <Link href={`/dashboard/deployments/${deployment.id}`}>
-                                                                        <IconArrowRight className="h-4 w-4 mr-1" />
-                                                                        Details
-                                                                    </Link>
-                                                                </Button>
+                                                                <div className="flex justify-end space-x-1">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        asChild
+                                                                        className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
+                                                                    >
+                                                                        <Link href={`/dashboard/deployments/${deployment.id}`}>
+                                                                            <IconArrowRight className="h-4 w-4 mr-1" />
+                                                                            Details
+                                                                        </Link>
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        asChild
+                                                                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                                    >
+                                                                        <Link href={`/dashboard/deployments/${deployment.id}/logs`}>
+                                                                            <IconTerminal className="h-4 w-4 mr-1" />
+                                                                            Logs
+                                                                        </Link>
+                                                                    </Button>
+                                                                </div>
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}

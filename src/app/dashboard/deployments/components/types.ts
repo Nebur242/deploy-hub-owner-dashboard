@@ -1,7 +1,11 @@
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { deploymentSchema, deploymentUpdateSchema } from "./deployment-schemas";
-import { EnvironmentVariable } from "@/common/types";
+import {
+  EnvironmentVariable,
+  Project,
+  ProjectConfiguration,
+} from "@/common/types";
 
 // Export types from schema for external use
 export type DeploymentFormValues = z.infer<typeof deploymentSchema>;
@@ -14,14 +18,16 @@ export interface DeploymentFormProps {
   onSubmit: (data: DeploymentFormValues) => Promise<void>;
   initialProjectId?: string;
   initialConfigurationId?: string;
-  projects: Array<{ id: string; name: string }>;
-  configurations: Array<{ id: string; name: string }>;
+  projects: Array<Project>;
+  configurations: Array<ProjectConfiguration>;
+  projectVersions?: string[];
   isLoading: boolean;
   isSuccess: boolean;
   error: { message: string } | null;
   onProjectChange?: (projectId: string) => void;
   onEnvVarChange?: (key: string, value: string) => void;
   envVarValues?: Record<string, string>;
+  isLoadingVersions?: boolean;
 }
 
 // Common props for all form section components
@@ -35,7 +41,7 @@ export interface FormSectionProps {
 
 // For project details section
 export interface ProjectDetailsSectionProps extends FormSectionProps {
-  projects: Array<{ id: string; name: string }>;
+  projects: Array<Project>;
   configurations: Array<{ id: string; name: string }>;
   initialProjectId?: string;
   initialConfigurationId?: string;

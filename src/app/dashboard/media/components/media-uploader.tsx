@@ -130,6 +130,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
             // Create media entry in the backend using RTK Query
             const mediaData = {
+                name: file.name, // Add the required name property
                 filename: file.name,
                 originalFilename: file.name,
                 mimeType: file.type,

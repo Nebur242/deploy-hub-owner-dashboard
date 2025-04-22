@@ -49,6 +49,7 @@ import {
   IconCheck,
   IconX,
   IconClockHour4,
+  IconTerminal,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -93,6 +94,11 @@ export default function DeploymentsPage() {
     environment: environmentFilter !== "all" ? environmentFilter as DeploymentEnvironment : undefined,
     page: currentPage,
     limit: itemsPerPage,
+  }, {
+    pollingInterval: 45000, // Poll every minute
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    skipPollingIfUnfocused: true,
   });
 
   // Retry deployment mutation
@@ -403,18 +409,16 @@ export default function DeploymentsPage() {
                               </a>
                             </Button>
                           )}
-                          {/* {deployment.logUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                              asChild
-                            >
-                              <Link href={`/dashboard/deployments/${deployment.id}/logs`}>
-                                <IconFileText className="h-4 w-4 mr-1" /> Logs
-                              </Link>
-                            </Button>
-                          )} */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            asChild
+                          >
+                            <Link href={`/dashboard/deployments/${deployment.id}/logs`}>
+                              <IconTerminal className="h-4 w-4 mr-1" /> Logs
+                            </Link>
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

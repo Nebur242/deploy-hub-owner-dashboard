@@ -44,6 +44,7 @@ interface VersionFormProps {
     isLoading: boolean;
     isSuccess: boolean;
     error: { message: string } | null;
+    disabled?: boolean;
 }
 
 export default function VersionForm({
@@ -53,6 +54,7 @@ export default function VersionForm({
     isLoading,
     isSuccess,
     error,
+    disabled = false,
 }: VersionFormProps) {
     const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -118,8 +120,8 @@ export default function VersionForm({
                                             <Input
                                                 placeholder="e.g. 1.0.0"
                                                 {...field}
-                                                disabled={isEditing || isLoading || isSuccess}
-                                                className={isEditing ? "bg-gray-100" : ""}
+                                                disabled={disabled || isEditing || isLoading || isSuccess}
+                                                className={isEditing ? "bg-gray-100" : disabled ? "bg-gray-100 opacity-70" : ""}
                                             />
                                         </FormControl>
                                         <FormDescription>
@@ -143,8 +145,8 @@ export default function VersionForm({
                                             <Input
                                                 placeholder="e.g. 8f4b8a1c"
                                                 {...field}
-                                                disabled={isLoading || isSuccess}
-                                                className={isEditing ? "border-blue-300 focus-visible:ring-blue-400" : ""}
+                                                disabled={disabled || isLoading || isSuccess}
+                                                className={isEditing ? "border-blue-300 focus-visible:ring-blue-400" : disabled ? "bg-gray-100 opacity-70" : ""}
                                             />
                                         </FormControl>
                                         <FormDescription>
@@ -164,9 +166,9 @@ export default function VersionForm({
                                         <FormControl>
                                             <Textarea
                                                 placeholder="Describe the changes in this version..."
-                                                className={`min-h-[120px] ${isEditing ? "border-blue-300 focus-visible:ring-blue-400" : ""}`}
+                                                className={`min-h-[120px] ${isEditing ? "border-blue-300 focus-visible:ring-blue-400" : disabled ? "bg-gray-100 opacity-70" : ""}`}
                                                 {...field}
-                                                disabled={isLoading || isSuccess}
+                                                disabled={disabled || isLoading || isSuccess}
                                             />
                                         </FormControl>
                                         <FormDescription>
@@ -203,8 +205,8 @@ export default function VersionForm({
                                                         <Checkbox
                                                             checked={field.value}
                                                             onCheckedChange={field.onChange}
-                                                            disabled={isEditing || isLoading || isSuccess}
-                                                            className={isEditing ? "opacity-60" : ""}
+                                                            disabled={disabled || isEditing || isLoading || isSuccess}
+                                                            className={isEditing || disabled ? "opacity-60" : ""}
                                                         />
                                                     </FormControl>
                                                     <FormLabel className="font-normal">
@@ -239,7 +241,7 @@ export default function VersionForm({
                             <Button
                                 type="submit"
                                 onClick={form.handleSubmit(handleSubmit)}
-                                disabled={isLoading || isSuccess}
+                                disabled={disabled || isLoading || isSuccess}
                                 className="w-full"
                             >
                                 {isLoading && (
@@ -253,7 +255,7 @@ export default function VersionForm({
                                 type="button"
                                 onClick={() => form.reset()}
                                 className="w-full"
-                                disabled={isLoading}
+                                disabled={disabled || isLoading}
                             >
                                 Reset Form
                             </Button>

@@ -41,12 +41,13 @@ export default function DeploymentForm({
   initialConfigurationId,
   projects,
   configurations,
+  projectVersions = ['main'],
   isLoading,
   isSuccess,
   error,
   onProjectChange,
   onEnvVarChange,
-  // envVarValues: externalEnvVarValues
+  isLoadingVersions,
 }: DeploymentFormProps) {
   const router = useRouter();
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
@@ -284,6 +285,8 @@ export default function DeploymentForm({
                 form={form}
                 isLoading={isLoading}
                 success={success}
+                projectVersions={projectVersions}
+                isLoadingVersions={isLoadingVersions}
               />
               <ActionCard
                 handleDiscard={handleDiscard}

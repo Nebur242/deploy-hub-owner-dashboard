@@ -11,16 +11,22 @@ interface TokenInfo {
 const TOKEN_INFO_KEY = "firebase_auth_token_info";
 const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // 5 minutes buffer before expiration
 
+// Helper function to check if code is running in browser environment
+const isBrowser = () => typeof window !== "undefined";
+
 class AuthService {
   constructor() {
-    // Initialize token listener
-    const auth = getAuth(app);
-    auth.onIdTokenChanged(async (user) => {
-      if (!user) {
-        // Clear token from localStorage when user signs out
-        this.clearTokenCache();
-      }
-    });
+    // Only set up the listener in browser environment
+    if (isBrowser()) {
+      // Initialize token listener
+      const auth = getAuth(app);
+      auth.onIdTokenChanged(async (user) => {
+        if (!user) {
+          // Clear token from localStorage when user signs out
+          this.clearTokenCache();
+        }
+      });
+    }
   }
 
   /**
@@ -70,8 +76,7 @@ class AuthService {
    */
   private saveTokenInfoToStorage(tokenInfo: TokenInfo): void {
     try {
-      if (!window.localStorage) {
-        console.warn("localStorage is not available");
+      if (!isBrowser()) {
         return;
       }
       localStorage.setItem(TOKEN_INFO_KEY, JSON.stringify(tokenInfo));
@@ -85,8 +90,7 @@ class AuthService {
    */
   private getTokenInfoFromStorage(): TokenInfo | null {
     try {
-      if (!window.localStorage) {
-        console.warn("localStorage is not available");
+      if (!isBrowser()) {
         return null;
       }
       const tokenInfoStr = localStorage.getItem(TOKEN_INFO_KEY);
@@ -104,8 +108,7 @@ class AuthService {
    */
   clearTokenCache(): void {
     try {
-      if (!window.localStorage) {
-        console.warn("localStorage is not available");
+      if (!isBrowser()) {
         return;
       }
       localStorage.removeItem(TOKEN_INFO_KEY);

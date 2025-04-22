@@ -309,9 +309,9 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
     const renderContent = () => {
         if (isLoading) {
             return (
-                <div className="text-center py-16 animate-in fade-in">
+                <div className="text-center py-16">
                     <div className="inline-flex items-center justify-center rounded-md border border-muted p-4 mb-4 bg-card">
-                        <div className="animate-spin h-10 w-10 border-[3px] border-primary/30 border-t-primary rounded-full mx-auto"></div>
+                        <div className="h-10 w-10 border-[3px] border-primary/30 border-t-primary rounded-full mx-auto"></div>
                     </div>
                     <p className="text-muted-foreground">Loading media files...</p>
                 </div>
@@ -320,7 +320,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
         if (media.length === 0) {
             return (
-                <div className="text-center py-16 px-4 max-w-md mx-auto animate-in fade-in">
+                <div className="text-center py-16 px-4 max-w-md mx-auto">
                     <div className="mb-6 bg-muted/50 inline-block p-6 rounded-full">
                         <div className="relative w-16 h-16">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground h-16 w-16">
@@ -347,7 +347,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
         if (viewMode === 'grid') {
             return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
                     {media.map((item) => (
                         selectable ? (
                             <SelectableMediaCard
@@ -381,7 +381,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
 
         // List view
         return (
-            <div className="space-y-2 animate-in fade-in duration-300">
+            <div className="space-y-2">
                 {media.map((item) => (
                     <div
                         key={item.id}

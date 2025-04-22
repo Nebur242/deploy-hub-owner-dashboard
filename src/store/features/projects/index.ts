@@ -365,3 +365,5 @@ export const {
   useCreateDeploymentMutation,
   useCancelDeploymentMutation,
 } = projectsApi;
+
+// Additional alias for useGetVersionsQuery to make the intent clearer

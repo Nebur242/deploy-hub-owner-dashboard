@@ -55,6 +55,11 @@ export default function ConfigurationDeploymentsPage() {
     projectId,
     page: currentPage,
     limit: 10,
+  }, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pollingInterval: 45000,
   });
 
   const deployments = data?.items || [];

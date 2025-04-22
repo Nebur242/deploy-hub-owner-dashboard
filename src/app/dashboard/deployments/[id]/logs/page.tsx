@@ -12,16 +12,16 @@ import { DeploymentLogs } from "../../components";
 export default function DeploymentLogsPage() {
   const params = useParams();
   const deploymentId = params.id as string;
-  
+
   // Fetch deployment
   const { data: deployment, isLoading } = useGetDeploymentQuery(deploymentId);
 
   // Breadcrumb items
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: "Deployments", href: "/dashboard/deployments" },
-    { 
-      label: deployment?.id.substring(0, 8) || "Deployment", 
-      href: `/dashboard/deployments/${deploymentId}` 
+    {
+      label: deployment?.id.substring(0, 8) || "Deployment",
+      href: `/dashboard/deployments/${deploymentId}`
     },
     { label: "Logs" },
   ];
