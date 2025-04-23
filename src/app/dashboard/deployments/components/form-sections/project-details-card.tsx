@@ -30,8 +30,6 @@ export function ProjectDetailsCard({
   success,
   projects,
   configurations,
-  // initialProjectId,
-  // initialConfigurationId,
   onConfigChange,
   onProjectChange
 }: ProjectDetailsSectionProps) {
@@ -49,6 +47,11 @@ export function ProjectDetailsCard({
 
   const handleConfigChange = (value: string) => {
     // No need to set configurationId value here since we're handling it directly in the onValueChange
+
+    // Clear any validation errors for configurationId when a value is selected
+    if (value) {
+      form.clearErrors("configurationId");
+    }
 
     if (onConfigChange) {
       onConfigChange(value);
@@ -83,6 +86,11 @@ export function ProjectDetailsCard({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  {!projects.some(p => !p.configurations?.length) ? null : (
+                    <SelectItem value="info" disabled>
+                      Only projects with configurations are listed
+                    </SelectItem>
+                  )}
                   {projects.length > 0 ? (
                     projects.filter(p => p.configurations && p.configurations?.length > 0).map((project) => (
                       <SelectItem key={project.id} value={project.id}>

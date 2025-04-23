@@ -17,9 +17,11 @@ import { IconEdit } from "@tabler/icons-react";
 import { formatCurrency, formatDate, formatDuration } from "@/utils/format";
 
 export default function ViewLicensePage() {
-    const params = useParams<{ id: string }>();
+    const { id: licenseId } = useParams() as { id?: string };
     const router = useRouter();
-    const licenseId = params?.id || "";
+
+    // Avoid firing the query until we actually have a licenseId
+    const skipLicenseFetch = !licenseId;
 
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -29,17 +31,17 @@ export default function ViewLicensePage() {
         isLoading: isLoadingLicense,
         error: licenseError,
         refetch,
-    } = useGetLicenseQuery(licenseId);
+    } = useGetLicenseQuery(licenseId!, { skip: skipLicenseFetch });
 
     // Fetch purchases related to this license with server-side filtering
     const {
         data: purchasesResponse,
         isLoading: isLoadingPurchases,
     } = useGetLicensePurchasesQuery({
-        licenseId: licenseId,
+        licenseId: licenseId!,
         page: currentPage,
         limit: 10
-    });
+    }, { skip: skipLicenseFetch });
 
     // Get purchases from paginated response
     const licensePurchases = purchasesResponse?.items || [];

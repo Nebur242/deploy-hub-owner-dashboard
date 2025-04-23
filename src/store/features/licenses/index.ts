@@ -142,7 +142,10 @@ export const licensesApi = createApi({
         url: `licenses/purchases/${id}`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: "LicensePurchase", id }],
+      providesTags: (result, error, id) => [
+        { type: "LicensePurchase", id },
+        { type: "LicensePurchase", id: "LIST" },
+      ],
     }),
 
     purchaseLicense: builder.mutation<

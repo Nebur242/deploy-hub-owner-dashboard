@@ -17,9 +17,11 @@ import { getErrorMessage } from "@/utils/functions";
 import { toast } from "sonner";
 
 export default function EditLicensePage() {
-    const params = useParams<{ id: string }>();
+    const { id: licenseId } = useParams() as { id: string };
     const router = useRouter();
-    const licenseId = params?.id || "";
+
+    // Avoid firing the query until we actually have a licenseId
+    const skipLicenseFetch = !licenseId;
 
     const [initialValues, setInitialValues] = useState<
         CreateLicenseDto | undefined
@@ -31,7 +33,7 @@ export default function EditLicensePage() {
         isLoading: isFetchingLicense,
         error: fetchError,
         refetch,
-    } = useGetLicenseQuery(licenseId);
+    } = useGetLicenseQuery(licenseId!, { skip: skipLicenseFetch });
 
     const [
         updateLicense,
