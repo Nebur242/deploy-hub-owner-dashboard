@@ -48,6 +48,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 import { LicenseOption } from "@/common/types";
+import { formatCurrency, formatDuration } from "@/utils/format";
 
 export default function LicensesPage() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -136,24 +137,6 @@ export default function LicensesPage() {
             </Button>
         </>
     );
-
-    // Format currency display
-    const formatCurrency = (currency: Currency, amount: number) => {
-        const formatter = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency,
-        });
-        return formatter.format(amount);
-    };
-
-    // Format duration display
-    const formatDuration = (days: number) => {
-        if (days === 0) return "Unlimited";
-        if (days === 1) return "1 day";
-        if (days < 30) return `${days} days`;
-        const months = Math.floor(days / 30);
-        return months === 1 ? "1 month" : `${months} months`;
-    };
 
     return (
         <DashboardLayout

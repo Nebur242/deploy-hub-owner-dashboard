@@ -40,7 +40,6 @@ import {
   IconServer,
   IconBrandGithub,
   IconChevronLeft,
-  IconClockHour4,
   IconPlayCard,
   IconChevronRight,
   // IconFileText,
@@ -55,6 +54,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import { useGetDeploymentQuery, useGetDeploymentLogsQuery, useRetryDeploymentMutation, DeploymentStatus } from "@/store/features/deployments";
 import Link from "next/link";
+import DeploymentStatusBadge from "@/app/dashboard/deployments/components/deployment-status-badge";
 
 export default function DeploymentDetailPage() {
   const params = useParams();
@@ -111,44 +111,6 @@ export default function DeploymentDetailPage() {
       toast.error("Failed to retry deployment", {
         description: err?.message || "An unexpected error occurred. Please try again.",
       });
-    }
-  };
-
-  // Deployment status badge component
-  const DeploymentStatusBadge = ({ status }: { status: DeploymentStatus }) => {
-    switch (status) {
-      case DeploymentStatus.PENDING:
-        return (
-          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">
-            <IconClockHour4 className="h-3.5 w-3.5 mr-1" /> Pending
-          </Badge>
-        );
-      case DeploymentStatus.RUNNING:
-        return (
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-            <IconLoader className="h-3.5 w-3.5 mr-1 animate-spin" /> Running
-          </Badge>
-        );
-      case DeploymentStatus.SUCCESS:
-        return (
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
-            <IconCheck className="h-3.5 w-3.5 mr-1" /> Success
-          </Badge>
-        );
-      case DeploymentStatus.FAILED:
-        return (
-          <Badge variant="outline" className="bg-red-500/10 text-red-500 hover:bg-red-500/20">
-            <IconX className="h-3.5 w-3.5 mr-1" /> Failed
-          </Badge>
-        );
-      case DeploymentStatus.CANCELED:
-        return (
-          <Badge variant="outline" className="bg-gray-500/10 text-gray-500 hover:bg-gray-500/20">
-            <IconX className="h-3.5 w-3.5 mr-1" /> Canceled
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -470,7 +432,9 @@ export default function DeploymentDetailPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                       <div className="p-3 border rounded">
                         <span className="text-sm font-medium text-muted-foreground">Provider</span>
-                        <p className="font-medium">{deployment.configuration.deploymentOption.provider}</p>
+                        <p className="font-medium">
+                          {deployment.configuration?.deploymentOption?.provider ?? "Unknown"}
+                        </p>
                       </div>
                       {deployment.workflowRunId && (
                         <div className="p-3 border rounded">

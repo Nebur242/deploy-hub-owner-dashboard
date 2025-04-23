@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, useFieldArray, useFormContext, FormProvider, Control } from "react-hook-form";
+import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { validateGithubConfig } from "@/services/github";
 
@@ -47,8 +46,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DeploymentProvider } from "@/common/enums/project";
-import { DeploymentOption, EnvironmentVariable } from "@/common/types";
-import { CreateConfigurationDto, createConfigurationDtoSchema, EnvironmentVariableDto } from "@/common/dtos";
+import { DeploymentOption } from "@/common/types";
+import { CreateConfigurationDto, createConfigurationDtoSchema, EnvironmentVariableDto, GithubAccountDto } from "@/common/dtos";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ConfigurationFormProps {
@@ -368,7 +367,7 @@ function ProviderFields() {
 
 // Modified Environment Variables Section
 function EnvironmentVariablesSection() {
-  const form = useFormContext();
+  const form = useFormContext<CreateConfigurationDto>();
   const { control, watch, setValue } = form;
 
   const {
@@ -376,7 +375,7 @@ function EnvironmentVariablesSection() {
     append: appendEnvVar,
     remove: removeEnvVar,
   } = useFieldArray({
-    control: control as unknown as Control<CreateConfigurationDto>,
+    control,
     name: "deploymentOption.environmentVariables",
   });
 
@@ -387,7 +386,7 @@ function EnvironmentVariablesSection() {
   useEffect(() => {
     if (!watchedFields) return;
 
-    watchedFields.forEach((field: EnvironmentVariable, index: number) => {
+    watchedFields.forEach((field: EnvironmentVariableDto, index: number) => {
       if (field && field.isRequired === false && (!field.defaultValue || field.defaultValue.trim() === "")) {
         setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "", {
           shouldValidate: true
@@ -397,7 +396,7 @@ function EnvironmentVariablesSection() {
   }, [watchedFields, setValue]);
 
   // Check for env var array level errors
-  const envVarErrors = (form.formState.errors?.deploymentOption as any)?.environmentVariables?.message;
+  const envVarErrors = (form.formState.errors?.deploymentOption)?.environmentVariables?.message;
 
   // Function to clear video field
   const clearVideoField = (index: number) => {
@@ -634,8 +633,8 @@ function LeftColumnWithTabs({
   appendGithub,
   removeGithub
 }: {
-  githubFields: any[];
-  appendGithub: (value: any) => void;
+  githubFields: GithubAccountDto[];
+  appendGithub: (value: GithubAccountDto) => void;
   removeGithub: (index: number) => void;
 }) {
   const [activeTab, setActiveTab] = useState("github");
@@ -643,9 +642,9 @@ function LeftColumnWithTabs({
 
   // Determine if there are errors in either section
   const hasGithubErrors = !!form.formState.errors.githubAccounts;
-  const githubErrorMessage = (form.formState.errors.githubAccounts as any)?.githubAccounts?.message;
+  const githubErrorMessage = (form.formState.errors.githubAccounts)?.message?.toString() || '';
   const hasDeploymentErrors = !!form.formState.errors.deploymentOption;
-  const deploymentErrorMessage = (form.formState.errors.deploymentOption as any)?.message;
+  const deploymentErrorMessage = (form.formState.errors.deploymentOption)?.message?.toString() || '';
 
   return (
     <div className="space-y-6 col-span-2">
@@ -673,7 +672,7 @@ function LeftColumnWithTabs({
             <div className="space-y-4">
               <div className={`grid grid-cols-1 gap-4 ${githubFields.length > 1 ? "md:grid-cols-2" : ""}`}>
                 {githubFields.map((field, index) => (
-                  <Card className="p-6" key={field.id}>
+                  <Card className="p-6" key={field.username}>
                     <div className="flex justify-between items-center">
                       <h6 className="font-medium">Account {index + 1}</h6>
                       {githubFields.length > 1 && (

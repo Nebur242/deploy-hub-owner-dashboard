@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IconPlus, IconTrash, IconEye, IconEyeOff } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,11 @@ export default function EnvironmentVariables({
 }: EnvironmentVariablesProps) {
   const [localVariables, setLocalVariables] = useState<EnvironmentVariable[]>(variables);
   const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+
+  // Synchronize local state with props when variables change
+  useEffect(() => {
+    setLocalVariables(variables);
+  }, [variables]);
 
   // Add a new empty environment variable
   const addVariable = () => {

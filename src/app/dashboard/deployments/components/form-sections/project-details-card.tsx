@@ -38,8 +38,8 @@ export function ProjectDetailsCard({
   const handleProjectChange = (value: string) => {
     // No need to set projectId value here since we're handling it directly in the onValueChange
 
-    // When project changes, reset configuration
-    form.setValue("configurationId", "");
+    // When project changes, reset configuration with validation
+    form.setValue("configurationId", "", { shouldValidate: true, shouldDirty: true });
 
     // Call parent handler if provided
     if (onProjectChange) {

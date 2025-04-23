@@ -29,6 +29,8 @@ export default function CreateDeploymentPage() {
   const [envVarValues, setEnvVarValues] = useState<Record<string, string>>({});
   // State for project versions
   const [projectVersions, setProjectVersions] = useState<string[]>(['main']);
+  // State for submission error feedback
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   // Set initial project ID from URL on component mount
   useEffect(() => {
@@ -84,7 +86,6 @@ export default function CreateDeploymentPage() {
 
   // Handler for project change
   const handleProjectChange = (selectedProjectId: string) => {
-    console.log("Project changed:", selectedProjectId);
     // Update the state with the new project ID
     setCurrentProjectId(selectedProjectId);
   };
@@ -122,34 +123,42 @@ export default function CreateDeploymentPage() {
 
   // Handle form submission
   const handleSubmit = async (data: DeploymentFormValues) => {
+    // Reset any previous submission errors
+    setSubmissionError(null);
+
+    // Process environment variables from the form
+    const formattedEnvVars = data.environmentVariables.map(envVar => {
+      return {
+        key: envVar.key,
+        isSecret: envVar.isSecret || false,
+        isRequired: envVar.isRequired || false,
+        description: envVar.description || "",
+        defaultValue: envVar.defaultValue || "",
+        video: envVar.video || null,
+      };
+    });
+
+    // Create the deployment using the mutation
+    const result = createDeployment({
+      projectId: data.projectId,
+      configurationId: data.configurationId,
+      environment: data.environment,
+      branch: data.branch,
+      environmentVariables: formattedEnvVars,
+    });
+
     try {
-      console.log("Form data:", data);
-
-      // Process environment variables from the form
-      // At this point, all required fields should have their defaultValue set from user input
-      const formattedEnvVars = data.environmentVariables.map(envVar => {
-        return {
-          key: envVar.key,
-          isSecret: envVar.isSecret || false,
-          isRequired: envVar.isRequired || false,
-          description: envVar.description || "",
-          defaultValue: envVar.defaultValue || "",
-          video: envVar.video || null,
-        };
-      });
-
-      await createDeployment({
-        projectId: data.projectId,
-        configurationId: data.configurationId,
-        environment: data.environment,
-        branch: data.branch,
-        environmentVariables: formattedEnvVars,
-      }).unwrap();
-
+      // Wait for the result and unwrap it (throws if there's an error)
+      await result.unwrap();
       // Navigate to deployments list on success
       router.push("/dashboard/deployments");
-    } catch (error) {
-      console.error("Failed to create deployment:", error);
+    } catch (err) {
+      // Handle error with proper user feedback
+      const error = err as { data?: { message?: string } };
+      setSubmissionError(
+        error.data?.message ||
+        "Failed to create deployment. Please check your inputs and try again."
+      );
     }
   };
 
@@ -197,6 +206,13 @@ export default function CreateDeploymentPage() {
           envVarValues={envVarValues}
           isLoadingVersions={isLoadingVersions}
         />
+      )}
+      {submissionError && (
+        <Alert className="mt-4" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{submissionError}</AlertDescription>
+        </Alert>
       )}
     </DashboardLayout>
   );

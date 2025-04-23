@@ -29,6 +29,7 @@ export interface DeploymentOption {
 // Project Configuration entity
 export interface ProjectConfiguration extends BaseEntity {
   projectId: string;
+  name: string;
   githubAccounts: GithubAccount[];
   deploymentOption: DeploymentOption;
   project: Project;

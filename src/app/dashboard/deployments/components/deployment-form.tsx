@@ -103,7 +103,29 @@ export default function DeploymentForm({
   // Handle form submission
   const onSubmit = async (data: DeploymentFormValues) => {
     try {
-      await handleFormSubmit(data);
+      // Validate required environment variables
+      const missingRequiredVars = configEnvVars
+        .filter(envVar => envVar.isRequired && (!envVarValues[envVar.key] || envVarValues[envVar.key].trim() === ''))
+        .map(envVar => envVar.key);
+
+      if (missingRequiredVars.length > 0) {
+        toast.error("Required environment variables missing", {
+          description: `Please provide values for: ${missingRequiredVars.join(', ')}`,
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Process the form data
+      const processedData = {
+        ...data,
+        environmentVariables: configEnvVars.map(envVar => ({
+          ...envVar,
+          defaultValue: envVarValues[envVar.key] || envVar.defaultValue || ''
+        }))
+      };
+
+      await handleFormSubmit(processedData);
     } catch (err) {
       console.error("Form submission error:", err);
     }
@@ -205,7 +227,7 @@ export default function DeploymentForm({
       // Update both the value and the defaultValue for the environment variable
       updatedEnvVars[envVarIndex] = {
         ...updatedEnvVars[envVarIndex],
-        defaultValue: updatedEnvVars[envVarIndex].isRequired ? value : updatedEnvVars[envVarIndex].defaultValue
+        defaultValue: value // Always keep the user's latest value
       };
 
       // Update the configEnvVars state

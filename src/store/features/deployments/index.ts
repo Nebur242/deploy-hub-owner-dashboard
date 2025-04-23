@@ -91,18 +91,18 @@ export interface DeploymentFilters {
   limit?: number;
 }
 
-export interface DeployementsInitialState {
+export interface DeploymentsState {
   loading: boolean;
   error: string;
   status: "pending" | "success" | "error";
-  deployements: Deployment[];
+  deployments: Deployment[];
 }
 
-const initialState: DeployementsInitialState = {
+const initialState: DeploymentsState = {
   loading: false,
   error: "",
   status: "pending",
-  deployements: [],
+  deployments: [],
 };
 
 export const deploymentApi = createApi({
@@ -181,7 +181,7 @@ export const deploymentApi = createApi({
     // Retry a failed deployment
     retryDeployment: builder.mutation<Deployment, string>({
       query: (deploymentId) => ({
-        url: `deployments/${deploymentId}/retry`,
+        url: `/deployments/${deploymentId}/retry`,
         method: "POST",
       }),
       invalidatesTags: (result, error, id) => [
@@ -210,7 +210,7 @@ export const {
   useGetDeploymentLogsQuery,
 } = deploymentApi;
 
-const deployementSlice = createSlice({
+const deploymentsSlice = createSlice({
   name: "deployments",
   initialState,
   reducers: {},
@@ -219,5 +219,5 @@ const deployementSlice = createSlice({
   },
 });
 
-const { reducer } = deployementSlice;
+const { reducer } = deploymentsSlice;
 export default reducer;

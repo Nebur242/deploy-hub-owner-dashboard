@@ -46,6 +46,20 @@ export type LicenseSearchParams = {
   sortDirection?: "ASC" | "DESC";
 };
 
+export type LicensePurchaseSearchParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  licenseId?: string;
+  projectId?: string;
+  userId?: string;
+  sortBy?: string;
+  sortDirection?: "ASC" | "DESC";
+  startDate?: string;
+  endDate?: string;
+};
+
 // Type definitions from schemas
 export type CreateLicenseDto = z.infer<typeof createLicenseDtoSchema>;
 export type UpdateLicenseDto = z.infer<typeof updateLicenseDtoSchema>;

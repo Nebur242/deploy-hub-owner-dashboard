@@ -6,7 +6,10 @@ import {
   LicensePurchase,
   PaginatedResponse,
 } from "@/common/types";
-import { LicenseSearchParams } from "@/common/dtos";
+import {
+  LicenseSearchParams,
+  LicensePurchaseSearchParams,
+} from "@/common/dtos";
 
 // Define base API with auth header
 export const licensesApi = createApi({
@@ -93,7 +96,7 @@ export const licensesApi = createApi({
     // LICENSE PURCHASES
     getLicensePurchases: builder.query<
       PaginatedResponse<LicensePurchase>,
-      { page?: number; limit?: number } | undefined
+      LicensePurchaseSearchParams | undefined
     >({
       query: (params) => {
         const queryParams = new URLSearchParams();
@@ -102,6 +105,19 @@ export const licensesApi = createApi({
           if (params.limit)
             queryParams.append("limit", params.limit.toString());
           if (params.page) queryParams.append("page", params.page.toString());
+          if (params.search) queryParams.append("search", params.search);
+          if (params.status) queryParams.append("status", params.status);
+          if (params.licenseId)
+            queryParams.append("licenseId", params.licenseId);
+          if (params.projectId)
+            queryParams.append("projectId", params.projectId);
+          if (params.userId) queryParams.append("userId", params.userId);
+          if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+          if (params.sortDirection)
+            queryParams.append("sortDirection", params.sortDirection);
+          if (params.startDate)
+            queryParams.append("startDate", params.startDate);
+          if (params.endDate) queryParams.append("endDate", params.endDate);
         }
 
         return {

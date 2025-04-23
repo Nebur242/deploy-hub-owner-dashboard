@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useGetLicenseQuery, useGetLicensePurchasesQuery } from "@/store/features/licenses";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, CheckCircle, ExternalLink, Loader2, Package, Users } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle, ChevronLeft, ChevronRight, ExternalLink, Loader2, Package, Users } from "lucide-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,12 +14,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PurchaseStatus } from "@/common/enums/project";
 import Link from "next/link";
 import { IconEdit } from "@tabler/icons-react";
-import { formatCurrency, formatDate, formatDuration } from "@/utils/functions";
+import { formatCurrency, formatDate, formatDuration } from "@/utils/format";
 
 export default function ViewLicensePage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const licenseId = params?.id || "";
+
+    const [currentPage, setCurrentPage] = useState(1);
 
     // RTK Query hooks
     const {
@@ -28,14 +31,19 @@ export default function ViewLicensePage() {
         refetch,
     } = useGetLicenseQuery(licenseId);
 
-    // Fetch purchases related to this license
+    // Fetch purchases related to this license with server-side filtering
     const {
         data: purchasesResponse,
         isLoading: isLoadingPurchases,
-    } = useGetLicensePurchasesQuery(undefined);
+    } = useGetLicensePurchasesQuery({
+        licenseId: licenseId,
+        page: currentPage,
+        limit: 10
+    });
 
-    // Get purchases from paginated response and filter for this license
-    const licensePurchases = purchasesResponse?.items?.filter(purchase => purchase.licenseId === licenseId) || [];
+    // Get purchases from paginated response
+    const licensePurchases = purchasesResponse?.items || [];
+    const totalPages = purchasesResponse?.meta?.totalPages || 1;
 
     // Breadcrumb items
     const breadcrumbItems: BreadcrumbItem[] = [
@@ -280,51 +288,76 @@ export default function ViewLicensePage() {
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
                         ) : licensePurchases.length > 0 ? (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>User ID</TableHead>
-                                        <TableHead>Project</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Amount</TableHead>
-                                        <TableHead>Deployments</TableHead>
-                                        <TableHead>Purchased On</TableHead>
-                                        <TableHead>Expires</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {licensePurchases.map(purchase => (
-                                        <TableRow key={purchase.id}>
-                                            <TableCell>{purchase.userId.substring(0, 8)}...</TableCell>
-                                            <TableCell>
-                                                {purchase.project ? (
-                                                    <Link href={`/dashboard/projects/${purchase.projectId}`} className="text-primary hover:underline">
-                                                        {purchase.project.name}
-                                                    </Link>
-                                                ) : (
-                                                    purchase.projectId.substring(0, 8) + '...'
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={purchase.status === PurchaseStatus.PAID ? "default" :
-                                                        purchase.status === PurchaseStatus.PENDING ? "outline" : "destructive"}
-                                                >
-                                                    {purchase.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>{formatCurrency(purchase.currency, purchase.amount)}</TableCell>
-                                            <TableCell>
-                                                {purchase.deploymentsUsed} / {purchase.deploymentsAllowed}
-                                            </TableCell>
-                                            <TableCell>{formatDate(purchase.createdAt)}</TableCell>
-                                            <TableCell>
-                                                {purchase.expiresAt ? formatDate(purchase.expiresAt) : "Never"}
-                                            </TableCell>
+                            <>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>User ID</TableHead>
+                                            <TableHead>Project</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Amount</TableHead>
+                                            <TableHead>Deployments</TableHead>
+                                            <TableHead>Purchased On</TableHead>
+                                            <TableHead>Expires</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {licensePurchases.map(purchase => (
+                                            <TableRow key={purchase.id}>
+                                                <TableCell>{purchase.userId.substring(0, 8)}...</TableCell>
+                                                <TableCell>
+                                                    {purchase.project ? (
+                                                        <Link href={`/dashboard/projects/${purchase.projectId}`} className="text-primary hover:underline">
+                                                            {purchase.project.name}
+                                                        </Link>
+                                                    ) : (
+                                                        purchase.projectId.substring(0, 8) + '...'
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={purchase.status === PurchaseStatus.PAID ? "default" :
+                                                            purchase.status === PurchaseStatus.PENDING ? "outline" : "destructive"}
+                                                    >
+                                                        {purchase.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>{formatCurrency(purchase.currency, purchase.amount)}</TableCell>
+                                                <TableCell>
+                                                    {purchase.deploymentsUsed} / {purchase.deploymentsAllowed}
+                                                </TableCell>
+                                                <TableCell>{formatDate(purchase.createdAt)}</TableCell>
+                                                <TableCell>
+                                                    {purchase.expiresAt ? formatDate(purchase.expiresAt) : "Never"}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                <div className="flex justify-between items-center mt-4">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Previous
+                                    </Button>
+                                    <span className="text-sm text-muted-foreground">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                    >
+                                        Next
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </>
                         ) : (
                             <div className="text-center py-8">
                                 <p className="text-muted-foreground">No purchases found for this license</p>

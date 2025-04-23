@@ -46,9 +46,6 @@ import {
   IconPlayCard,
   IconChevronRight,
   // IconFileText,
-  IconCheck,
-  IconX,
-  IconClockHour4,
   IconTerminal,
 } from "@tabler/icons-react";
 import Link from "next/link";
@@ -56,6 +53,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import DeploymentStatusBadge from "./components/deployment-status-badge";
 
 export default function DeploymentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -152,44 +150,6 @@ export default function DeploymentsPage() {
           err?.message ||
           "There was an error retrying the deployment. Please try again.",
       });
-    }
-  };
-
-  // Deployment status badge component
-  const DeploymentStatusBadge = ({ status }: { status: DeploymentStatus }) => {
-    switch (status) {
-      case DeploymentStatus.PENDING:
-        return (
-          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">
-            <IconClockHour4 className="h-3.5 w-3.5 mr-1" /> Pending
-          </Badge>
-        );
-      case DeploymentStatus.RUNNING:
-        return (
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-            <IconLoader className="h-3.5 w-3.5 mr-1 animate-spin" /> Running
-          </Badge>
-        );
-      case DeploymentStatus.SUCCESS:
-        return (
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
-            <IconCheck className="h-3.5 w-3.5 mr-1" /> Success
-          </Badge>
-        );
-      case DeploymentStatus.FAILED:
-        return (
-          <Badge variant="outline" className="bg-red-500/10 text-red-500 hover:bg-red-500/20">
-            <IconX className="h-3.5 w-3.5 mr-1" /> Failed
-          </Badge>
-        );
-      case DeploymentStatus.CANCELED:
-        return (
-          <Badge variant="outline" className="bg-gray-500/10 text-gray-500 hover:bg-gray-500/20">
-            <IconX className="h-3.5 w-3.5 mr-1" /> Canceled
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -379,9 +339,9 @@ export default function DeploymentsPage() {
                               size="sm"
                               className="text-amber-500 hover:text-amber-700 hover:bg-amber-50"
                               onClick={() => openRetryConfirmation(deployment.id)}
-                              disabled={isRetrying}
+                              disabled={deploymentToRetry === deployment.id && isRetrying}
                             >
-                              {isRetrying ? (
+                              {deploymentToRetry === deployment.id && isRetrying ? (
                                 <>
                                   <IconLoader className="h-4 w-4 mr-1 animate-spin" />{" "}
                                   Retrying...

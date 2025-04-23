@@ -74,7 +74,7 @@ export function EnvVariablesCard({
                   value={envVarValues[envVar.key] || ""}
                   onChange={(e) => onEnvVarChange(envVar.key, e.target.value)}
                   disabled={isLoading || success}
-
+                  className={envVar.isRequired && !envVarValues[envVar.key] ? "border-red-500" : ""}
                 />
 
                 <div className="flex items-center gap-2 mt-3">

@@ -58,8 +58,18 @@ class AuthService {
       const token = await getIdToken(currentUser, true);
 
       // Parse token to get expiration time
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const expiresAt = payload.exp * 1000; // Convert seconds to milliseconds
+      let expiresAt;
+      try {
+        const parts = token.split(".");
+        if (parts.length !== 3) throw new Error("Invalid token format");
+        const payload = JSON.parse(atob(parts[1]));
+        if (!payload.exp) throw new Error("Token missing expiration");
+        expiresAt = payload.exp * 1000; // Convert seconds to milliseconds
+      } catch (error) {
+        console.error("Error parsing token:", error);
+        // Use a default expiration (15 minutes from now)
+        expiresAt = Date.now() + 15 * 60 * 1000;
+      }
 
       // Save token to localStorage
       this.saveTokenInfoToStorage({ token, expiresAt });
