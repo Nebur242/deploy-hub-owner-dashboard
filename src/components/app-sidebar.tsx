@@ -14,6 +14,8 @@ import {
   IconReport,
   IconSearch,
   IconSettings,
+  IconChartBar,
+  IconRocket,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -52,15 +54,20 @@ const data = {
       url: "/dashboard/media",
       icon: IconDatabase,
     },
-    // {
-    //   title: "Analytics",
-    //   url: "#",
-    //   icon: IconChartBar,
-    // },
     {
       title: "Projects",
       url: "/dashboard/projects",
       icon: IconFolder,
+    },
+    {
+      title: "Deployments",
+      url: "/dashboard/deployments",
+      icon: IconRocket,
+    },
+    {
+      title: "Licenses",
+      url: "/dashboard/licenses",
+      icon: IconChartBar,
     },
     // {
     //   title: "Team",

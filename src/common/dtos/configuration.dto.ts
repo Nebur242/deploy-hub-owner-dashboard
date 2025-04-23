@@ -8,7 +8,7 @@ export const environmentVariableDtoSchema = z.object({
   description: z.string().optional(),
   isRequired: z.boolean().default(false),
   isSecret: z.boolean().default(false),
-  video: z.string().url().optional(),
+  video: z.string().url().optional().nullable(),
 });
 
 // GitHub account schema
@@ -16,7 +16,11 @@ export const githubAccountDtoSchema = z.object({
   username: z.string().min(1, "GitHub username is required"),
   accessToken: z.string().min(1, "Access token is required"),
   repository: z.string().min(1, "Repository name is required"),
-  workflowFile: z.string().optional(),
+  // must contain .yaml or .yml
+  workflowFile: z
+    .string()
+    .min(1, "Workflow file name is required")
+    .regex(/\.(yaml|yml)$/, "Workflow file must be a .yaml or .yml file"),
 });
 
 // Deployment option schema

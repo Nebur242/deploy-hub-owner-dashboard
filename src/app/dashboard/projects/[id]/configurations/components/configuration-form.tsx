@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { validateGithubConfig } from "@/services/github";
 
 import {
   Form,
@@ -30,8 +30,12 @@ import {
   IconLoader,
   IconPlus,
   IconTrash,
+  IconServer,
+  IconHistory,
+  IconAlertCircle,
 } from "@tabler/icons-react";
-import { AlertTriangle, ChevronDown, ChevronUp, X } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -42,12 +46,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DeploymentProvider } from "@/common/enums/project";
-import { DeploymentOption, EnvironmentVariable } from "@/common/types";
-import { CreateConfigurationDto, createConfigurationDtoSchema } from "@/common/dtos";
+import { DeploymentOption } from "@/common/types";
+import { CreateConfigurationDto, createConfigurationDtoSchema, EnvironmentVariableDto, GithubAccountDto } from "@/common/dtos";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ConfigurationFormProps {
   isEditing: boolean;
-  initialData?: CreateConfigurationDto;
+  initialData?: CreateConfigurationDto & { id?: string; projectId?: string };
   onSubmit: (data: CreateConfigurationDto) => Promise<void>;
   isLoading: boolean;
   isSuccess: boolean;
@@ -107,60 +112,6 @@ function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Collapsible Section Component
-function CollapsibleSection({
-  title,
-  children,
-  index,
-  onRemove,
-  canRemove = true
-}: {
-  title: string;
-  children: React.ReactNode;
-  index: number;
-  onRemove: () => void;
-  canRemove?: boolean;
-}) {
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  return (
-    <div className="border rounded-md overflow-hidden dark:border-gray-700">
-      <div
-        className="p-3 bg-gray-50 dark:bg-gray-800 flex justify-between items-center cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <h4 className="font-medium flex items-center text-gray-900 dark:text-gray-100">
-          {title} {index + 1}
-          {isExpanded ?
-            <ChevronUp className="h-4 w-4 ml-2" /> :
-            <ChevronDown className="h-4 w-4 ml-2" />
-          }
-        </h4>
-
-        <div className="flex items-center" onClick={e => e.stopPropagation()}>
-          {canRemove && onRemove && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400"
-            >
-              <IconTrash className="h-4 w-4 mr-1" /> Remove
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {isExpanded && (
-        <div className="p-4">
-          {children}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -267,8 +218,70 @@ function ProviderFields() {
       // Provider has changed, reset environment variables
       setValue("deploymentOption.environmentVariables", []);
       setPreviousProvider(currentProvider);
+
+      // If the new provider is Vercel, add default Vercel environment variables
+      if (currentProvider === DeploymentProvider.VERCEL) {
+        setValue("deploymentOption.environmentVariables", [
+          {
+            key: "VERCEL_TOKEN",
+            defaultValue: "",
+            description: "Vercel API token for deployment authentication",
+            isRequired: true,
+            isSecret: true,
+            video: null,
+          },
+          {
+            key: "VERCEL_ORG_ID",
+            defaultValue: "",
+            description: "Vercel organization ID",
+            isRequired: true,
+            isSecret: true,
+            video: null,
+          },
+          {
+            key: "VERCEL_PROJECT_ID",
+            defaultValue: "VERCEL_PROJECT_ID",
+            description: "Vercel project ID for deployment target",
+            isRequired: false,
+            isSecret: true,
+            video: null,
+          },
+        ]);
+      }
+    } else if (currentProvider === DeploymentProvider.VERCEL && !previousProvider) {
+      // Initial render with Vercel provider selected, set default variables
+      const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+      if (currentVars.length === 0 ||
+        (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
+        setValue("deploymentOption.environmentVariables", [
+          {
+            key: "VERCEL_TOKEN",
+            defaultValue: "",
+            description: "Vercel API token for deployment authentication",
+            isRequired: true,
+            isSecret: true,
+            video: null,
+          },
+          {
+            key: "VERCEL_ORG_ID",
+            defaultValue: "",
+            description: "Vercel organization ID",
+            isRequired: true,
+            isSecret: true,
+            video: null,
+          },
+          {
+            key: "VERCEL_PROJECT_ID",
+            defaultValue: "VERCEL_PROJECT_ID",
+            description: "Vercel project ID for deployment target",
+            isRequired: false,
+            isSecret: true,
+            video: null,
+          },
+        ]);
+      }
     }
-  }, [currentProvider, previousProvider, setValue]);
+  }, [currentProvider, previousProvider, setValue, form]);
 
   // When component first mounts, set the previous provider
   useEffect(() => {
@@ -300,19 +313,10 @@ function ProviderFields() {
             <FormLabel>Provider</FormLabel>
             <Select
               onValueChange={(value: DeploymentProvider) => {
-                // When provider changes, check if we need to confirm
+                // Always show confirmation dialog when provider changes
                 if (value !== field.value) {
-                  const envVars = form.getValues("deploymentOption.environmentVariables") || [];
-                  const hasEnvVars = envVars.length > 0;
-
-                  if (hasEnvVars) {
-                    // Open confirmation dialog
-                    setPendingProviderChange(value);
-                    setConfirmDialogOpen(true);
-                  } else {
-                    // No env vars yet, update the provider directly
-                    field.onChange(value);
-                  }
+                  setPendingProviderChange(value);
+                  setConfirmDialogOpen(true);
                 }
               }}
               defaultValue={field.value}
@@ -352,8 +356,8 @@ function ProviderFields() {
         isOpen={confirmDialogOpen}
         onClose={handleCancelProviderChange}
         onConfirm={handleConfirmProviderChange}
-        title="Reset Environment Variables?"
-        description="Changing the deployment provider will reset all environment variables. Do you want to continue?"
+        title="Change Deployment Provider?"
+        description="Changing the deployment provider will reset environment variables to provider defaults. Do you want to continue?"
         confirmLabel="Yes, Change Provider"
         cancelLabel="Cancel"
       />
@@ -363,7 +367,7 @@ function ProviderFields() {
 
 // Modified Environment Variables Section
 function EnvironmentVariablesSection() {
-  const form = useFormContext();
+  const form = useFormContext<CreateConfigurationDto>();
   const { control, watch, setValue } = form;
 
   const {
@@ -382,7 +386,7 @@ function EnvironmentVariablesSection() {
   useEffect(() => {
     if (!watchedFields) return;
 
-    watchedFields.forEach((field: EnvironmentVariable, index: number) => {
+    watchedFields.forEach((field: EnvironmentVariableDto, index: number) => {
       if (field && field.isRequired === false && (!field.defaultValue || field.defaultValue.trim() === "")) {
         setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "", {
           shouldValidate: true
@@ -392,7 +396,7 @@ function EnvironmentVariablesSection() {
   }, [watchedFields, setValue]);
 
   // Check for env var array level errors
-  const envVarErrors = (form.formState.errors?.deploymentOption as any)?.environmentVariables?.message;
+  const envVarErrors = (form.formState.errors?.deploymentOption)?.environmentVariables?.message;
 
   // Function to clear video field
   const clearVideoField = (index: number) => {
@@ -408,162 +412,197 @@ function EnvironmentVariablesSection() {
       )}
 
       <div className={`grid grid-cols-1 gap-4 ${envVarFields.length > 1 ? "md:grid-cols-2" : ""}`}>
-        {envVarFields.map((field, index) => (
-          <div
-            key={field.id}
-            className="space-y-3 p-4 border rounded-md dark:border-gray-700"
-          >
-            <div className="flex justify-between items-center">
-              <h6 className="font-medium">Variable {index + 1}</h6>
-              {envVarFields.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeEnvVar(index)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400"
-                >
-                  <IconTrash className="h-4 w-4 mr-1" /> Remove
-                </Button>
-              )}
-            </div>
+        {envVarFields.map((field: EnvironmentVariableDto, index) => {
+          // Check if this is a Vercel default environment variable
+          const provider = watch("deploymentOption.provider");
+          const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
+            (field.key === "VERCEL_TOKEN" || field.key === "VERCEL_ORG_ID" || field.key === "VERCEL_PROJECT_ID");
 
-            <FormField
-              control={control}
-              name={`deploymentOption.environmentVariables.${index}.key`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Key</FormLabel>
-                  <FormControl>
-                    <Input placeholder="API_KEY" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          return (
+            <div
+              key={field.key}
+              className="space-y-3 p-4 border rounded-md dark:border-gray-700"
+            >
+              <div className="flex justify-between items-center">
+                <h6 className="font-medium">Variable {index + 1}</h6>
+                {envVarFields.length > 1 && !isVercelDefaultVar && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeEnvVar(index)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400"
+                  >
+                    <IconTrash className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                )}
+                {isVercelDefaultVar && (
+                  <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
+                    Required
+                  </div>
+                )}
+              </div>
 
-            <FormField
-              control={control}
-              name={`deploymentOption.environmentVariables.${index}.defaultValue`}
-              render={({ field }) => {
-                // Get isRequired value for this index
-                const isRequired = watch(`deploymentOption.environmentVariables.${index}.isRequired`);
+              <hr />
 
-                return (
+              <FormField
+                control={control}
+                name={`deploymentOption.environmentVariables.${index}.key`}
+                render={({ field }) => {
+                  // Check if this is a Vercel default environment variable
+                  const provider = watch("deploymentOption.provider");
+                  const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
+                    (field.value === "VERCEL_TOKEN" || field.value === "VERCEL_ORG_ID" || field.value === "VERCEL_PROJECT_ID");
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Key</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="API_KEY"
+                          {...field}
+                          disabled={isVercelDefaultVar}
+                          className={isVercelDefaultVar ? "bg-muted" : ""}
+                        />
+                      </FormControl>
+                      {isVercelDefaultVar && (
+                        <FormDescription className="text-amber-500">
+                          This is a required Vercel variable and cannot be modified or removed
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={control}
+                name={`deploymentOption.environmentVariables.${index}.defaultValue`}
+                render={({ field }) => {
+                  // Get isRequired value for this index
+                  const isRequired = watch(`deploymentOption.environmentVariables.${index}.isRequired`);
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Default Value{!isRequired && " (Required)"}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={!isRequired ? "Default value is required" : "Default value"}
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      {!isRequired && (
+                        <FormDescription className="text-amber-500">
+                          A default value is required when variable is not required
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={control}
+                name={`deploymentOption.environmentVariables.${index}.description`}
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Default Value{!isRequired && " (Required)"}</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder={!isRequired ? "Default value is required" : "Default value"}
+                      <Textarea
+                        placeholder="Variable description"
+                        className="resize-none min-h-[80px]"
                         {...field}
-                        value={field.value || ""}
                       />
                     </FormControl>
-                    {!isRequired && (
-                      <FormDescription className="text-amber-500">
-                        A default value is required when variable is not required
-                      </FormDescription>
-                    )}
                     <FormMessage />
                   </FormItem>
-                );
-              }}
-            />
+                )}
+              />
 
-            <FormField
-              control={control}
-              name={`deploymentOption.environmentVariables.${index}.description`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Variable description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name={`deploymentOption.environmentVariables.${index}.video`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Explanation video</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input
-                        placeholder="Video url"
-                        {...field}
-                        value={field.value || ""}
-                        className="w-full"
-                      />
-                    </FormControl>
-                    {field.value && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => clearVideoField(index)}
-                        className="h-10 w-10"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex gap-4">
               <FormField
                 control={control}
-                name={`deploymentOption.environmentVariables.${index}.isRequired`}
+                name={`deploymentOption.environmentVariables.${index}.video`}
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked) => {
-                          field.onChange(checked);
-                          // If changing to not required, ensure default value exists
-                          if (checked === false) {
-                            const currentDefaultValue = watch(`deploymentOption.environmentVariables.${index}.defaultValue`);
-                            if (!currentDefaultValue || currentDefaultValue.trim() === "") {
-                              setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "");
+                  <FormItem>
+                    <FormLabel>Explanation video</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          placeholder="Video url"
+                          {...field}
+                          value={field.value || ""}
+                          className="w-full"
+                        />
+                      </FormControl>
+                      {field.value && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => clearVideoField(index)}
+                          className="h-10 w-10"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-4">
+                <FormField
+                  control={control}
+                  name={`deploymentOption.environmentVariables.${index}.isRequired`}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            // If changing to not required, ensure default value exists
+                            if (checked === false) {
+                              const currentDefaultValue = watch(`deploymentOption.environmentVariables.${index}.defaultValue`);
+                              if (!currentDefaultValue || currentDefaultValue.trim() === "") {
+                                setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "");
+                              }
                             }
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Required
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
+                          }}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        Required
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={control}
-                name={`deploymentOption.environmentVariables.${index}.isSecret`}
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Secret
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={control}
+                  name={`deploymentOption.environmentVariables.${index}.isSecret`}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        Secret
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <Button
@@ -592,10 +631,10 @@ function EnvironmentVariablesSection() {
 function LeftColumnWithTabs({
   githubFields,
   appendGithub,
-  removeGithub,
+  removeGithub
 }: {
-  githubFields: any[];
-  appendGithub: (value: any) => void;
+  githubFields: GithubAccountDto[];
+  appendGithub: (value: GithubAccountDto) => void;
   removeGithub: (index: number) => void;
 }) {
   const [activeTab, setActiveTab] = useState("github");
@@ -603,9 +642,9 @@ function LeftColumnWithTabs({
 
   // Determine if there are errors in either section
   const hasGithubErrors = !!form.formState.errors.githubAccounts;
-  const githubErrorMessage = (form.formState.errors.githubAccounts as any)?.githubAccounts?.message;
+  const githubErrorMessage = (form.formState.errors.githubAccounts)?.message?.toString() || '';
   const hasDeploymentErrors = !!form.formState.errors.deploymentOption;
-  const deploymentErrorMessage = (form.formState.errors.deploymentOption as any)?.message;
+  const deploymentErrorMessage = (form.formState.errors.deploymentOption)?.message?.toString() || '';
 
   return (
     <div className="space-y-6 col-span-2">
@@ -629,22 +668,30 @@ function LeftColumnWithTabs({
 
         <TabsContent value="github" className="mt-4">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold">GitHub Accounts</h3>
             <ArrayLevelErrorMessage error={githubErrorMessage} />
             <div className="space-y-4">
               <div className={`grid grid-cols-1 gap-4 ${githubFields.length > 1 ? "md:grid-cols-2" : ""}`}>
                 {githubFields.map((field, index) => (
-                  <CollapsibleSection
-                    key={field.id}
-                    title="GitHub Account"
-                    index={index}
-                    onRemove={() => removeGithub(index)}
-                    canRemove={githubFields.length > 1}
-                  >
+                  <Card className="p-6" key={field.username}>
+                    <div className="flex justify-between items-center">
+                      <h6 className="font-medium">Account {index + 1}</h6>
+                      {githubFields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeGithub(index)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400"
+                        >
+                          <IconTrash className="h-4 w-4 mr-1" /> Remove
+                        </Button>
+                      )}
+                    </div>
+                    <hr />
                     <GithubAccountFields
                       index={index}
                     />
-                  </CollapsibleSection>
+                  </Card>
                 ))}
               </div>
 
@@ -656,7 +703,7 @@ function LeftColumnWithTabs({
                     username: "",
                     accessToken: "",
                     repository: "",
-                    workflowFile: "deploy.yml",
+                    workflowFile: "",
                   })
                 }
                 className="w-full"
@@ -670,17 +717,11 @@ function LeftColumnWithTabs({
 
         <TabsContent value="deployment" className="mt-4">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold">Deployment Provider</h3>
             <ArrayLevelErrorMessage error={deploymentErrorMessage} />
             <div className="space-y-4">
-              <CollapsibleSection
-                title="Provider"
-                index={0}
-                onRemove={() => { }}
-                canRemove={false}
-              >
+              <Card className="p-6">
                 <ProviderFields />
-              </CollapsibleSection>
+              </Card>
             </div>
           </Card>
         </TabsContent>
@@ -699,6 +740,36 @@ export default function ConfigurationForm({
   error,
 }: ConfigurationFormProps) {
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [validatingGithub, setValidatingGithub] = useState(false);
+  const [githubValidationErrors, setGithubValidationErrors] = useState<{ index: number, message: string }[]>([]);
+
+  // Create default Vercel environment variables
+  const defaultVercelVariables = [
+    {
+      key: "VERCEL_TOKEN",
+      defaultValue: "",
+      description: "Vercel API token for deployment authentication",
+      isRequired: true,
+      isSecret: true,
+      video: null,
+    },
+    {
+      key: "VERCEL_ORG_ID",
+      defaultValue: "",
+      description: "Vercel organization ID",
+      isRequired: true,
+      isSecret: true,
+      video: null,
+    },
+    {
+      key: "VERCEL_PROJECT_ID",
+      defaultValue: "VERCEL_PROJECT_ID",
+      description: "Vercel project ID for deployment target",
+      isRequired: false,
+      isSecret: true,
+      video: null,
+    }
+  ];
 
   const form = useForm<CreateConfigurationDto>({
     resolver: zodResolver(createConfigurationDtoSchema),
@@ -708,21 +779,12 @@ export default function ConfigurationForm({
           username: "",
           accessToken: "",
           repository: "",
-          workflowFile: "deploy.yml",
+          workflowFile: "",
         },
       ],
       deploymentOption: {
         provider: DeploymentProvider.VERCEL,
-        environmentVariables: [
-          {
-            key: "",
-            defaultValue: "",
-            description: "",
-            isRequired: true,
-            isSecret: false,
-            video: '',
-          },
-        ],
+        environmentVariables: defaultVercelVariables,
       } as DeploymentOption,
     },
     mode: "onChange", // Validate on change for better UX
@@ -739,7 +801,49 @@ export default function ConfigurationForm({
 
   const handleSubmit = async (values: CreateConfigurationDto) => {
     setSubmitAttempted(true);
-    await onSubmit(values as CreateConfigurationDto);
+
+    // Reset validation state
+    setValidatingGithub(true);
+    setGithubValidationErrors([]);
+
+    try {
+      // Validate all GitHub configurations
+      const validationPromises = values.githubAccounts.map(async (account, index) => {
+        const result = await validateGithubConfig(
+          account.username,
+          account.accessToken,
+          account.repository,
+          account.workflowFile
+        );
+
+        if (!result.isValid) {
+          return { index, message: result.message };
+        }
+        return null;
+      });
+
+      // Wait for all validations to complete
+      const results = await Promise.all(validationPromises);
+      const errors = results.filter((result): result is { index: number, message: string } => result !== null);
+
+      // If there are errors, show them and don't submit
+      if (errors.length > 0) {
+        setGithubValidationErrors(errors);
+        setValidatingGithub(false);
+        return;
+      }
+
+      // All GitHub configurations are valid, proceed with form submission
+      await onSubmit(values as CreateConfigurationDto);
+    } catch (error) {
+      console.error('Error validating GitHub configurations:', error);
+      setGithubValidationErrors([{
+        index: -1,
+        message: 'An unexpected error occurred while validating GitHub configurations'
+      }]);
+    } finally {
+      setValidatingGithub(false);
+    }
   };
 
   return (
@@ -752,6 +856,26 @@ export default function ConfigurationForm({
           message={error.message}
           className="mb-6"
         />
+      )}
+
+      {/* GitHub Validation Errors */}
+      {githubValidationErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
+          <div className="flex items-center mb-2">
+            <IconAlertCircle className="h-5 w-5 mr-2 text-red-500" />
+            <h3 className="font-semibold">GitHub Configuration Validation Failed</h3>
+          </div>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            {githubValidationErrors.map((error, idx) => (
+              <li key={idx} className="text-sm">
+                {error.index >= 0 ? `Account ${error.index + 1}: ${error.message}` : error.message}
+              </li>
+            ))}
+          </ul>
+          <p className="text-sm mt-3">
+            Please check your GitHub credentials, repository names, and workflow file paths before submitting again.
+          </p>
+        </div>
       )}
 
       <FormProvider {...form}>
@@ -773,16 +897,54 @@ export default function ConfigurationForm({
                   <div className="space-y-3">
                     <Button
                       type="submit"
-                      disabled={isLoading || isSuccess}
+                      disabled={isLoading || isSuccess || validatingGithub}
                       className="w-full"
                     >
-                      {isLoading && (
+                      {(isLoading || validatingGithub) && (
                         <IconLoader className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      {isEditing
-                        ? "Update Configuration"
-                        : "Create Configuration"}
+                      {validatingGithub
+                        ? "Validating GitHub..."
+                        : isEditing
+                          ? "Update Configuration"
+                          : "Create Configuration"
+                      }
                     </Button>
+
+                    {isEditing && initialData && initialData.id && initialData.projectId && (
+                      <>
+                        <Button
+                          variant="default"
+                          type="button"
+                          className="w-full"
+                          disabled={isLoading}
+                          asChild
+                        >
+                          <Link
+                            href={`/dashboard/deployments/create?projectId=${initialData.projectId}&configurationId=${initialData.id}`}
+                          >
+                            <IconServer className="mr-2 h-4 w-4" />
+                            Deploy Configuration
+                          </Link>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="w-full"
+                          disabled={isLoading}
+                          asChild
+                        >
+                          <Link
+                            href={`/dashboard/projects/${initialData.projectId}/configurations/${initialData.id}/deployments`}
+                          >
+                            <IconHistory className="mr-2 h-4 w-4" />
+                            View Deployments
+                          </Link>
+                        </Button>
+                      </>
+                    )}
+
                     <Button
                       variant="outline"
                       type="button"

@@ -3,8 +3,6 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { axiosBaseQuery } from "@/config/api";
 import {
   Deployment,
-  LicenseOption,
-  LicensePurchase,
   PaginatedResponse,
   Project,
   ProjectConfiguration,
@@ -32,10 +30,8 @@ export const projectsApi = createApi({
     "Project",
     "ProjectVersion",
     "Configuration",
-    "License",
     "Deployment",
     "Category",
-    "LicensePurchase",
   ],
   endpoints: (builder) => ({
     // PROJECTS
@@ -296,123 +292,6 @@ export const projectsApi = createApi({
       ],
     }),
 
-    // LICENSES
-    getLicenses: builder.query<
-      PaginatedResponse<LicenseOption>,
-      { page?: number; limit?: number } | void
-    >({
-      query: (params = {}) => ({
-        url: "licenses",
-        method: "GET",
-        params,
-      }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.items.map(({ id }) => ({
-                type: "License" as const,
-                id,
-              })),
-              { type: "License", id: "LIST" },
-            ]
-          : [{ type: "License", id: "LIST" }],
-    }),
-
-    getLicense: builder.query<LicenseOption, string>({
-      query: (id) => ({
-        url: `licenses/${id}`,
-        method: "GET",
-      }),
-      providesTags: (result, error, id) => [{ type: "License", id }],
-    }),
-
-    createLicense: builder.mutation<LicenseOption, Partial<LicenseOption>>({
-      query: (body) => ({
-        url: "licenses",
-        method: "POST",
-        data: body,
-      }),
-      invalidatesTags: [{ type: "License", id: "LIST" }],
-    }),
-
-    updateLicense: builder.mutation<
-      LicenseOption,
-      { id: string; body: Partial<LicenseOption> }
-    >({
-      query: ({ id, body }) => ({
-        url: `licenses/${id}`,
-        method: "PATCH",
-        data: body,
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: "License", id },
-        { type: "License", id: "LIST" },
-      ],
-    }),
-
-    deleteLicense: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `licenses/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: [{ type: "License", id: "LIST" }],
-    }),
-
-    // LICENSE PURCHASES
-    getLicensePurchases: builder.query<LicensePurchase[], void>({
-      query: () => ({
-        url: "licenses/purchases",
-        method: "GET",
-      }),
-      providesTags: [{ type: "LicensePurchase", id: "LIST" }],
-    }),
-
-    getLicensePurchase: builder.query<LicensePurchase, string>({
-      query: (id) => ({
-        url: `licenses/purchases/${id}`,
-        method: "GET",
-      }),
-      providesTags: (result, error, id) => [{ type: "LicensePurchase", id }],
-    }),
-
-    purchaseLicense: builder.mutation<
-      LicensePurchase,
-      { projectId: string; licenseId: string }
-    >({
-      query: (body) => ({
-        url: "licenses/purchases",
-        method: "POST",
-        data: body,
-      }),
-      invalidatesTags: [{ type: "LicensePurchase", id: "LIST" }],
-    }),
-
-    confirmPayment: builder.mutation<
-      LicensePurchase,
-      { purchaseId: string; transactionId: string }
-    >({
-      query: ({ purchaseId, transactionId }) => ({
-        url: `licenses/purchases/${purchaseId}/confirm`,
-        method: "POST",
-        data: { transactionId },
-      }),
-      invalidatesTags: (result, error, { purchaseId }) => [
-        { type: "LicensePurchase", id: purchaseId },
-        { type: "LicensePurchase", id: "LIST" },
-      ],
-    }),
-
-    cancelPurchase: builder.mutation<void, string>({
-      query: (purchaseId) => ({
-        url: `licenses/purchases/${purchaseId}/cancel`,
-        method: "POST",
-      }),
-      invalidatesTags: (result, error, purchaseId) => [
-        { type: "LicensePurchase", id: purchaseId },
-        { type: "LicensePurchase", id: "LIST" },
-      ],
-    }),
-
     // DEPLOYMENTS
     getDeployments: builder.query<Deployment[], void>({
       query: () => ({
@@ -480,23 +359,11 @@ export const {
   useUpdateConfigurationMutation,
   useDeleteConfigurationMutation,
 
-  // Licenses
-  useGetLicensesQuery,
-  useGetLicenseQuery,
-  useCreateLicenseMutation,
-  useUpdateLicenseMutation,
-  useDeleteLicenseMutation,
-
-  // License Purchases
-  useGetLicensePurchasesQuery,
-  useGetLicensePurchaseQuery,
-  usePurchaseLicenseMutation,
-  useConfirmPaymentMutation,
-  useCancelPurchaseMutation,
-
   // Deployments
   useGetDeploymentsQuery,
   useGetDeploymentQuery,
   useCreateDeploymentMutation,
   useCancelDeploymentMutation,
 } = projectsApi;
+
+// Additional alias for useGetVersionsQuery to make the intent clearer

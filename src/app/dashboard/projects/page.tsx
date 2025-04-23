@@ -344,7 +344,7 @@ export default function ProjectsPage() {
                 </TableBody>
               </Table>
             </div>
-            <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="flex items-center justify-between space-x-2 py-4 items-center">
               <div className="flex-1 text-sm text-muted-foreground">
                 Showing {projects.length} of {totalProjects} projects
               </div>

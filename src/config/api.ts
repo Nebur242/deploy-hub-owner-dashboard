@@ -1,36 +1,77 @@
+// src/services/axiosConfig.ts
+import axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { BaseQueryFn } from "@reduxjs/toolkit/query";
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import { getAuth, getIdToken } from "firebase/auth";
-import firebaseApp from "./firebase";
+import { authService } from "@/services/auth-service";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-//API ROUTES
+// API ROUTES
 export const API_ROUTES = {
   users: "/users",
+  deployments: "/deployments",
 };
 
 export const AXIOS = axios.create({
   baseURL: API_URL,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-AXIOS.interceptors.request.use(async (config: any) => {
-  const { currentUser } = getAuth(firebaseApp);
-  if (currentUser) {
-    const token = await getIdToken(currentUser, true);
+// Request interceptor that adds the token to requests
+AXIOS.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    const token = await authService.getToken();
+
     if (token) {
-      return {
-        ...config,
-        headers: {
-          ...config.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      };
+      config.headers.set("Authorization", `Bearer ${token}`);
     }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// Response interceptor that handles token expiration
+AXIOS.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error: AxiosError) => {
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+
+      // Clear token cache to force a fresh token on retry
+      authService.clearTokenCache();
+
+      // Get a fresh token and retry the request
+      const token = await authService.getToken();
+
+      if (token) {
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+        } else {
+          originalRequest.headers = { Authorization: `Bearer ${token}` };
+        }
+
+        return AXIOS(originalRequest);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export const axiosBaseQuery =
   (): BaseQueryFn<
