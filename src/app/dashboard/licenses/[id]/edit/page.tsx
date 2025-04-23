@@ -33,7 +33,9 @@ export default function EditLicensePage() {
         isLoading: isFetchingLicense,
         error: fetchError,
         refetch,
-    } = useGetLicenseQuery(licenseId!, { skip: skipLicenseFetch });
+    } = useGetLicenseQuery(licenseId, {
+        skip: skipLicenseFetch || !licenseId
+    });
 
     const [
         updateLicense,
