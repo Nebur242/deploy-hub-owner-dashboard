@@ -148,14 +148,10 @@ export const licensesApi = createApi({
       ],
     }),
 
-    purchaseLicense: builder.mutation<
-      LicensePurchase,
-      { projectId: string; licenseId: string }
-    >({
+    purchaseLicense: builder.mutation<LicensePurchase, { licenseId: string }>({
       query: (body) => ({
-        url: "licenses/purchases",
+        url: `licenses/${body.licenseId}/purchase`,
         method: "POST",
-        data: body,
       }),
       invalidatesTags: [{ type: "LicensePurchase", id: "LIST" }],
     }),

@@ -3,9 +3,9 @@ import auth from "./features/auth";
 import { categoriesApi } from "./features/categories";
 import { deploymentApi } from "./features/deployments";
 import { mediaApi } from "./features/media";
-
 import { projectsApi } from "./features/projects";
 import { licensesApi } from "./features/licenses";
+import { ordersApi } from "./features/orders";
 
 export const makeStore = () => {
   return configureStore({
@@ -16,6 +16,7 @@ export const makeStore = () => {
       [projectsApi.reducerPath]: projectsApi.reducer,
       [licensesApi.reducerPath]: licensesApi.reducer,
       [deploymentApi.reducerPath]: deploymentApi.reducer,
+      [ordersApi.reducerPath]: ordersApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware()
@@ -23,7 +24,8 @@ export const makeStore = () => {
         .concat(mediaApi.middleware)
         .concat(projectsApi.middleware)
         .concat(licensesApi.middleware)
-        .concat(deploymentApi.middleware),
+        .concat(deploymentApi.middleware)
+        .concat(ordersApi.middleware),
     devTools: process.env.NODE_ENV !== "production",
   });
 };
