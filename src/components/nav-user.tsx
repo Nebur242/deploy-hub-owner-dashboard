@@ -44,6 +44,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { logoutUser } from "@/store/features/auth"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export function NavUser() {
   const { infos: user, logout: { loading, status, error } } = useAppSelector((state) => state.auth);
@@ -144,18 +145,24 @@ export function NavUser() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <IconUserCircle className="mr-2 h-4 w-4" />
-                  Account
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <IconCreditCard className="mr-2 h-4 w-4" />
-                  Billing
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <IconNotification className="mr-2 h-4 w-4" />
-                  Notifications
-                </DropdownMenuItem>
+                <Link href="/dashboard/profile">
+                  <DropdownMenuItem>
+                    <IconUserCircle className="mr-2 h-4 w-4" />
+                    Account
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/dashboard/billing">
+                  <DropdownMenuItem>
+                    <IconCreditCard className="mr-2 h-4 w-4" />
+                    Billing
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/dashboard/notifications">
+                  <DropdownMenuItem>
+                    <IconNotification className="mr-2 h-4 w-4" />
+                    Notifications
+                  </DropdownMenuItem>
+                </Link>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem

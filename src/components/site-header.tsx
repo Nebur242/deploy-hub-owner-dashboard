@@ -56,6 +56,8 @@ export function SiteHeader() {
   const [notificationCount] = useState(3);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileSearchQuery, setMobileSearchQuery] = useState("");
 
   // Track scroll position for shadow effect
   useEffect(() => {
@@ -72,6 +74,25 @@ export function SiteHeader() {
     // Mark as read when opened
     if (!isNotificationsOpen && hasNotifications) {
       setHasNotifications(false);
+    }
+  };
+
+  // Handle search submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/dashboard/help?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
+
+  // Handle mobile search submission
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mobileSearchQuery.trim()) {
+      router.push(`/dashboard/help?search=${encodeURIComponent(mobileSearchQuery.trim())}`);
+      setMobileSearchQuery("");
+      setIsMobileSearchOpen(false);
     }
   };
 
@@ -147,26 +168,30 @@ export function SiteHeader() {
           <Separator orientation="vertical" className="hidden h-8 md:block" />
 
           {/* Desktop search */}
-          <div className="hidden md:flex relative w-[200px] lg:w-[300px]">
+          <form onSubmit={handleSearch} className="hidden md:flex relative w-[200px] lg:w-[300px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search everything..."
+              placeholder="Search help..."
               className="pl-8 bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 h-9 transition-all duration-200 text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+          </form>
         </div>
 
         {/* Mobile search bar - toggled with state */}
         {isMobileSearchOpen && (
           <div className="absolute inset-0 z-50 flex h-16 w-full items-center bg-background px-4 md:hidden">
-            <div className="relative flex-1">
+            <form onSubmit={handleMobileSearch} className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search help..."
                 className="pl-8 w-full"
                 autoFocus
+                value={mobileSearchQuery}
+                onChange={(e) => setMobileSearchQuery(e.target.value)}
               />
-            </div>
+            </form>
             <Button
               variant="ghost"
               size="icon"
@@ -353,24 +378,19 @@ export function SiteHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[200px]">
-              <DropdownMenuItem>
-                <Link href="#" className="flex w-full items-center">
-                  Documentation
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/help" className="flex w-full items-center">
+                  Help Center
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link href="#" className="flex w-full items-center">
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/help" className="flex w-full items-center">
                   Support
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link href="#" className="flex w-full items-center">
-                  API Reference
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link href="#" className="flex w-full items-center">
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/changelog" className="flex w-full items-center">
                   Changelog
                 </Link>
               </DropdownMenuItem>
@@ -385,8 +405,7 @@ export function SiteHeader() {
                   <AvatarImage
                     src={
                       user?.firebase?.photoURL ||
-                      `https://avatar.iran.liara.run/public/boy?username=${
-                        user?.id || "user"
+                      `https://avatar.iran.liara.run/public/boy?username=${user?.id || "user"
                       }`
                     }
                   />
@@ -433,7 +452,7 @@ export function SiteHeader() {
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    Profile Settings
+                    Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
@@ -476,32 +495,10 @@ export function SiteHeader() {
                       strokeLinejoin="round"
                       className="h-4 w-4"
                     >
-                      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
                       <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                     Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link
-                    href="/dashboard/api-keys"
-                    className="flex w-full items-center gap-2"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
-                    </svg>
-                    API Keys
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuGroup>

@@ -6,6 +6,9 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
 } from "firebase/auth";
 import { API_ROUTES, AXIOS } from "../config/api";
 import { Role, User } from "@/common/types";
@@ -65,4 +68,87 @@ export const firebaseSendPasswordResetEmail = async (email: string) => {
 
 export const firebaseSendValidationEmail = async (user: FirebaseUser) => {
   sendEmailVerification(user);
+};
+
+/**
+ * Change user password with Firebase Auth
+ * Requires re-authentication before changing password for security
+ *
+ * @param currentPassword - User's current password for verification
+ * @param newPassword - New password to set
+ * @returns Promise that resolves when password is successfully changed
+ * @throws Firebase Auth errors on failure
+ */
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user || !user.email) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    // First re-authenticate user to ensure security for sensitive operations
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      currentPassword
+    );
+    await reauthenticateWithCredential(user, credential);
+
+    // Then update password
+    await updatePassword(user, newPassword);
+  } catch (err) {
+    const error = err as { code: string };
+    // Rethrow with more descriptive message
+    if (error.code === "auth/wrong-password") {
+      throw new Error("Current password is incorrect");
+    } else if (error.code === "auth/weak-password") {
+      throw new Error("New password is too weak. Use at least 6 characters");
+    } else {
+      throw error;
+    }
+  }
+};
+
+/**
+ * Signs out the user from all devices except the current one by revoking refresh tokens
+ * First requires reauthentication to verify user identity
+ *
+ * @param currentPassword - User's current password for verification
+ * @returns Promise that resolves when successful
+ * @throws Firebase Auth errors on failure
+ */
+export const signOutAllDevices = async (
+  currentPassword: string
+): Promise<void> => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user || !user.email) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    // First re-authenticate user to ensure security for sensitive operations
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      currentPassword
+    );
+    await reauthenticateWithCredential(user, credential);
+
+    // Firebase's built-in method to revoke refresh tokens
+    // This forces all other devices to reauthenticate, effectively signing them out
+    await auth.currentUser?.getIdToken(true);
+  } catch (err) {
+    const error = err as { code: string };
+    // Rethrow with more descriptive message
+    if (error.code === "auth/wrong-password") {
+      throw new Error("Current password is incorrect");
+    } else {
+      throw error;
+    }
+  }
 };
