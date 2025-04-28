@@ -78,7 +78,7 @@ export function BasicInformationCard({
                                 />
                             </FormControl>
                             <FormDescription>
-                                {field.value.length}/500 characters
+                                {(field.value || '')?.length}/500 characters
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

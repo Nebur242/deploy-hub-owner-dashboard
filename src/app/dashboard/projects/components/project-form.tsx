@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TechStack, Visibility } from "@/common/enums/project";
+import { Visibility } from "@/common/enums/project";
 import {
   Form,
   FormControl,
@@ -22,14 +22,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconLoader } from "@tabler/icons-react";
 import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { CategorySelector } from "@/app/dashboard/categories/components";
 import { CreateProjectDto, createProjectDtoSchema } from "@/common/dtos";
+import { TagInput } from "@/components/tag-input";
 
+// Available tech stack suggestions
+const techStackSuggestions = [
+  "React",
+  "Next.js",
+  "Vue",
+  "Angular",
+  "Node.js",
+  "NestJS",
+  "Django",
+  "Flask",
+  "Laravel",
+  "Express",
+  "TypeScript",
+  "JavaScript",
+  "Python",
+  "Java",
+  "PHP",
+  "Ruby",
+  "Go",
+  "Rust",
+  "C#",
+  ".NET",
+  "MongoDB",
+  "PostgreSQL",
+  "MySQL",
+  "Redis",
+  "GraphQL",
+  "REST API",
+  "Docker",
+  "Kubernetes",
+  "AWS",
+  "Azure",
+  "Google Cloud",
+  "Firebase",
+  "Tailwind CSS",
+  "Material UI",
+  "Bootstrap",
+  "Other"
+];
 
 interface ProjectFormProps {
   isEditing: boolean;
@@ -312,49 +351,21 @@ export default function ProjectForm({
                   <FormField
                     control={form.control}
                     name="techStack"
-                    render={() => (
+                    render={({ field }) => (
                       <FormItem>
-                        <FormDescription className="mb-4">
-                          Select the technologies used in your project
+                        <FormLabel>Tech Stack</FormLabel>
+                        <FormControl>
+                          <TagInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Add technology..."
+                            disabled={isLoading || isSuccess}
+                            suggestions={techStackSuggestions}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Add the technologies used in your project
                         </FormDescription>
-                        <div className="space-y-4">
-                          {Object.values(TechStack).map((tech) => (
-                            <FormField
-                              key={tech}
-                              control={form.control}
-                              name="techStack"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={tech}
-                                    className="flex flex-row items-center space-x-3 space-y-0"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(tech)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([
-                                              ...field.value,
-                                              tech,
-                                            ])
-                                            : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== tech
-                                              )
-                                            );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">
-                                      {tech}
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
-                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
