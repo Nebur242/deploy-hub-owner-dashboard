@@ -5,6 +5,7 @@ import {
     useGetLicensesQuery,
     useDeleteLicenseMutation,
 } from "@/store/features/licenses";
+import { useGetProjectsQuery } from "@/store/features/projects";
 import {
     Table,
     TableBody,
@@ -42,6 +43,7 @@ import {
     IconEdit,
     IconTrash,
     IconEye,
+    IconInfoCircle,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -49,6 +51,12 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 import { LicenseOption } from "@/common/types";
 import { formatCurrency, formatDuration } from "@/utils/format";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function LicensesPage() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -64,6 +72,13 @@ export default function LicensesPage() {
         page: currentPage,
         limit: itemsPerPage,
     });
+
+    // Fetch projects to check if any exist
+    const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
+        limit: 1, // We only need to check if any projects exist
+    });
+
+    const hasProjects = (projectsData?.items?.length || 0) > 0;
 
     // Delete license mutation
     const [deleteLicense, { isLoading: isDeleting }] = useDeleteLicenseMutation();
@@ -130,11 +145,26 @@ export default function LicensesPage() {
                 />
                 {isFetching ? "Refreshing..." : "Refresh"}
             </Button>
-            <Button asChild>
-                <Link href="/dashboard/licenses/create">
-                    <IconPlus className="h-4 w-4 mr-2" /> Create License
-                </Link>
-            </Button>
+
+            {/* Conditionally render the Create License button based on projects existence */}
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span>
+                            <Button asChild disabled={!hasProjects && !isLoadingProjects}>
+                                <Link href={hasProjects ? "/dashboard/licenses/create" : "#"}>
+                                    <IconPlus className="h-4 w-4 mr-2" /> Create License
+                                </Link>
+                            </Button>
+                        </span>
+                    </TooltipTrigger>
+                    {!hasProjects && (
+                        <TooltipContent className="max-w-xs">
+                            <p>You need to create at least one project before creating a license</p>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+            </TooltipProvider>
         </>
     );
 
@@ -145,6 +175,24 @@ export default function LicensesPage() {
             actions={actionButtons}
         >
             <div className="flex flex-col gap-6">
+                {/* Show alert when no projects exist */}
+                {!isLoadingProjects && !hasProjects && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4 flex items-start">
+                        <IconInfoCircle className="h-5 w-5 text-yellow-500 mr-3 mt-0.5" />
+                        <div>
+                            <h4 className="font-medium text-yellow-800">No projects found</h4>
+                            <p className="text-yellow-700 text-sm mt-1">
+                                You need to create at least one project before you can create licenses.
+                            </p>
+                            <Button variant="outline" size="sm" className="mt-2" asChild>
+                                <Link href="/dashboard/projects/create">
+                                    <IconPlus className="h-4 w-4 mr-2" /> Create Project
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex gap-4 flex-col sm:flex-row mb-4">
                     <div className="relative w-full sm:w-1/3">
                         <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -189,12 +237,21 @@ export default function LicensesPage() {
                 ) : licenses.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-4 py-12">
                         <p className="text-muted-foreground">No licenses found.</p>
-                        <Link href="/dashboard/licenses/create">
-                            <Button>
-                                <IconPlus className="mr-2 h-4 w-4" />
-                                Create your first license
-                            </Button>
-                        </Link>
+                        {hasProjects ? (
+                            <Link href="/dashboard/licenses/create">
+                                <Button>
+                                    <IconPlus className="mr-2 h-4 w-4" />
+                                    Create your first license
+                                </Button>
+                            </Link>
+                        ) : (
+                            <Link href="/dashboard/projects/create">
+                                <Button>
+                                    <IconPlus className="mr-2 h-4 w-4" />
+                                    Create your first project
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 ) : (
                     <>

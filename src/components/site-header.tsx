@@ -404,7 +404,7 @@ export function SiteHeader() {
                 <Avatar className="h-8 w-8">
                   <AvatarImage
                     src={
-                      user?.firebase?.photoURL ||
+                      user?.profilePicture ||
                       `https://avatar.iran.liara.run/public/boy?username=${user?.id || "user"
                       }`
                     }
