@@ -28,6 +28,7 @@ export enum DeploymentStatus {
 export enum DeploymentProvider {
   NETLIFY = "netlify",
   VERCEL = "vercel",
+  CUSTOM = "custom",
   // AWS = "aws",
   // GCP = "gcp",
   // AZURE = "azure",

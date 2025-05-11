@@ -10,11 +10,14 @@ import { useRouter } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button";
+import { registerFCMServiceWorker } from "@/utils/firebase-sw-register";
+import { useNotifications } from "@/providers/NotificationProvider";
 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const dispatch = useAppDispatch();
     const router = useRouter();
+    const { requestPermission } = useNotifications();
 
     const {
         authenticate: { loading, error, status },
@@ -38,6 +41,32 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // Register Firebase service worker when the dashboard loads
+    useEffect(() => {
+        // Only register once user is authenticated
+        if (status === "success") {
+            (async () => {
+                try {
+                    // Register the service worker
+                    await registerFCMServiceWorker();
+
+                    // Ask for notification permission after a short delay
+                    setTimeout(() => {
+                        requestPermission().then(granted => {
+                            if (granted) {
+                                toast.success("Notifications enabled", {
+                                    description: "You'll now receive push notifications for important updates.",
+                                    duration: 5000,
+                                });
+                            }
+                        });
+                    }, 2000);
+                } catch (error) {
+                    console.error("Error setting up push notifications:", error);
+                }
+            })();
+        }
+    }, [status, requestPermission]);
 
     useEffect(() => {
         dispatch(authenticateUser());

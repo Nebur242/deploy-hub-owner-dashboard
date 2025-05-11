@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Currency } from "../enums/project";
+import { LicenseStatus } from "../types/license";
 
 // Base schema for license data
 const licenseBaseDtoSchema = z.object({
@@ -10,6 +11,8 @@ const licenseBaseDtoSchema = z.object({
   deploymentLimit: z.number().int().nonnegative().default(1),
   duration: z.number().int().nonnegative().default(0), // 0 for unlimited
   features: z.array(z.string()).default([]),
+  status: z.nativeEnum(LicenseStatus).default(LicenseStatus.DRAFT),
+  popular: z.boolean().default(false),
 });
 
 // Schema for creating new licenses
@@ -44,6 +47,8 @@ export type LicenseSearchParams = {
   currency?: string;
   sortBy?: string;
   sortDirection?: "ASC" | "DESC";
+  status?: LicenseStatus;
+  popular?: boolean;
 };
 
 export type LicensePurchaseSearchParams = {

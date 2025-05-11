@@ -73,6 +73,7 @@ export default function EditConfigurationPage() {
   useEffect(() => {
     if (configuration) {
       setInitialValues({
+        name: configuration.name || "",
         githubAccounts: configuration.githubAccounts || [],
         deploymentOption: configuration.deploymentOption,
       });

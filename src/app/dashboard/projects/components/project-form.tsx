@@ -98,6 +98,7 @@ export default function ProjectForm({
       slug: "",
       description: "",
       repository: "",
+      previewUrl: "",
       techStack: [],
       visibility: Visibility.PRIVATE,
       categories: [], // Will store [{id: string}] objects
@@ -287,6 +288,27 @@ export default function ProjectForm({
                       </FormControl>
                       <FormDescription>
                         Link to your project&apos;s GitHub repository
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="previewUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preview URL</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="https://my-project-demo.example.com"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Optional live demo or preview URL for your project
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

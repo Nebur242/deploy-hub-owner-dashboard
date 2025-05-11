@@ -31,6 +31,10 @@ export const deploymentOptionDtoSchema = z.object({
 
 // Schema for creating project configurations
 export const createConfigurationDtoSchema = z.object({
+  name: z
+    .string()
+    .min(3, "Name must be at least 3 characters")
+    .max(50, "Name must be less than 50 characters"),
   githubAccounts: z.array(githubAccountDtoSchema),
   deploymentOption: deploymentOptionDtoSchema,
 });
@@ -39,6 +43,11 @@ export const createConfigurationDtoSchema = z.object({
 export const updateConfigurationDtoSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  name: z
+    .string()
+    .min(3, "Name must be at least 3 characters")
+    .max(50, "Name must be less than 50 characters")
+    .optional(),
   githubAccounts: z.array(githubAccountDtoSchema).optional(),
   deploymentOption: deploymentOptionDtoSchema.optional(),
 });

@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import {
-  // IconChartBar,
-  // IconUsers,
   IconFolder,
   IconDashboard,
   IconDatabase,
@@ -16,8 +14,6 @@ import {
   IconSettings,
   IconChartBar,
   IconRocket,
-  IconCreditCard,
-  IconReceipt,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -76,21 +72,6 @@ const data = {
       url: "/dashboard/licenses",
       icon: IconChartBar,
     },
-    {
-      title: "Orders",
-      url: "/dashboard/orders",
-      icon: IconReceipt,
-    },
-    {
-      title: "Purchase Licenses",
-      url: "/dashboard/purchase",
-      icon: IconCreditCard,
-    },
-    // {
-    //   title: "Team",
-    //   url: "#",
-    //   icon: IconUsers,
-    // },
   ],
   navSecondary: [
     {

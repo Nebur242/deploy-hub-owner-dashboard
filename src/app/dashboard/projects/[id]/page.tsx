@@ -279,6 +279,26 @@ export default function ProjectPreviewPage() {
                                             </div>
                                         </>
                                     )}
+
+                                    {project.previewUrl && (
+                                        <>
+                                            <Separator />
+                                            <div>
+                                                <h3 className="text-lg font-semibold mb-2">Preview URL</h3>
+                                                <div className="flex items-center">
+                                                    <a
+                                                        href={project.previewUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-500 hover:underline flex items-center"
+                                                    >
+                                                        {project.previewUrl}
+                                                        <IconExternalLink className="h-4 w-4 ml-1" />
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </CardContent>
                             </Card>
 

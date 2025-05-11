@@ -55,7 +55,7 @@ export interface Payment {
   createdAt: string;
   updatedAt: string;
   processedAt?: string | null;
-  order?: Partial<Order>;
+  order: Order;
 }
 
 export interface ProcessPaymentRequest {

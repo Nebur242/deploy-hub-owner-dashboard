@@ -1,6 +1,6 @@
 "use client";
 
-import { LicenseOption } from "@/common/types";
+import { LicenseOption, LicenseStatus } from "@/common/types";
 import {
     Card,
     CardContent,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import { usePurchaseLicenseMutation } from "@/store/features/licenses";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -68,17 +68,47 @@ export function LicenseCard({ license, projectId }: LicenseCardProps) {
         }).format(price);
     };
 
+    // Get status color based on license status
+    const getStatusBadgeVariant = (status: LicenseStatus) => {
+        switch (status) {
+            case LicenseStatus.PUBLIC:
+                return "default";
+            case LicenseStatus.PRIVATE:
+                return "secondary";
+            case LicenseStatus.DRAFT:
+                return "outline";
+            case LicenseStatus.ARCHIVED:
+                return "destructive";
+            default:
+                return "outline";
+        }
+    };
+
     return (
         <>
-            <Card className="flex flex-col h-full border-2 hover:shadow-lg transition-shadow">
+            <Card className={`flex flex-col h-full border-2 hover:shadow-lg transition-shadow ${license.popular ? 'border-primary' : ''}`}>
                 <CardHeader>
                     <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl">{license.name}</CardTitle>
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-xl">{license.name}</CardTitle>
+                                {license.popular && (
+                                    <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600">
+                                        <Star className="h-3 w-3 mr-1" /> Popular
+                                    </Badge>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Badge variant={getStatusBadgeVariant(license.status)} className="text-xs">
+                                    {license.status}
+                                </Badge>
+                            </div>
+                        </div>
                         <Badge variant="secondary" className="text-sm px-3">
                             {formatCurrency(license.price, license.currency)}
                         </Badge>
                     </div>
-                    <CardDescription className="text-sm text-gray-500">
+                    <CardDescription className="text-sm text-gray-500 mt-2">
                         {license.description}
                     </CardDescription>
                 </CardHeader>
@@ -110,9 +140,9 @@ export function LicenseCard({ license, projectId }: LicenseCardProps) {
                     <Button
                         className="w-full"
                         onClick={handlePurchaseClick}
-                        disabled={isLoading}
+                        disabled={isLoading || license.status !== LicenseStatus.PUBLIC}
                     >
-                        Purchase License
+                        {license.status === LicenseStatus.PUBLIC ? 'Purchase License' : 'Not Available'}
                     </Button>
                 </CardFooter>
             </Card>

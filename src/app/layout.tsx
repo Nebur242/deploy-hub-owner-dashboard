@@ -4,6 +4,8 @@ import "./globals.css";
 import StoreProvider from "@/providers/StoreProvider";
 import { ThemeProvider as NextThemeProvider } from "@/components/theme-provider";
 import { ThemeProvider } from "@/hooks/theme-context";
+import { NotificationProvider } from "@/providers/NotificationProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,7 +44,12 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <ThemeProvider>{children}</ThemeProvider>
+            <ThemeProvider>
+              <NotificationProvider>
+                {children}
+                <Toaster />
+              </NotificationProvider>
+            </ThemeProvider>
           </NextThemeProvider>
         </StoreProvider>
       </body>
