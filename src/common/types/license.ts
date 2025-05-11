@@ -2,6 +2,13 @@ import { BaseEntity } from "./base";
 import { Currency, PurchaseStatus } from "../enums/project";
 import { Project } from "./project";
 
+export enum LicenseStatus {
+  DRAFT = 'draft',
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  ARCHIVED = 'archived',
+}
+
 // License Option entity
 export interface LicenseOption extends BaseEntity {
   name: string;
@@ -12,6 +19,8 @@ export interface LicenseOption extends BaseEntity {
   duration: number; // in days, 0 for unlimited
   features: string[];
   projects: Project[]; // Multiple projects can be associated with a license
+  status: LicenseStatus; // Default: DRAFT
+  popular: boolean; // Default: false
 }
 
 // License Purchase entity

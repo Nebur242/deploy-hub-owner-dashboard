@@ -118,7 +118,7 @@ export default function CreateDeploymentPage() {
   const configurations = configurationsData?.map(config => ({
     ...config,
     id: config.id,
-    name: `Configuration ${config.id.substring(0, 4)} (${config.deploymentOption.provider})`
+    name: config.name || `Configuration ${config.id.substring(0, 4)} (${config.deploymentOption.provider})`
   })) || [];
 
   // Handle form submission

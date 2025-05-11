@@ -247,6 +247,18 @@ function ProviderFields() {
             video: null,
           },
         ]);
+      } else if (currentProvider === DeploymentProvider.CUSTOM) {
+        // For custom provider, add an empty variable as an example
+        setValue("deploymentOption.environmentVariables", [
+          {
+            key: "",
+            defaultValue: "",
+            description: "Add your custom environment variables",
+            isRequired: false,
+            isSecret: false,
+            video: null,
+          },
+        ]);
       }
     } else if (currentProvider === DeploymentProvider.VERCEL && !previousProvider) {
       // Initial render with Vercel provider selected, set default variables
@@ -276,6 +288,22 @@ function ProviderFields() {
             description: "Vercel project ID for deployment target",
             isRequired: false,
             isSecret: true,
+            video: null,
+          },
+        ]);
+      }
+    } else if (currentProvider === DeploymentProvider.CUSTOM && !previousProvider) {
+      // Initial render with Custom provider selected, set an empty variable
+      const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+      if (currentVars.length === 0 ||
+        (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
+        setValue("deploymentOption.environmentVariables", [
+          {
+            key: "",
+            defaultValue: "",
+            description: "Add your custom environment variables",
+            isRequired: false,
+            isSecret: false,
             video: null,
           },
         ]);
@@ -339,6 +367,11 @@ function ProviderFields() {
               </SelectContent>
             </Select>
             <FormMessage />
+            {currentProvider === DeploymentProvider.CUSTOM && (
+              <FormDescription className="mt-2 italic text-amber-500">
+                Custom provider allows you to define your own environment variables without any preset configuration.
+              </FormDescription>
+            )}
           </FormItem>
         )}
       />
@@ -379,6 +412,10 @@ function EnvironmentVariablesSection() {
     name: "deploymentOption.environmentVariables",
   });
 
+  // Get the current provider to adjust UI behavior
+  const currentProvider = watch("deploymentOption.provider");
+  const isCustomProvider = currentProvider === DeploymentProvider.CUSTOM;
+
   // Watch for isRequired changes to update defaultValue when needed
   const watchedFields = watch("deploymentOption.environmentVariables");
 
@@ -411,6 +448,15 @@ function EnvironmentVariablesSection() {
         </div>
       )}
 
+      {isCustomProvider && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-700 text-sm flex items-center">
+            <IconPlus className="h-4 w-4 mr-2" />
+            Add any environment variables you need for your custom deployment provider.
+          </p>
+        </div>
+      )}
+
       <div className={`grid grid-cols-1 gap-4 ${envVarFields.length > 1 ? "md:grid-cols-2" : ""}`}>
         {envVarFields.map((field: EnvironmentVariableDto, index) => {
           // Check if this is a Vercel default environment variable
@@ -420,7 +466,7 @@ function EnvironmentVariablesSection() {
 
           return (
             <div
-              key={field.key}
+              key={field.key || index}
               className="space-y-3 p-4 border rounded-md dark:border-gray-700"
             >
               <div className="flex justify-between items-center">
@@ -459,7 +505,7 @@ function EnvironmentVariablesSection() {
                       <FormLabel>Key</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="API_KEY"
+                          placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
                           {...field}
                           disabled={isVercelDefaultVar}
                           className={isVercelDefaultVar ? "bg-muted" : ""}
@@ -482,18 +528,19 @@ function EnvironmentVariablesSection() {
                 render={({ field }) => {
                   // Get isRequired value for this index
                   const isRequired = watch(`deploymentOption.environmentVariables.${index}.isRequired`);
+                  const requiresDefaultValue = !isRequired && !isCustomProvider;
 
                   return (
                     <FormItem>
-                      <FormLabel>Default Value{!isRequired && " (Required)"}</FormLabel>
+                      <FormLabel>Default Value{requiresDefaultValue ? " (Required)" : ""}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder={!isRequired ? "Default value is required" : "Default value"}
+                          placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
                           {...field}
                           value={field.value || ""}
                         />
                       </FormControl>
-                      {!isRequired && (
+                      {requiresDefaultValue && (
                         <FormDescription className="text-amber-500">
                           A default value is required when variable is not required
                         </FormDescription>
@@ -565,8 +612,8 @@ function EnvironmentVariablesSection() {
                           checked={field.value}
                           onCheckedChange={(checked) => {
                             field.onChange(checked);
-                            // If changing to not required, ensure default value exists
-                            if (checked === false) {
+                            // Only enforce default value for non-custom providers
+                            if (checked === false && !isCustomProvider) {
                               const currentDefaultValue = watch(`deploymentOption.environmentVariables.${index}.defaultValue`);
                               if (!currentDefaultValue || currentDefaultValue.trim() === "") {
                                 setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "");
@@ -612,8 +659,8 @@ function EnvironmentVariablesSection() {
           appendEnvVar({
             key: "",
             defaultValue: "",
-            description: "",
-            isRequired: true,
+            description: isCustomProvider ? "Custom environment variable" : "",
+            isRequired: isCustomProvider ? false : true,
             isSecret: false,
             video: null,
           })
@@ -774,6 +821,7 @@ export default function ConfigurationForm({
   const form = useForm<CreateConfigurationDto>({
     resolver: zodResolver(createConfigurationDtoSchema),
     defaultValues: initialData || {
+      name: "",
       githubAccounts: [
         {
           username: "",
@@ -881,6 +929,29 @@ export default function ConfigurationForm({
       <FormProvider {...form}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+            {/* Configuration Name - Top level field */}
+            <Card className="p-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Configuration Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter a descriptive name for this configuration"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      A unique name to identify this deployment configuration
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </Card>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Left Column with Tabs */}
               <LeftColumnWithTabs

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Currency } from "@/common/enums/project";
+import { LicenseStatus } from "@/common/types/license";
 import {
     Form,
     FormControl,
@@ -31,6 +32,7 @@ import { CreateLicenseDto, createLicenseDtoSchema } from "@/common/dtos";
 import { useGetProjectsQuery } from "@/store/features/projects";
 import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 interface LicenseFormProps {
     isEditing: boolean;
@@ -70,6 +72,8 @@ export default function LicenseForm({
             duration: 0, // Default unlimited
             features: [],
             projectIds: [], // Will store project IDs
+            status: LicenseStatus.DRAFT, // Default status
+            popular: false, // Default popular
         },
     });
 
@@ -324,7 +328,7 @@ export default function LicenseForm({
                             </div>
                         </Card>
 
-                        {/* Right Column - Projects & Actions */}
+                        {/* Right Column - Projects, Status, Popular & Actions */}
                         <div className="space-y-6">
                             <Card className="p-6">
                                 <h3 className="text-lg font-semibold mb-4">Associated Projects</h3>
@@ -355,6 +359,65 @@ export default function LicenseForm({
                                         </FormItem>
                                     )}
                                 />
+                            </Card>
+
+                            <Card className="p-6">
+                                <h3 className="text-lg font-semibold mb-4">License Settings</h3>
+                                <div className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="status"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Status</FormLabel>
+                                                <Select
+                                                    onValueChange={(value) => field.onChange(value as LicenseStatus)}
+                                                    defaultValue={field.value}
+                                                    value={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select status" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value={LicenseStatus.DRAFT}>Draft</SelectItem>
+                                                        <SelectItem value={LicenseStatus.PUBLIC}>Public</SelectItem>
+                                                        <SelectItem value={LicenseStatus.PRIVATE}>Private</SelectItem>
+                                                        <SelectItem value={LicenseStatus.ARCHIVED}>Archived</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormDescription>
+                                                    Control the visibility of this license
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="popular"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">
+                                                        Popular License
+                                                    </FormLabel>
+                                                    <FormDescription>
+                                                        Mark this license as popular/recommended
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             </Card>
 
                             {/* Action Buttons Card */}

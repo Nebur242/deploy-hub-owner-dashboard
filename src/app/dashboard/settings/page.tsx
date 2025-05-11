@@ -23,6 +23,7 @@ import { Media } from "@/common/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { changePassword, firebaseSendPasswordResetEmail, signOutAllDevices } from "@/services/users";
 import { logoutUser } from "@/store/features/auth";
+import { PushNotificationToggle } from "@/components/push-notification-toggle";
 
 export default function SettingsPage() {
     const { infos: user } = useAppSelector((state) => state.auth);
@@ -591,7 +592,10 @@ export default function SettingsPage() {
 
                 {/* Notifications Tab */}
                 <TabsContent value="notifications">
-                    <form onSubmit={handleNotificationUpdate}>
+                    <form onSubmit={handleNotificationUpdate} className="space-y-6">
+                        {/* Push Notification Toggle */}
+                        <PushNotificationToggle />
+                        
                         <Card>
                             <CardHeader>
                                 <CardTitle>Notification Settings</CardTitle>
@@ -613,6 +617,7 @@ export default function SettingsPage() {
                                             onCheckedChange={checked => setNotificationSettings({ ...notificationSettings, projectUpdates: checked })}
                                         />
                                     </div>
+                                    
                                     <div className="flex items-center justify-between space-y-0">
                                         <div className="space-y-0.5">
                                             <Label>Deployment Alerts</Label>

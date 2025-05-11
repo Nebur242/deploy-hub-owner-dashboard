@@ -83,7 +83,11 @@ export default function EditProjectPage() {
   };
 
   const confirmDeleteConfig = (configId: string, configName: string = "Configuration") => {
-    setConfigToDelete({ id: configId, name: configName });
+    const config = project?.configurations?.find(c => c.id === configId);
+    setConfigToDelete({ 
+      id: configId, 
+      name: config?.name || configName 
+    });
     setDeleteModalOpen(true);
   };
 
@@ -117,6 +121,7 @@ export default function EditProjectPage() {
         techStack: project.techStack,
         visibility: project.visibility,
         categories: project.categories || [],
+        previewUrl: project.previewUrl || "",
       });
     }
   }, [project]);
@@ -256,7 +261,7 @@ export default function EditProjectPage() {
               {project.configurations?.map((config) => (
                 <Card key={config.id} className="overflow-hidden py-0">
                   <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-4 border-b">
-                    <h3 className="font-semibold">Configuration</h3>
+                    <h3 className="font-semibold">{config.name || `Configuration #${config.id.substring(0, 4)}`}</h3>
                   </div>
                   <CardContent className="px-6 pb-6">
                     <div className="space-y-4">

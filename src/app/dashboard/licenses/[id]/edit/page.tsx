@@ -78,6 +78,8 @@ export default function EditLicensePage() {
                 duration: license.duration,
                 features: license.features || [],
                 projectIds: license.projects?.map(project => project.id) || [],
+                status: license.status,
+                popular: license.popular || false,
             });
         }
     }, [license]);
