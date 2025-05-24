@@ -18,6 +18,7 @@ export interface Project extends BaseEntity {
   configurations?: ProjectConfiguration[];
   licenses?: LicenseOption[];
   previewUrl?: string;
+  image?: string | null;
 }
 
 // Project Version entity

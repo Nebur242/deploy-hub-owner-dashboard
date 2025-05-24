@@ -12,6 +12,7 @@ const projectBaseDtoSchema = z.object({
     .array(z.object({ id: z.string() }))
     .min(1, "Select at least one category"),
   previewUrl: z.string().url("Invalid URL").optional(),
+  image: z.string().nullable().optional(),
 });
 
 // Schema for creating new projects
