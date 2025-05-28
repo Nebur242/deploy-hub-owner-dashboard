@@ -29,6 +29,7 @@ import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { CategorySelector } from "@/app/dashboard/categories/components";
 import { CreateProjectDto, createProjectDtoSchema } from "@/common/dtos";
 import { TagInput } from "@/components/tag-input";
+import { SingleMediaSelector } from "@/app/dashboard/media/components/media-selector";
 
 // Available tech stack suggestions
 const techStackSuggestions = [
@@ -102,6 +103,7 @@ export default function ProjectForm({
       techStack: [],
       visibility: Visibility.PRIVATE,
       categories: [], // Will store [{id: string}] objects
+      image: null,
     },
   });
 
@@ -352,6 +354,28 @@ export default function ProjectForm({
                         </Select>
                         <FormDescription>
                           Control who can see and deploy your project
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Project Image */}
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Image</FormLabel>
+                        <FormControl>
+                          <SingleMediaSelector
+                            label="Select an image for this project"
+                            value={field.value ? typeof field.value === "string" ? JSON.parse(field.value) : field.value : null}
+                            onChange={(media) => form.setValue("image", media ? JSON.stringify(media) : null)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Upload or select an image to represent your project
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

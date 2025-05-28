@@ -84,9 +84,9 @@ export default function EditProjectPage() {
 
   const confirmDeleteConfig = (configId: string, configName: string = "Configuration") => {
     const config = project?.configurations?.find(c => c.id === configId);
-    setConfigToDelete({ 
-      id: configId, 
-      name: config?.name || configName 
+    setConfigToDelete({
+      id: configId,
+      name: config?.name || configName
     });
     setDeleteModalOpen(true);
   };
@@ -122,6 +122,7 @@ export default function EditProjectPage() {
         visibility: project.visibility,
         categories: project.categories || [],
         previewUrl: project.previewUrl || "",
+        image: project.image || null,
       });
     }
   }, [project]);

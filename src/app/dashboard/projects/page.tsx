@@ -226,7 +226,7 @@ export default function ProjectsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead>Project</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Tech Stack</TableHead>
                     <TableHead>Visibility</TableHead>
@@ -238,13 +238,31 @@ export default function ProjectsPage() {
                   {projects.map((project) => (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <span>{project.name}</span>
-                          {project.versions && project.versions.length > 0 && (
-                            <Badge variant="outline" className="ml-2">
-                              {project.versions.length} version{project.versions.length !== 1 ? 's' : ''}
-                            </Badge>
+                        <div className="flex items-center gap-3">
+                          {project.image && (
+                            <div className="relative w-12 h-12 rounded-md overflow-hidden border border-muted flex-shrink-0">
+                              <img
+                                src={(() => {
+                                  try {
+                                    return JSON.parse(project.image).url;
+                                  } catch (e) {
+                                    console.error("Error parsing project image:", e);
+                                    return "";
+                                  }
+                                })()}
+                                alt={project.name}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
                           )}
+                          <div>
+                            <span>{project.name}</span>
+                            {project.versions && project.versions.length > 0 && (
+                              <Badge variant="outline" className="ml-2">
+                                {project.versions.length} version{project.versions.length !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate">

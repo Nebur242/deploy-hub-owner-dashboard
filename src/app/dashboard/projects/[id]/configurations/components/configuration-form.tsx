@@ -219,7 +219,7 @@ function ProviderFields() {
       setValue("deploymentOption.environmentVariables", []);
       setPreviousProvider(currentProvider);
 
-      // If the new provider is Vercel, add default Vercel environment variables
+      // Set default environment variables based on provider
       if (currentProvider === DeploymentProvider.VERCEL) {
         setValue("deploymentOption.environmentVariables", [
           {
@@ -229,6 +229,7 @@ function ProviderFields() {
             isRequired: true,
             isSecret: true,
             video: null,
+            type: "text",
           },
           {
             key: "VERCEL_ORG_ID",
@@ -237,6 +238,7 @@ function ProviderFields() {
             isRequired: true,
             isSecret: true,
             video: null,
+            type: "text",
           },
           {
             key: "VERCEL_PROJECT_ID",
@@ -245,6 +247,19 @@ function ProviderFields() {
             isRequired: false,
             isSecret: true,
             video: null,
+            type: "text",
+          },
+        ]);
+      } else if (currentProvider === DeploymentProvider.NETLIFY) {
+        setValue("deploymentOption.environmentVariables", [
+          {
+            key: "NETLIFY_TOKEN",
+            defaultValue: "",
+            description: "Netlify authentication token for deployment",
+            isRequired: true,
+            isSecret: true,
+            video: null,
+            type: "text",
           },
         ]);
       } else if (currentProvider === DeploymentProvider.CUSTOM) {
@@ -257,6 +272,7 @@ function ProviderFields() {
             isRequired: false,
             isSecret: false,
             video: null,
+            type: "text",
           },
         ]);
       }
@@ -273,6 +289,7 @@ function ProviderFields() {
             isRequired: true,
             isSecret: true,
             video: null,
+            type: "text",
           },
           {
             key: "VERCEL_ORG_ID",
@@ -281,6 +298,7 @@ function ProviderFields() {
             isRequired: true,
             isSecret: true,
             video: null,
+            type: "text",
           },
           {
             key: "VERCEL_PROJECT_ID",
@@ -289,6 +307,24 @@ function ProviderFields() {
             isRequired: false,
             isSecret: true,
             video: null,
+            type: "text",
+          },
+        ]);
+      }
+    } else if (currentProvider === DeploymentProvider.NETLIFY && !previousProvider) {
+      // Initial render with Netlify provider selected, set default variables
+      const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+      if (currentVars.length === 0 ||
+        (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
+        setValue("deploymentOption.environmentVariables", [
+          {
+            key: "NETLIFY_TOKEN",
+            defaultValue: "",
+            description: "Netlify authentication token for deployment",
+            isRequired: true,
+            isSecret: true,
+            video: null,
+            type: "text",
           },
         ]);
       }
@@ -305,6 +341,7 @@ function ProviderFields() {
             isRequired: false,
             isSecret: false,
             video: null,
+            type: "text",
           },
         ]);
       }
@@ -459,10 +496,12 @@ function EnvironmentVariablesSection() {
 
       <div className={`grid grid-cols-1 gap-4 ${envVarFields.length > 1 ? "md:grid-cols-2" : ""}`}>
         {envVarFields.map((field: EnvironmentVariableDto, index) => {
-          // Check if this is a Vercel default environment variable
+          // Check if this is a default environment variable
           const provider = watch("deploymentOption.provider");
           const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
             (field.key === "VERCEL_TOKEN" || field.key === "VERCEL_ORG_ID" || field.key === "VERCEL_PROJECT_ID");
+          const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY && field.key === "NETLIFY_TOKEN";
+          const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
 
           return (
             <div
@@ -471,7 +510,7 @@ function EnvironmentVariablesSection() {
             >
               <div className="flex justify-between items-center">
                 <h6 className="font-medium">Variable {index + 1}</h6>
-                {envVarFields.length > 1 && !isVercelDefaultVar && (
+                {envVarFields.length > 1 && !isDefaultVar && (
                   <Button
                     type="button"
                     variant="ghost"
@@ -482,7 +521,7 @@ function EnvironmentVariablesSection() {
                     <IconTrash className="h-4 w-4 mr-1" /> Remove
                   </Button>
                 )}
-                {isVercelDefaultVar && (
+                {isDefaultVar && (
                   <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
                     Required
                   </div>
@@ -495,10 +534,12 @@ function EnvironmentVariablesSection() {
                 control={control}
                 name={`deploymentOption.environmentVariables.${index}.key`}
                 render={({ field }) => {
-                  // Check if this is a Vercel default environment variable
+                  // Check if this is a default environment variable
                   const provider = watch("deploymentOption.provider");
                   const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
                     (field.value === "VERCEL_TOKEN" || field.value === "VERCEL_ORG_ID" || field.value === "VERCEL_PROJECT_ID");
+                  const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY && field.value === "NETLIFY_TOKEN";
+                  const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
 
                   return (
                     <FormItem>
@@ -507,13 +548,18 @@ function EnvironmentVariablesSection() {
                         <Input
                           placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
                           {...field}
-                          disabled={isVercelDefaultVar}
-                          className={isVercelDefaultVar ? "bg-muted" : ""}
+                          disabled={isDefaultVar}
+                          className={isDefaultVar ? "bg-muted" : ""}
                         />
                       </FormControl>
                       {isVercelDefaultVar && (
                         <FormDescription className="text-amber-500">
                           This is a required Vercel variable and cannot be modified or removed
+                        </FormDescription>
+                      )}
+                      {isNetlifyDefaultVar && (
+                        <FormDescription className="text-amber-500">
+                          This is a required Netlify variable and cannot be modified or removed
                         </FormDescription>
                       )}
                       <FormMessage />
@@ -647,29 +693,96 @@ function EnvironmentVariablesSection() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={control}
+                name={`deploymentOption.environmentVariables.${index}.type`}
+                render={({ field }) => {
+                  // Ensure "text" is selected by default if no value is set
+                  if (!field.value) {
+                    field.onChange("text");
+                  }
+
+                  return (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Value Type</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-4">
+                          <div className="flex items-center">
+                            <input
+                              type="radio"
+                              id={`text-type-${index}`}
+                              value="text"
+                              checked={field.value === "text"}
+                              onChange={() => field.onChange("text")}
+                              className="mr-2"
+                            />
+                            <label htmlFor={`text-type-${index}`}>Text</label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="radio"
+                              id={`json-type-${index}`}
+                              value="json"
+                              checked={field.value === "json"}
+                              onChange={() => field.onChange("json")}
+                              className="mr-2"
+                            />
+                            <label htmlFor={`json-type-${index}`}>JSON</label>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        {field.value === "json"
+                          ? "JSON values will be parsed as JSON objects"
+                          : "Text values will be used as plain strings"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
             </div>
-          )
+          );
         })}
       </div>
 
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() =>
-          appendEnvVar({
-            key: "",
-            defaultValue: "",
-            description: isCustomProvider ? "Custom environment variable" : "",
-            isRequired: isCustomProvider ? false : true,
-            isSecret: false,
-            video: null,
-          })
-        }
-        className="w-full"
-      >
-        <IconPlus className="h-4 w-4 mr-2" />
-        Add Environment Variable
-      </Button>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium">{envVarFields.length}</span> of <span className="font-medium">8</span> variables used
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() =>
+            appendEnvVar({
+              key: "",
+              defaultValue: "",
+              description: isCustomProvider ? "Custom environment variable" : "",
+              isRequired: isCustomProvider ? false : true,
+              isSecret: false,
+              video: null,
+              type: "text",
+            })
+          }
+          disabled={envVarFields.length >= 8}
+          className="w-full"
+        >
+          <IconPlus className="h-4 w-4 mr-2" />
+          Add Environment Variable
+        </Button>
+        {envVarFields.length >= 8 ? (
+          <p className="text-xs text-amber-500 mt-2 text-center">
+            Maximum of 8 environment variables allowed.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            You can add up to 8 environment variables to this configuration.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -799,6 +912,7 @@ export default function ConfigurationForm({
       isRequired: true,
       isSecret: true,
       video: null,
+      type: "text",
     },
     {
       key: "VERCEL_ORG_ID",
@@ -807,6 +921,7 @@ export default function ConfigurationForm({
       isRequired: true,
       isSecret: true,
       video: null,
+      type: "text",
     },
     {
       key: "VERCEL_PROJECT_ID",
@@ -815,6 +930,7 @@ export default function ConfigurationForm({
       isRequired: false,
       isSecret: true,
       video: null,
+      type: "text",
     }
   ];
 

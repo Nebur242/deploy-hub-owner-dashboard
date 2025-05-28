@@ -9,6 +9,7 @@ export const environmentVariableDtoSchema = z.object({
   isRequired: z.boolean().default(false),
   isSecret: z.boolean().default(false),
   video: z.string().url().optional().nullable(),
+  type: z.enum(["text", "json"]).default("text"),
 });
 
 // GitHub account schema
