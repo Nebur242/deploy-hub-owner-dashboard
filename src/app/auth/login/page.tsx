@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loginUser } from "@/store/features/auth";
+import { loginUser, loginWithGoogle, handleGoogleAuthRedirect } from "@/store/features/auth";
 
 import Link from "next/link";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
     AlertTitle,
 } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import { LoginDto, loginSchema } from "@/common/dtos";
 
 type FormData = z.infer<typeof loginSchema>;
@@ -29,6 +30,8 @@ export default function LoginPage() {
     const dispatch = useAppDispatch();
     const {
         login: { loading, error, status },
+        googleAuth: { loading: googleLoading, error: googleError, status: googleStatus },
+        infos,
     } = useAppSelector((state) => state.auth);
 
     const {
@@ -47,11 +50,25 @@ export default function LoginPage() {
         dispatch(loginUser(data));
     };
 
+    const handleGoogleLogin = () => {
+        dispatch(loginWithGoogle({}));
+    };
+
+    // Check for Google OAuth redirect results on component mount
     useEffect(() => {
-        if (status === "success") {
-            router.push("/dashboard");
+        dispatch(handleGoogleAuthRedirect({ isRegister: false }));
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (status === "success" || googleStatus === "success") {
+            // Check if user's email is verified, if not redirect to verification page
+            if (infos?.firebase?.emailVerified === false) {
+                router.push("/auth/verify-email");
+            } else {
+                router.push("/dashboard");
+            }
         }
-    }, [router, status]);
+    }, [router, status, googleStatus, infos]);
 
     return (
         <Form {...form}>
@@ -99,16 +116,50 @@ export default function LoginPage() {
                             <p className="text-sm text-red-500">{errors.password.message}</p>
                         )}
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full" disabled={loading || googleLoading}>
                         {loading && <Loader2 className="animate-spin" />}
                         {loading ? "Login..." : "Login"}
                     </Button>
 
-                    {error && (
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                                Or continue with
+                            </span>
+                        </div>
+                    </div>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleGoogleLogin}
+                        className="w-full"
+                        disabled={loading || googleLoading}
+                    >
+                        {googleLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <IconBrandGoogle className="mr-2 h-4 w-4" />
+                        )}
+                        {googleLoading ? "Signing in..." : "Continue with Google"}
+                    </Button>
+
+                    {(error || (googleError && googleError !== 'REDIRECT_IN_PROGRESS')) && (
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
+                            <AlertDescription>{error || googleError}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {googleError === 'REDIRECT_IN_PROGRESS' && (
+                        <Alert>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <AlertTitle>Redirecting</AlertTitle>
+                            <AlertDescription>Redirecting to Google for authentication...</AlertDescription>
                         </Alert>
                     )}
                 </div>

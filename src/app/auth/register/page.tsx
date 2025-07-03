@@ -15,10 +15,11 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerUser } from "@/store/features/auth";
+import { registerUser, registerWithGoogle, handleGoogleAuthRedirect } from "@/store/features/auth";
 import { useEffect } from "react";
 import { z } from "zod";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import { RegisterDto, registerSchema } from "@/common/dtos";
 
 type FormData = z.infer<typeof registerSchema>;
@@ -29,6 +30,7 @@ export default function RegisterForm() {
     const dispatch = useAppDispatch();
     const {
         register: { loading, error, status },
+        googleAuth: { loading: googleLoading, error: googleError, status: googleStatus },
     } = useAppSelector((state) => state.auth);
 
     const {
@@ -48,11 +50,26 @@ export default function RegisterForm() {
         dispatch(registerUser(data));
     };
 
+    const handleGoogleRegister = () => {
+        dispatch(registerWithGoogle({}));
+    };
+
+    // Check for Google OAuth redirect results on component mount
+    useEffect(() => {
+        dispatch(handleGoogleAuthRedirect({ isRegister: true }));
+    }, [dispatch]);
+
     useEffect(() => {
         if (status === "success") {
-            router.push("/dashboard");
+            router.push("/auth/verify-email");
         }
     }, [router, status]);
+
+    useEffect(() => {
+        if (googleStatus === "success") {
+            router.push("/dashboard");
+        }
+    }, [router, googleStatus]);
 
     return (
         <Form {...form}>
@@ -112,9 +129,35 @@ export default function RegisterForm() {
                         )}
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full" disabled={loading || googleLoading}>
                         {loading && <Loader2 className="animate-spin" />}
                         {loading ? "Creating account..." : "Create Account"}
+                    </Button>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                                Or continue with
+                            </span>
+                        </div>
+                    </div>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleGoogleRegister}
+                        disabled={loading || googleLoading}
+                    >
+                        {googleLoading ? (
+                            <Loader2 className="animate-spin" />
+                        ) : (
+                            <IconBrandGoogle className="mr-2 h-4 w-4" />
+                        )}
+                        {googleLoading ? "Signing up..." : "Sign up with Google"}
                     </Button>
 
                     {error && (
@@ -122,6 +165,22 @@ export default function RegisterForm() {
                             <AlertCircle className="h-4 w-4" />
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {googleError && googleError !== 'REDIRECT_IN_PROGRESS' && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Google Authentication Error</AlertTitle>
+                            <AlertDescription>{googleError}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {googleError === 'REDIRECT_IN_PROGRESS' && (
+                        <Alert>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <AlertTitle>Redirecting</AlertTitle>
+                            <AlertDescription>Redirecting to Google for authentication...</AlertDescription>
                         </Alert>
                     )}
                 </div>

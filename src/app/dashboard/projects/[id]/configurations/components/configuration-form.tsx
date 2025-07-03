@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { validateGithubConfig } from "@/services/github";
+import { validateGithubConfig, getWorkflowFiles, getWorkflowFileContent } from "@/services/github";
+import Editor from "@monaco-editor/react";
+import { useTheme } from "@/hooks/theme-context";
+import { WorkflowAssistant } from "@/components/workflow-assistant";
 
 import {
   Form,
@@ -33,6 +36,9 @@ import {
   IconServer,
   IconHistory,
   IconAlertCircle,
+  IconEye,
+  IconRefresh,
+  IconRobot,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
@@ -118,84 +124,322 @@ function ConfirmationDialog({
 // GitHub Account Fields
 function GithubAccountFields({ index }: { index: number }) {
   const form = useFormContext();
+  const { theme } = useTheme();
+
+  const [workflowFiles, setWorkflowFiles] = useState<string[]>([]);
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [workflowContent, setWorkflowContent] = useState<string>("");
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Watch for changes in username, token, and repository to reload workflows
+  const username = form.watch(`githubAccounts.${index}.username`);
+  const accessToken = form.watch(`githubAccounts.${index}.accessToken`);
+  const repository = form.watch(`githubAccounts.${index}.repository`);
+  const selectedWorkflow = form.watch(`githubAccounts.${index}.workflowFile`);
+
+  // Determine Monaco Editor theme based on app theme
+  const getEditorTheme = () => {
+    if (theme === 'dark') return 'vs-dark';
+    if (theme === 'light') return 'vs-light';
+    // For 'system' theme, check if user prefers dark mode
+    if (typeof window !== 'undefined') {
+      return window.document.querySelector('html')?.getAttribute('style')?.includes('dark') ? 'vs-dark' : 'vs-light';
+    }
+    return 'vs-light'; // fallback
+  };
+
+  // Load workflow files when credentials are available
+  const loadWorkflowFiles = useCallback(async () => {
+    if (!username || !accessToken || !repository) {
+      setWorkflowFiles([]);
+      setWorkflowError(null);
+      return;
+    }
+
+    setIsLoadingWorkflows(true);
+    setWorkflowError(null);
+
+    try {
+      const result = await getWorkflowFiles(username, accessToken, repository);
+
+      if (result.error) {
+        setWorkflowError(result.error);
+        setWorkflowFiles([]);
+      } else {
+        setWorkflowFiles(result.files);
+        if (result.files.length === 0) {
+          setWorkflowError("No workflow files found in .github/workflows directory");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading workflow files:", error);
+      setWorkflowError("Failed to load workflow files");
+      setWorkflowFiles([]);
+    } finally {
+      setIsLoadingWorkflows(false);
+    }
+  }, [username, accessToken, repository]);
+
+  // Load workflow files when dependencies change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadWorkflowFiles();
+    }, 500); // Debounce to avoid too many API calls
+
+    return () => clearTimeout(timeoutId);
+  }, [loadWorkflowFiles]);
+
+  // Load workflow content for preview
+  const loadWorkflowContent = async () => {
+    if (!username || !accessToken || !repository || !selectedWorkflow) {
+      return;
+    }
+
+    setIsLoadingContent(true);
+
+    try {
+      const result = await getWorkflowFileContent(username, accessToken, repository, selectedWorkflow);
+
+      if (result.error) {
+        setWorkflowContent(`# Error loading workflow file\n# ${result.error}`);
+      } else {
+        setWorkflowContent(result.content);
+      }
+    } catch (error) {
+      console.error("Error loading workflow content:", error);
+      setWorkflowContent(`# Error loading workflow file\n# Failed to load workflow content`);
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
+  const handlePreviewClick = () => {
+    setPreviewModalOpen(true);
+    loadWorkflowContent();
+  };
 
   return (
-    <div className="space-y-4">
-      <FormField
-        control={form.control}
-        name={`githubAccounts.${index}.username`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>GitHub Username</FormLabel>
-            <FormControl>
-              <Input placeholder="github-username" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <>
+      <div className="space-y-4">
+        <FormField
+          control={form.control}
+          name={`githubAccounts.${index}.username`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>GitHub Username</FormLabel>
+              <FormControl>
+                <Input placeholder="github-username" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name={`githubAccounts.${index}.accessToken`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Access Token</FormLabel>
-            <FormControl>
-              <Input
-                type="password"
-                placeholder="GitHub personal access token"
-                {...field}
-              />
-            </FormControl>
-            <FormDescription>
-              GitHub personal access token with repo scope
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name={`githubAccounts.${index}.accessToken`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Access Token</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="GitHub personal access token"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                GitHub personal access token with repo scope
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name={`githubAccounts.${index}.repository`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Repository</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="repo-name"
-                {...field}
-              />
-            </FormControl>
-            <FormDescription>
-              Enter repository name like on GitHub
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name={`githubAccounts.${index}.repository`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Repository</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="repo-name"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Enter repository name like on GitHub
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name={`githubAccounts.${index}.workflowFile`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Workflow File</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="deploy.yml"
-                {...field}
-              />
-            </FormControl>
-            <FormDescription>
-              Path to the GitHub workflow file
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
+        {/* Only show workflow file field when all prerequisite fields are provided */}
+        {username && accessToken && repository && (
+          <FormField
+            control={form.control}
+            name={`githubAccounts.${index}.workflowFile`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                  <span className="text-sm font-medium">Workflow File</span>
+                  <div className="flex items-center gap-2">
+                    {isLoadingWorkflows && (
+                      <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={loadWorkflowFiles}
+                      disabled={!username || !accessToken || !repository || isLoadingWorkflows}
+                      className="h-7 px-2 text-xs lg:h-6"
+                    >
+                      <IconRefresh className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Refresh</span>
+                      <span className="sm:hidden">↻</span>
+                    </Button>
+                  </div>
+                </FormLabel>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <FormControl className="flex-1">
+                    {workflowFiles.length > 0 ? (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue placeholder="Select a workflow file" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {workflowFiles.map((file) => (
+                            <SelectItem key={file} value={file}>
+                              {file}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        placeholder="deploy.yml"
+                        className="text-sm"
+                        {...field}
+                      />
+                    )}
+                  </FormControl>
+                  {selectedWorkflow && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviewClick}
+                      disabled={!username || !accessToken || !repository}
+                      className="px-3 w-full sm:w-auto h-9 text-xs sm:text-sm"
+                    >
+                      <IconEye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">Preview</span>
+                      <span className="sm:hidden">👁</span>
+                    </Button>
+                  )}
+                </div>
+                <FormDescription>
+                  {workflowFiles.length > 0
+                    ? "Select from available workflow files or enter manually"
+                    : "Path to the GitHub workflow file"
+                  }
+                </FormDescription>
+
+                {/* AI Assistant Button - Always Available */}
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                    🤖 Need help creating a custom workflow? Let our AI assistant help you!
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAssistantOpen(true)}
+                    className="w-full text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900"
+                  >
+                    <IconRobot className="h-4 w-4 mr-2" />
+                    Create Workflow with AI Assistant
+                  </Button>
+                </div>
+
+                {workflowError && (
+                  <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+                    {workflowError}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
+      </div>
+
+      {/* Workflow Preview Modal */}
+      <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
+        <DialogContent style={{ maxWidth: "60vw" }} className="max-w-6xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconEye className="h-5 w-5" />
+              Workflow Preview: {selectedWorkflow}
+            </DialogTitle>
+            <DialogDescription>
+              Preview of the GitHub workflow file from {username}/{repository}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-[500px] border rounded-md overflow-hidden">
+            {isLoadingContent ? (
+              <div className="flex items-center justify-center h-full">
+                <IconLoader className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading workflow content...</span>
+              </div>
+            ) : (
+              <Editor
+                height="500px"
+                defaultLanguage="yaml"
+                value={workflowContent}
+                theme={getEditorTheme()}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  wordWrap: "on",
+                  theme: getEditorTheme(),
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                }}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPreviewModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow Assistant Modal */}
+      <WorkflowAssistant
+        isOpen={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        username={username}
+        accessToken={accessToken}
+        repository={repository}
+        onWorkflowCreated={loadWorkflowFiles}
       />
-    </div>
+    </>
   );
 }
 
@@ -242,7 +486,7 @@ function ProviderFields() {
           },
           {
             key: "VERCEL_PROJECT_ID",
-            defaultValue: "VERCEL_PROJECT_ID",
+            defaultValue: "",
             description: "Vercel project ID for deployment target",
             isRequired: false,
             isSecret: true,
@@ -258,6 +502,24 @@ function ProviderFields() {
             description: "Netlify authentication token for deployment",
             isRequired: true,
             isSecret: true,
+            video: null,
+            type: "text",
+          },
+          {
+            key: "NETLIFY_SITE_NAME",
+            defaultValue: "",
+            description: "Netlify site name for deployment target",
+            isRequired: false,
+            isSecret: false,
+            video: null,
+            type: "text",
+          },
+          {
+            key: "NETLIFY_SITE_ID",
+            defaultValue: "",
+            description: "Netlify site ID for deployment target",
+            isRequired: false,
+            isSecret: false,
             video: null,
             type: "text",
           },
@@ -302,7 +564,7 @@ function ProviderFields() {
           },
           {
             key: "VERCEL_PROJECT_ID",
-            defaultValue: "VERCEL_PROJECT_ID",
+            defaultValue: "",
             description: "Vercel project ID for deployment target",
             isRequired: false,
             isSecret: true,
@@ -323,6 +585,24 @@ function ProviderFields() {
             description: "Netlify authentication token for deployment",
             isRequired: true,
             isSecret: true,
+            video: null,
+            type: "text",
+          },
+          {
+            key: "NETLIFY_SITE_NAME",
+            defaultValue: "",
+            description: "Netlify site name for deployment target",
+            isRequired: false,
+            isSecret: false,
+            video: null,
+            type: "text",
+          },
+          {
+            key: "NETLIFY_SITE_ID",
+            defaultValue: "",
+            description: "Netlify site ID for deployment target",
+            isRequired: false,
+            isSecret: false,
             video: null,
             type: "text",
           },
@@ -494,38 +774,43 @@ function EnvironmentVariablesSection() {
         </div>
       )}
 
-      <div className={`grid grid-cols-1 gap-4 ${envVarFields.length > 1 ? "md:grid-cols-2" : ""}`}>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
         {envVarFields.map((field: EnvironmentVariableDto, index) => {
           // Check if this is a default environment variable
           const provider = watch("deploymentOption.provider");
           const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
             (field.key === "VERCEL_TOKEN" || field.key === "VERCEL_ORG_ID" || field.key === "VERCEL_PROJECT_ID");
-          const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY && field.key === "NETLIFY_TOKEN";
+          const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
+            (field.key === "NETLIFY_TOKEN" || field.key === "NETLIFY_SITE_NAME" || field.key === "NETLIFY_SITE_ID");
           const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
 
           return (
             <div
               key={field.key || index}
-              className="space-y-3 p-4 border rounded-md dark:border-gray-700"
+              className="space-y-3 p-3 sm:p-4 border rounded-md dark:border-gray-700"
             >
-              <div className="flex justify-between items-center">
-                <h6 className="font-medium">Variable {index + 1}</h6>
-                {envVarFields.length > 1 && !isDefaultVar && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeEnvVar(index)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400"
-                  >
-                    <IconTrash className="h-4 w-4 mr-1" /> Remove
-                  </Button>
-                )}
-                {isDefaultVar && (
-                  <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
-                    Required
-                  </div>
-                )}
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
+                <h6 className="font-medium text-sm sm:text-base">Variable {index + 1}</h6>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {isDefaultVar && (
+                    <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
+                      Required
+                    </div>
+                  )}
+                  {envVarFields.length > 1 && !isDefaultVar && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEnvVar(index)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 h-8 px-2 text-xs sm:text-sm"
+                    >
+                      <IconTrash className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden xs:inline">Remove</span>
+                      <span className="xs:hidden">×</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <hr />
@@ -538,18 +823,19 @@ function EnvironmentVariablesSection() {
                   const provider = watch("deploymentOption.provider");
                   const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
                     (field.value === "VERCEL_TOKEN" || field.value === "VERCEL_ORG_ID" || field.value === "VERCEL_PROJECT_ID");
-                  const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY && field.value === "NETLIFY_TOKEN";
+                  const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
+                    (field.value === "NETLIFY_TOKEN" || field.value === "NETLIFY_SITE_NAME" || field.value === "NETLIFY_SITE_ID");
                   const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
 
                   return (
                     <FormItem>
-                      <FormLabel>Key</FormLabel>
+                      <FormLabel className="text-sm">Key</FormLabel>
                       <FormControl>
                         <Input
                           placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
+                          className="text-sm"
                           {...field}
                           disabled={isDefaultVar}
-                          className={isDefaultVar ? "bg-muted" : ""}
                         />
                       </FormControl>
                       {isVercelDefaultVar && (
@@ -578,16 +864,17 @@ function EnvironmentVariablesSection() {
 
                   return (
                     <FormItem>
-                      <FormLabel>Default Value{requiresDefaultValue ? " (Required)" : ""}</FormLabel>
+                      <FormLabel className="text-sm">Default Value{requiresDefaultValue ? " (Required)" : ""}</FormLabel>
                       <FormControl>
                         <Input
                           placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
+                          className="text-sm"
                           {...field}
                           value={field.value || ""}
                         />
                       </FormControl>
                       {requiresDefaultValue && (
-                        <FormDescription className="text-amber-500">
+                        <FormDescription className="text-amber-500 text-xs">
                           A default value is required when variable is not required
                         </FormDescription>
                       )}
@@ -602,11 +889,11 @@ function EnvironmentVariablesSection() {
                 name={`deploymentOption.environmentVariables.${index}.description`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel className="text-sm">Description</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Variable description"
-                        className="resize-none min-h-[80px]"
+                        className="text-sm min-h-[80px] resize-none"
                         {...field}
                       />
                     </FormControl>
@@ -647,7 +934,7 @@ function EnvironmentVariablesSection() {
                 )}
               />
 
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <FormField
                   control={control}
                   name={`deploymentOption.environmentVariables.${index}.isRequired`}
@@ -668,7 +955,7 @@ function EnvironmentVariablesSection() {
                           }}
                         />
                       </FormControl>
-                      <FormLabel className="font-normal">
+                      <FormLabel className="font-normal text-sm">
                         Required
                       </FormLabel>
                     </FormItem>
@@ -686,7 +973,7 @@ function EnvironmentVariablesSection() {
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormLabel className="font-normal">
+                      <FormLabel className="font-normal text-sm">
                         Secret
                       </FormLabel>
                     </FormItem>
@@ -705,9 +992,9 @@ function EnvironmentVariablesSection() {
 
                   return (
                     <FormItem className="space-y-2">
-                      <FormLabel>Value Type</FormLabel>
+                      <FormLabel className="text-sm">Value Type</FormLabel>
                       <FormControl>
-                        <div className="flex gap-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
                           <div className="flex items-center">
                             <input
                               type="radio"
@@ -717,7 +1004,7 @@ function EnvironmentVariablesSection() {
                               onChange={() => field.onChange("text")}
                               className="mr-2"
                             />
-                            <label htmlFor={`text-type-${index}`}>Text</label>
+                            <label htmlFor={`text-type-${index}`} className="text-sm">Text</label>
                           </div>
                           <div className="flex items-center">
                             <input
@@ -728,7 +1015,7 @@ function EnvironmentVariablesSection() {
                               onChange={() => field.onChange("json")}
                               className="mr-2"
                             />
-                            <label htmlFor={`json-type-${index}`}>JSON</label>
+                            <label htmlFor={`json-type-${index}`} className="text-sm">JSON</label>
                           </div>
                         </div>
                       </FormControl>
@@ -798,6 +1085,7 @@ function LeftColumnWithTabs({
   removeGithub: (index: number) => void;
 }) {
   const [activeTab, setActiveTab] = useState("github");
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const form = useFormContext();
 
   // Determine if there are errors in either section
@@ -807,47 +1095,51 @@ function LeftColumnWithTabs({
   const deploymentErrorMessage = (form.formState.errors.deploymentOption)?.message?.toString() || '';
 
   return (
-    <div className="space-y-6 col-span-2">
+    <div className="space-y-6">
       <Tabs defaultValue="github" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full">
+        <TabsList className="w-full grid grid-cols-2">
           <TabsTrigger
             value="github"
-            className={hasGithubErrors ? "border-destructive text-destructive" : ""}
+            className={`${hasGithubErrors ? "border-destructive text-destructive" : ""} text-xs sm:text-sm`}
           >
-            GitHub Accounts ({githubFields.length})
-            {hasGithubErrors && <span className="ml-2 text-destructive">⚠️</span>}
+            <span className="hidden sm:inline">GitHub Accounts ({githubFields.length})</span>
+            <span className="sm:hidden">GitHub ({githubFields.length})</span>
+            {hasGithubErrors && <span className="ml-1 sm:ml-2 text-destructive">⚠️</span>}
           </TabsTrigger>
           <TabsTrigger
             value="deployment"
-            className={hasDeploymentErrors ? "border-destructive text-destructive" : ""}
+            className={`${hasDeploymentErrors ? "border-destructive text-destructive" : ""} text-xs sm:text-sm`}
           >
-            Deployment Provider
-            {hasDeploymentErrors && <span className="ml-2 text-destructive">⚠️</span>}
+            <span className="hidden sm:inline">Deployment Provider</span>
+            <span className="sm:hidden">Deploy</span>
+            {hasDeploymentErrors && <span className="ml-1 sm:ml-2 text-destructive">⚠️</span>}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="github" className="mt-4">
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <ArrayLevelErrorMessage error={githubErrorMessage} />
             <div className="space-y-4">
-              <div className={`grid grid-cols-1 gap-4 ${githubFields.length > 1 ? "md:grid-cols-2" : ""}`}>
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 {githubFields.map((field, index) => (
-                  <Card className="p-6" key={field.username}>
-                    <div className="flex justify-between items-center">
-                      <h6 className="font-medium">Account {index + 1}</h6>
+                  <Card className="p-3 sm:p-4 lg:p-6" key={field.username}>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-4">
+                      <h6 className="font-medium text-sm sm:text-base">Account {index + 1}</h6>
                       {githubFields.length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeGithub(index)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 self-start sm:self-auto h-8 px-2 text-xs sm:text-sm"
                         >
-                          <IconTrash className="h-4 w-4 mr-1" /> Remove
+                          <IconTrash className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden xs:inline">Remove</span>
+                          <span className="xs:hidden">×</span>
                         </Button>
                       )}
                     </div>
-                    <hr />
+                    <hr className="mb-4" />
                     <GithubAccountFields
                       index={index}
                     />
@@ -876,16 +1168,56 @@ function LeftColumnWithTabs({
         </TabsContent>
 
         <TabsContent value="deployment" className="mt-4">
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <ArrayLevelErrorMessage error={deploymentErrorMessage} />
             <div className="space-y-4">
-              <Card className="p-6">
+              <Card className="p-4 sm:p-6">
                 <ProviderFields />
               </Card>
+
+              {/* AI Assistant for Workflow Creation */}
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3 sm:p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-800 dark:text-blue-200 text-sm sm:text-base">
+                      Need Help with GitHub Workflows?
+                    </h4>
+                    <p className="text-blue-600 dark:text-blue-300 text-xs sm:text-sm mt-1">
+                      Our AI assistant can help you create custom GitHub Actions workflows for your deployment configuration.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAssistantOpen(true)}
+                    className="w-full text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs sm:text-sm h-8 sm:h-9"
+                  >
+                    <IconRobot className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">Create Workflow with AI Assistant</span>
+                    <span className="xs:hidden">AI Assistant</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Workflow Assistant Modal */}
+      <WorkflowAssistant
+        isOpen={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        username={githubFields[0]?.username || ""}
+        accessToken={githubFields[0]?.accessToken || ""}
+        repository={githubFields[0]?.repository || ""}
+        onWorkflowCreated={() => {
+          // Refresh workflow files for the first GitHub account if it exists
+          if (githubFields[0]?.username && githubFields[0]?.accessToken && githubFields[0]?.repository) {
+            // This would trigger a refresh in the GithubAccountFields component
+            // The actual refresh logic is handled within that component
+          }
+        }}
+      />
     </div>
   );
 }
@@ -925,7 +1257,7 @@ export default function ConfigurationForm({
     },
     {
       key: "VERCEL_PROJECT_ID",
-      defaultValue: "VERCEL_PROJECT_ID",
+      defaultValue: "",
       description: "Vercel project ID for deployment target",
       isRequired: false,
       isSecret: true,
@@ -1011,32 +1343,32 @@ export default function ConfigurationForm({
   };
 
   return (
-    <div className="space-y-6">
-      {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-6" />}
+    <div className="space-y-4 sm:space-y-6">
+      {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-4 sm:mb-6" />}
 
       {submitAttempted && error && (
         <ErrorAlert
           isEditing={isEditing}
           message={error.message}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         />
       )}
 
       {/* GitHub Validation Errors */}
       {githubValidationErrors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex items-center mb-2">
-            <IconAlertCircle className="h-5 w-5 mr-2 text-red-500" />
-            <h3 className="font-semibold">GitHub Configuration Validation Failed</h3>
+            <IconAlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-red-500" />
+            <h3 className="font-semibold text-sm sm:text-base">GitHub Configuration Validation Failed</h3>
           </div>
           <ul className="list-disc ml-6 mt-2 space-y-1">
             {githubValidationErrors.map((error, idx) => (
-              <li key={idx} className="text-sm">
+              <li key={idx} className="text-xs sm:text-sm">
                 {error.index >= 0 ? `Account ${error.index + 1}: ${error.message}` : error.message}
               </li>
             ))}
           </ul>
-          <p className="text-sm mt-3">
+          <p className="text-xs sm:text-sm mt-3">
             Please check your GitHub credentials, repository names, and workflow file paths before submitting again.
           </p>
         </div>
@@ -1044,22 +1376,23 @@ export default function ConfigurationForm({
 
       <FormProvider {...form}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 sm:space-y-8">
             {/* Configuration Name - Top level field */}
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Configuration Name</FormLabel>
+                    <FormLabel className="text-sm sm:text-base">Configuration Name</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter a descriptive name for this configuration"
+                        className="text-sm"
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="text-xs sm:text-sm">
                       A unique name to identify this deployment configuration
                     </FormDescription>
                     <FormMessage />
@@ -1068,34 +1401,45 @@ export default function ConfigurationForm({
               />
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {/* Left Column with Tabs */}
-              <LeftColumnWithTabs
-                githubFields={githubFields}
-                appendGithub={appendGithub}
-                removeGithub={removeGithub}
-              />
+              <div className="lg:col-span-2 xl:col-span-3">
+                <LeftColumnWithTabs
+                  githubFields={githubFields}
+                  appendGithub={appendGithub}
+                  removeGithub={removeGithub}
+                />
+              </div>
 
-              {/* Right Column */}
-              <div>
-                {/* Action Buttons */}
-                <Card className="p-6 sticky top-[80px]">
+              {/* Right Column - Actions */}
+              <div className="order-first lg:order-last">
+                <Card className="p-4 lg:p-6 lg:sticky lg:top-[80px]">
                   <h3 className="text-lg font-semibold mb-4">Actions</h3>
                   <div className="space-y-3">
                     <Button
                       type="submit"
                       disabled={isLoading || isSuccess || validatingGithub}
-                      className="w-full"
+                      className="w-full text-sm"
                     >
                       {(isLoading || validatingGithub) && (
                         <IconLoader className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      {validatingGithub
-                        ? "Validating GitHub..."
-                        : isEditing
-                          ? "Update Configuration"
-                          : "Create Configuration"
-                      }
+                      <span className="hidden sm:inline">
+                        {validatingGithub
+                          ? "Validating GitHub..."
+                          : isEditing
+                            ? "Update Configuration"
+                            : "Create Configuration"
+                        }
+                      </span>
+                      <span className="sm:hidden">
+                        {validatingGithub
+                          ? "Validating..."
+                          : isEditing
+                            ? "Update"
+                            : "Create"
+                        }
+                      </span>
                     </Button>
 
                     {isEditing && initialData && initialData.id && initialData.projectId && (
@@ -1103,7 +1447,7 @@ export default function ConfigurationForm({
                         <Button
                           variant="default"
                           type="button"
-                          className="w-full"
+                          className="w-full text-sm"
                           disabled={isLoading}
                           asChild
                         >
@@ -1111,14 +1455,15 @@ export default function ConfigurationForm({
                             href={`/dashboard/deployments/create?projectId=${initialData.projectId}&configurationId=${initialData.id}`}
                           >
                             <IconServer className="mr-2 h-4 w-4" />
-                            Deploy Configuration
+                            <span className="hidden sm:inline">Deploy Configuration</span>
+                            <span className="sm:hidden">Deploy</span>
                           </Link>
                         </Button>
 
                         <Button
                           variant="outline"
                           type="button"
-                          className="w-full"
+                          className="w-full text-sm"
                           disabled={isLoading}
                           asChild
                         >
@@ -1126,7 +1471,8 @@ export default function ConfigurationForm({
                             href={`/dashboard/projects/${initialData.projectId}/configurations/${initialData.id}/deployments`}
                           >
                             <IconHistory className="mr-2 h-4 w-4" />
-                            View Deployments
+                            <span className="hidden sm:inline">View Deployments</span>
+                            <span className="sm:hidden">Deployments</span>
                           </Link>
                         </Button>
                       </>
@@ -1136,10 +1482,11 @@ export default function ConfigurationForm({
                       variant="outline"
                       type="button"
                       onClick={() => form.reset()}
-                      className="w-full"
+                      className="w-full text-sm"
                       disabled={isLoading}
                     >
-                      Reset Form
+                      <span className="hidden sm:inline">Reset Form</span>
+                      <span className="sm:hidden">Reset</span>
                     </Button>
                   </div>
                 </Card>

@@ -42,7 +42,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid ID token" }, { status: 401 });
   }
 }
-
 // Handle OPTIONS for CORS if needed
 export async function OPTIONS() {
   return NextResponse.json({}, { status: 200 });

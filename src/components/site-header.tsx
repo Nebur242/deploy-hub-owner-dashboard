@@ -41,6 +41,7 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logoutUser } from "@/store/features/auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function SiteHeader() {
   const {
@@ -153,7 +154,8 @@ export function SiteHeader() {
       <div className="container flex items-center justify-between">
         {/* Left section */}
         <div className="flex items-center gap-4">
-          {/* <div className="flex items-center gap-3 lg:gap-4">
+          {/* Mobile hamburger menu and branding */}
+          <div className="flex items-center gap-3 lg:gap-4">
             <SidebarTrigger className="md:hidden" />
             <Link
               href="/dashboard"
@@ -162,8 +164,11 @@ export function SiteHeader() {
               <span className="hidden md:inline-flex font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
                 Deploy Hub
               </span>
+              <span className="md:hidden font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                Deploy Hub
+              </span>
             </Link>
-          </div> */}
+          </div>
 
           <Separator orientation="vertical" className="hidden h-8 md:block" />
 

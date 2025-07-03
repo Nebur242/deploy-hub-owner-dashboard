@@ -595,7 +595,7 @@ export default function SettingsPage() {
                     <form onSubmit={handleNotificationUpdate} className="space-y-6">
                         {/* Push Notification Toggle */}
                         <PushNotificationToggle />
-                        
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Notification Settings</CardTitle>
@@ -617,7 +617,7 @@ export default function SettingsPage() {
                                             onCheckedChange={checked => setNotificationSettings({ ...notificationSettings, projectUpdates: checked })}
                                         />
                                     </div>
-                                    
+
                                     <div className="flex items-center justify-between space-y-0">
                                         <div className="space-y-0.5">
                                             <Label>Deployment Alerts</Label>
@@ -804,7 +804,7 @@ export default function SettingsPage() {
                                     </p>
                                 </div>
                             </div>
-                            <Separator />
+                            {/* <Separator />
                             <div className="space-y-2">
                                 <Label>Two-Factor Authentication</Label>
                                 <div className="grid gap-2">
@@ -815,7 +815,7 @@ export default function SettingsPage() {
                                         Add an extra layer of security to your account
                                     </p>
                                 </div>
-                            </div>
+                            </div> */}
                             <Separator />
                             <div className="space-y-2">
                                 <Label>Sessions</Label>

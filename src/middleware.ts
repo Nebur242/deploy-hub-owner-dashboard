@@ -14,6 +14,7 @@ export const config = {
     "/auth/login",
     "/auth/register",
     "/auth/reset-password",
+    "/auth/verify-email",
     "/",
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
     "/(fr|en)/:path*",
@@ -56,7 +57,7 @@ export async function middleware(req: NextRequest) {
     // Redirect authenticated users away from auth routes
     if (AUTH_ROUTES.some((route) => pathname === route) && isAuthenticated) {
       const response = NextResponse.redirect(
-        new URL(redirectTo || "/dashboard", req.url),
+        new URL(redirectTo || "/dashboard", req.url)
       );
       if (redirectTo) {
         response.cookies.delete("redirectTo");
@@ -70,7 +71,7 @@ export async function middleware(req: NextRequest) {
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set(
       "Strict-Transport-Security",
-      "max-age=31536000; includeSubDomains",
+      "max-age=31536000; includeSubDomains"
     );
     response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 

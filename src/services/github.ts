@@ -393,6 +393,249 @@ export async function verifyVersionInGithubAccounts(
   return result;
 }
 
+/**
+ * Get all workflow files from a GitHub repository
+ *
+ * @param username GitHub username
+ * @param accessToken GitHub access token
+ * @param repository Repository name
+ * @returns Array of workflow file names
+ */
+export async function getWorkflowFiles(
+  username: string,
+  accessToken: string,
+  repository: string
+): Promise<{ files: string[]; error?: string }> {
+  try {
+    const githubApi = axios.create({
+      baseURL: "https://api.github.com",
+      headers: {
+        Authorization: `token ${accessToken}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    // Get contents of .github/workflows directory
+    const { data } = await githubApi.get(
+      `/repos/${username}/${repository}/contents/.github/workflows`
+    );
+
+    // Filter for YAML files and extract names
+    const workflowFiles = data
+      .filter(
+        (file: { type: string; name: string }) =>
+          file.type === "file" &&
+          (file.name.endsWith(".yml") || file.name.endsWith(".yaml"))
+      )
+      .map((file: { name: string }) => file.name);
+
+    return { files: workflowFiles };
+  } catch (err) {
+    const error = err as { response?: { status: number }; message: string };
+
+    if (error.response?.status === 404) {
+      return {
+        files: [],
+        error:
+          "No .github/workflows directory found or no workflow files available",
+      };
+    } else if (
+      error.response?.status === 401 ||
+      error.response?.status === 403
+    ) {
+      return {
+        files: [],
+        error: "Access denied. Check your GitHub token permissions",
+      };
+    } else {
+      return {
+        files: [],
+        error: `Error loading workflow files: ${error.message}`,
+      };
+    }
+  }
+}
+
+/**
+ * Get the content of a specific workflow file
+ *
+ * @param username GitHub username
+ * @param accessToken GitHub access token
+ * @param repository Repository name
+ * @param workflowFile Workflow file name (e.g., "deploy.yml")
+ * @returns Workflow file content
+ */
+export async function getWorkflowFileContent(
+  username: string,
+  accessToken: string,
+  repository: string,
+  workflowFile: string
+): Promise<{ content: string; error?: string }> {
+  try {
+    const githubApi = axios.create({
+      baseURL: "https://api.github.com",
+      headers: {
+        Authorization: `token ${accessToken}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    // Ensure proper path format
+    const workflowPath = workflowFile.startsWith(".github/workflows/")
+      ? workflowFile
+      : `.github/workflows/${workflowFile}`;
+
+    const { data } = await githubApi.get(
+      `/repos/${username}/${repository}/contents/${workflowPath}`
+    );
+
+    // Decode base64 content
+    const content = Buffer.from(data.content, "base64").toString("utf-8");
+
+    return { content };
+  } catch (err) {
+    const error = err as { response?: { status: number }; message: string };
+
+    if (error.response?.status === 404) {
+      return {
+        content: "",
+        error: "Workflow file not found",
+      };
+    } else if (
+      error.response?.status === 401 ||
+      error.response?.status === 403
+    ) {
+      return {
+        content: "",
+        error: "Access denied. Check your GitHub token permissions",
+      };
+    } else {
+      return {
+        content: "",
+        error: `Error loading workflow file: ${error.message}`,
+      };
+    }
+  }
+}
+
+/**
+ * Create a new workflow file in the GitHub repository
+ *
+ * @param username GitHub username
+ * @param accessToken GitHub access token
+ * @param repository Repository name
+ * @param workflowFile Workflow file name (e.g., "deploy.yml")
+ * @param content Workflow file content (YAML)
+ * @param commitMessage Commit message for the creation
+ * @returns Creation result
+ */
+export async function createWorkflowFile(
+  username: string,
+  accessToken: string,
+  repository: string,
+  workflowFile: string,
+  content: string,
+  commitMessage: string = "Add GitHub workflow file"
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const githubApi = axios.create({
+      baseURL: "https://api.github.com",
+      headers: {
+        Authorization: `token ${accessToken}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    // Ensure proper path format
+    const workflowPath = workflowFile.startsWith(".github/workflows/")
+      ? workflowFile
+      : `.github/workflows/${workflowFile}`;
+
+    // Check if file already exists
+    try {
+      await githubApi.get(
+        `/repos/${username}/${repository}/contents/${workflowPath}`
+      );
+      return {
+        success: false,
+        error: "Workflow file already exists",
+      };
+    } catch (err) {
+      // File doesn't exist, which is what we want
+      const error = err as { response?: { status: number } };
+      if (error.response?.status !== 404) {
+        throw err;
+      }
+    }
+
+    // Create the workflow file
+    await githubApi.put(
+      `/repos/${username}/${repository}/contents/${workflowPath}`,
+      {
+        message: commitMessage,
+        content: Buffer.from(content).toString("base64"),
+      }
+    );
+
+    return { success: true };
+  } catch (err) {
+    const error = err as { response?: { status: number }; message: string };
+
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return {
+        success: false,
+        error: "Access denied. Check your GitHub token permissions",
+      };
+    } else if (error.response?.status === 404) {
+      return {
+        success: false,
+        error: "Repository not found",
+      };
+    } else {
+      return {
+        success: false,
+        error: `Error creating workflow file: ${error.message}`,
+      };
+    }
+  }
+}
+
+/**
+ * Generate a GitHub workflow file using OpenAI based on project description
+ *
+ * @param projectDescription User's description of their project
+ * @param deploymentPreferences User's deployment preferences (optional)
+ * @param framework Optional framework/technology stack
+ * @returns Generated workflow content
+ */
+export async function generateWorkflowWithAI(
+  projectDescription: string,
+  deploymentPreferences?: string,
+  framework?: string
+): Promise<{ content: string; error?: string }> {
+  try {
+    const response = await axios.post("/api/generate-workflow", {
+      projectDescription,
+      deploymentPreferences,
+      framework,
+    });
+
+    return { content: response.data.workflowContent };
+  } catch (err) {
+    const error = err as {
+      response?: { data?: { error?: string } };
+      message: string;
+    };
+
+    return {
+      content: "",
+      error:
+        error.response?.data?.error ||
+        `Error generating workflow: ${error.message}`,
+    };
+  }
+}
+
 // Debug flag - set to true to log API call information
 const DEBUG_API_CALLS = false;
 

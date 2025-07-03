@@ -250,6 +250,36 @@ function ProviderFields() {
                         type: "text",
                     },
                 ]);
+            } else if (currentProvider === DeploymentProvider.NETLIFY) {
+                setValue("deploymentOption.environmentVariables", [
+                    {
+                        key: "NETLIFY_TOKEN",
+                        defaultValue: "",
+                        description: "Netlify authentication token for deployment",
+                        isRequired: true,
+                        isSecret: true,
+                        video: null,
+                        type: "text",
+                    },
+                    {
+                        key: "NETLIFY_SITE_NAME",
+                        defaultValue: "",
+                        description: "Netlify site name for deployment target",
+                        isRequired: false,
+                        isSecret: false,
+                        video: null,
+                        type: "text",
+                    },
+                    {
+                        key: "NETLIFY_SITE_ID",
+                        defaultValue: "",
+                        description: "Netlify site ID for deployment target",
+                        isRequired: false,
+                        isSecret: false,
+                        video: null,
+                        type: "text",
+                    },
+                ]);
             } else if (currentProvider === DeploymentProvider.CUSTOM) {
                 // For custom provider, add an empty variable as an example
                 setValue("deploymentOption.environmentVariables", [
@@ -294,6 +324,41 @@ function ProviderFields() {
                         description: "Vercel project ID for deployment target",
                         isRequired: false,
                         isSecret: true,
+                        video: null,
+                        type: "text",
+                    },
+                ]);
+            }
+        } else if (currentProvider === DeploymentProvider.NETLIFY && !previousProvider) {
+            // Initial render with Netlify provider selected, set default variables
+            const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+            if (currentVars.length === 0 ||
+                (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
+                setValue("deploymentOption.environmentVariables", [
+                    {
+                        key: "NETLIFY_TOKEN",
+                        defaultValue: "",
+                        description: "Netlify authentication token for deployment",
+                        isRequired: true,
+                        isSecret: true,
+                        video: null,
+                        type: "text",
+                    },
+                    {
+                        key: "NETLIFY_SITE_NAME",
+                        defaultValue: "",
+                        description: "Netlify site name for deployment target",
+                        isRequired: false,
+                        isSecret: false,
+                        video: null,
+                        type: "text",
+                    },
+                    {
+                        key: "NETLIFY_SITE_ID",
+                        defaultValue: "",
+                        description: "Netlify site ID for deployment target",
+                        isRequired: false,
+                        isSecret: false,
                         video: null,
                         type: "text",
                     },
@@ -467,10 +532,13 @@ function EnvironmentVariablesSection() {
 
             <div className={`grid grid-cols-1 gap-4 ${envVarFields.length > 1 ? "md:grid-cols-2" : ""}`}>
                 {envVarFields.map((field: EnvironmentVariableDto, index) => {
-                    // Check if this is a Vercel default environment variable
+                    // Check if this is a default environment variable for the provider
                     const provider = watch("deploymentOption.provider");
                     const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
                         (field.key === "VERCEL_TOKEN" || field.key === "VERCEL_ORG_ID" || field.key === "VERCEL_PROJECT_ID");
+                    const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
+                        (field.key === "NETLIFY_TOKEN" || field.key === "NETLIFY_SITE_NAME" || field.key === "NETLIFY_SITE_ID");
+                    const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
 
                     return (
                         <div
@@ -479,7 +547,7 @@ function EnvironmentVariablesSection() {
                         >
                             <div className="flex justify-between items-center">
                                 <h6 className="font-medium">Variable {index + 1}</h6>
-                                {envVarFields.length > 1 && !isVercelDefaultVar && (
+                                {envVarFields.length > 1 && !isDefaultVar && (
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -490,7 +558,7 @@ function EnvironmentVariablesSection() {
                                         <IconTrash className="h-4 w-4 mr-1" /> Remove
                                     </Button>
                                 )}
-                                {isVercelDefaultVar && (
+                                {isDefaultVar && (
                                     <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
                                         Required
                                     </div>
@@ -503,10 +571,13 @@ function EnvironmentVariablesSection() {
                                 control={control}
                                 name={`deploymentOption.environmentVariables.${index}.key`}
                                 render={({ field }) => {
-                                    // Check if this is a Vercel default environment variable
+                                    // Check if this is a default environment variable for the provider
                                     const provider = watch("deploymentOption.provider");
                                     const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
                                         (field.value === "VERCEL_TOKEN" || field.value === "VERCEL_ORG_ID" || field.value === "VERCEL_PROJECT_ID");
+                                    const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
+                                        (field.value === "NETLIFY_TOKEN" || field.value === "NETLIFY_SITE_NAME" || field.value === "NETLIFY_SITE_ID");
+                                    const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
 
                                     return (
                                         <FormItem>
@@ -515,13 +586,18 @@ function EnvironmentVariablesSection() {
                                                 <Input
                                                     placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
                                                     {...field}
-                                                    disabled={isVercelDefaultVar}
-                                                    className={isVercelDefaultVar ? "bg-muted" : ""}
+                                                    disabled={isDefaultVar}
+                                                    className={isDefaultVar ? "bg-muted" : ""}
                                                 />
                                             </FormControl>
                                             {isVercelDefaultVar && (
                                                 <FormDescription className="text-amber-500">
                                                     This is a required Vercel variable and cannot be modified or removed
+                                                </FormDescription>
+                                            )}
+                                            {isNetlifyDefaultVar && (
+                                                <FormDescription className="text-amber-500">
+                                                    This is a default Netlify variable and cannot be modified or removed
                                                 </FormDescription>
                                             )}
                                             <FormMessage />
