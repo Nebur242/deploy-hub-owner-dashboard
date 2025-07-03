@@ -135,6 +135,7 @@ export default function CreateDeploymentPage() {
         description: envVar.description || "",
         defaultValue: envVar.defaultValue || "",
         video: envVar.video || null,
+        type: envVar.type || "text", // Add the required type property
       };
     });
 

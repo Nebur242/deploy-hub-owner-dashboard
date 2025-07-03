@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import VersionForm, { VersionFormValues } from "../components/version-form";
 import { getErrorMessage } from "@/utils/functions";
+import { useState, useCallback, useMemo } from "react";
+import { verifyVersionInGithubAccounts } from "@/services/github";
 
 export default function CreateVersionPage() {
     const router = useRouter();
@@ -30,8 +32,72 @@ export default function CreateVersionPage() {
         isSuccess,
     }] = useCreateVersionMutation();
 
+    // State for GitHub tag verification
+    const [isVerifyingGithub, setIsVerifyingGithub] = useState(false);
+    const [githubVerificationResult, setGithubVerificationResult] = useState<{
+        isValid: boolean;
+        foundInAccounts: string[];
+        message: string;
+    } | null>(null);
+
     // Check if project has any configurations
     const hasConfigurations = configurations?.length > 0;
+
+    // Get all GitHub accounts from project configurations
+    // Use useMemo to prevent recreating this array on every render
+    const allGithubAccounts = useMemo(() => configurations.flatMap(config =>
+        (config.githubAccounts || []).map(account => ({
+            username: account.username,
+            accessToken: account.accessToken,
+            repository: account.repository,
+            workflowFile: account.workflowFile
+        }))
+    ), [configurations]);
+
+    /**
+     * Handles the version change event and verifies the version against GitHub tags
+     * 
+     * Note: This function receives the already debounced version value from the VersionForm component.
+     * The form component uses the useDebounce hook to prevent multiple API calls when the user
+     * is typing quickly. This ensures we only make API calls when the user has stopped typing
+     * for a specific amount of time (600ms).
+     */
+    const handleVersionChange = useCallback(async (version: string) => {
+        // Skip API calls for very short or invalid versions
+        if (!version || version.length < 3 || !hasConfigurations || allGithubAccounts.length === 0) {
+            return;
+        }
+
+        // Validate it's roughly in semver format before making API calls
+        const semverRegex = /^\d+(\.\d+)?(\.\d+)?/;
+        if (!semverRegex.test(version)) {
+            return;
+        }
+
+        // Reset verification state
+        setIsVerifyingGithub(true);
+        setGithubVerificationResult(null);
+
+        try {
+            // Since version is already debounced in the form component,
+            // we can directly verify it against GitHub tags
+            const result = await verifyVersionInGithubAccounts(allGithubAccounts, version);
+
+            // Only update state if we're still on the same version
+            // This prevents race conditions when typing quickly
+            setGithubVerificationResult(result);
+        } catch (err) {
+            console.error("Error verifying version tag:", err);
+            const error = err as Error;
+            setGithubVerificationResult({
+                isValid: false,
+                foundInAccounts: [],
+                message: `Error checking version tag: ${error.message}`
+            });
+        } finally {
+            setIsVerifyingGithub(false);
+        }
+    }, [hasConfigurations, allGithubAccounts]);
 
     // Submit handler
     const onSubmit = async (values: VersionFormValues) => {
@@ -41,6 +107,25 @@ export default function CreateVersionPage() {
                 description: "You need to create a configuration before creating a version.",
             });
             return;
+        }
+
+        // Check if we should warn about missing GitHub tag
+        const hasGithubAccounts = allGithubAccounts.length > 0;
+        const needsTagWarning = hasGithubAccounts &&
+            githubVerificationResult &&
+            !githubVerificationResult.isValid &&
+            !isVerifyingGithub;
+
+        // If version doesn't exist as GitHub tag, confirm with user
+        if (needsTagWarning) {
+            const confirmCreate = window.confirm(
+                `Warning: Version "${values.version}" doesn't exist as a tag in any GitHub repository. ` +
+                `This may cause deployment issues later. Do you want to create it anyway?`
+            );
+
+            if (!confirmCreate) {
+                return;
+            }
         }
 
         try {
@@ -123,6 +208,10 @@ export default function CreateVersionPage() {
                             message: getErrorMessage(error) || "An error occurred",
                         } : null}
                         disabled={!hasConfigurations}
+                        configurations={configurations}
+                        onVersionChange={handleVersionChange}
+                        githubVerificationResult={githubVerificationResult}
+                        isVerifyingGithub={isVerifyingGithub}
                     />
                 )}
             </div>

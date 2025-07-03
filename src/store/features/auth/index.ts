@@ -1,16 +1,19 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { AuthError, UserCredential } from "firebase/auth";
-import "../../../config/firebase";
 import {
   authUser,
   createUser,
   firebaseCreateUser,
   firebaseLoginUser,
+  firebaseLoginWithGoogle,
+  firebaseRegisterWithGoogle,
   firebaseSendPasswordResetEmail,
   firebaseSendValidationEmail,
+  checkEmailVerification,
   getUser,
   logout,
+  handleGoogleRedirectResult,
 } from "../../../services/users";
 import { asyncHandler } from "@/utils/functions";
 import { AppUser, Status, User } from "@/common/types";
@@ -34,12 +37,22 @@ export interface AuthInitialState {
     error: string;
     status: Status;
   };
+  googleAuth: {
+    loading: boolean;
+    error: string;
+    status: Status;
+  };
   logout: {
     loading: boolean;
     error: string;
     status: Status;
   };
   reset: {
+    loading: boolean;
+    error: string;
+    status: Status;
+  };
+  verifyEmail: {
     loading: boolean;
     error: string;
     status: Status;
@@ -64,12 +77,22 @@ const initialState: AuthInitialState = {
     error: "",
     status: "pending",
   },
+  googleAuth: {
+    loading: false,
+    error: "",
+    status: "pending",
+  },
   logout: {
     loading: false,
     error: "",
     status: "pending",
   },
   reset: {
+    loading: false,
+    error: "",
+    status: "pending",
+  },
+  verifyEmail: {
     loading: false,
     error: "",
     status: "pending",
@@ -103,6 +126,351 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const loginWithGoogle = createAsyncThunk(
+  "auth/loginWithGoogle",
+  async (
+    {
+      onSuccess,
+      onFailed,
+    }: {
+      onSuccess?: () => void;
+      onFailed?: () => void;
+    } = {},
+    { rejectWithValue, fulfillWithValue }
+  ) => {
+    const [firebaseUser, firebaseError] = await asyncHandler<
+      UserCredential,
+      AuthError
+    >(firebaseLoginWithGoogle());
+
+    if (firebaseError || !firebaseUser) {
+      // Check if this is a redirect in progress
+      if (firebaseError?.message === "REDIRECT_IN_PROGRESS") {
+        // Don't call onFailed for redirect, just return a special status
+        return rejectWithValue("REDIRECT_IN_PROGRESS");
+      }
+
+      if (onFailed) onFailed();
+      return rejectWithValue(
+        firebaseError?.message || "Google authentication failed"
+      );
+    }
+
+    const [user, axiosError] = await asyncHandler<
+      User,
+      AxiosError<{ message: string }>
+    >(getUser(firebaseUser.user.uid));
+
+    if (axiosError || !user) {
+      if (onFailed) onFailed();
+      return rejectWithValue(
+        axiosError?.response?.data.message || "User not found"
+      );
+    }
+
+    if (!user.roles.includes("admin")) {
+      if (onFailed) onFailed();
+      return rejectWithValue("You are not allowed to login");
+    }
+
+    // Create session using the same pattern as email/password auth
+    const idToken = await firebaseUser.user.getIdToken();
+    const response = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!response.ok) {
+      const res = await response.json();
+      console.log(res);
+      if (onFailed) onFailed();
+      return rejectWithValue("Session not set");
+    }
+
+    if (onSuccess) onSuccess();
+    return fulfillWithValue({
+      ...user,
+      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+    });
+  }
+);
+
+export const registerWithGoogle = createAsyncThunk(
+  "auth/registerWithGoogle",
+  async (
+    {
+      onSuccess,
+      onFailed,
+    }: {
+      onSuccess?: () => void;
+      onFailed?: () => void;
+    } = {},
+    { rejectWithValue, fulfillWithValue }
+  ) => {
+    const [firebaseUser, firebaseError] = await asyncHandler<
+      UserCredential,
+      AuthError
+    >(firebaseRegisterWithGoogle());
+
+    if (firebaseError || !firebaseUser) {
+      // Check if this is a redirect in progress
+      if (firebaseError?.message === "REDIRECT_IN_PROGRESS") {
+        // Don't call onFailed for redirect, just return a special status
+        return rejectWithValue("REDIRECT_IN_PROGRESS");
+      }
+
+      if (onFailed) onFailed();
+      return rejectWithValue(
+        firebaseError?.message || "Google authentication failed"
+      );
+    }
+
+    // Check if user already exists in our system
+    const [existingUser] = await asyncHandler<
+      User,
+      AxiosError<{ message: string }>
+    >(getUser(firebaseUser.user.uid));
+
+    if (existingUser) {
+      // User already exists, proceed with login flow
+      if (!existingUser.roles.includes("admin")) {
+        if (onFailed) onFailed();
+        return rejectWithValue("You are not allowed to register");
+      }
+
+      // Create session using the same pattern as email/password auth
+      const idToken = await firebaseUser.user.getIdToken();
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        const res = await response.json();
+        console.log(res);
+        if (onFailed) onFailed();
+        return rejectWithValue("Session not set");
+      }
+
+      if (onSuccess) onSuccess();
+      return fulfillWithValue({
+        ...existingUser,
+        firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+      });
+    }
+
+    // Create new user in our system
+    const [user, axiosError] = await asyncHandler<
+      User,
+      AxiosError<{ message: string }>
+    >(
+      createUser({
+        uid: firebaseUser.user.uid,
+        roles: ["admin"],
+        email: firebaseUser.user.email || "",
+      })
+    );
+
+    if (axiosError || !user) {
+      console.log(axiosError);
+      await firebaseUser.user.delete();
+      if (onFailed) onFailed();
+      return rejectWithValue(
+        axiosError?.response?.data.message || "User creation failed"
+      );
+    }
+
+    // Create session using the same pattern as email/password auth
+    const idToken = await firebaseUser.user.getIdToken();
+    const response = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!response.ok) {
+      const res = await response.json();
+      console.log(res);
+      if (onFailed) onFailed();
+      return rejectWithValue("Session not set");
+    }
+
+    if (onSuccess) onSuccess();
+    return fulfillWithValue({
+      ...user,
+      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+    });
+  }
+);
+
+export const handleGoogleAuthRedirect = createAsyncThunk(
+  "auth/handleGoogleAuthRedirect",
+  async (
+    {
+      isRegister = false,
+      onSuccess,
+      onFailed,
+    }: {
+      isRegister?: boolean;
+      onSuccess?: () => void;
+      onFailed?: () => void;
+    } = {},
+    { rejectWithValue, fulfillWithValue }
+  ) => {
+    const [redirectResult, redirectError] = await asyncHandler<
+      UserCredential | null,
+      AuthError
+    >(handleGoogleRedirectResult());
+
+    if (redirectError) {
+      if (onFailed) onFailed();
+      return rejectWithValue(redirectError.message || "Redirect failed");
+    }
+
+    if (!redirectResult) {
+      // No redirect result means no redirect was in progress
+      return fulfillWithValue(null);
+    }
+
+    const firebaseUser = redirectResult;
+
+    if (isRegister) {
+      // Handle register flow
+      const [existingUser] = await asyncHandler<
+        User,
+        AxiosError<{ message: string }>
+      >(getUser(firebaseUser.user.uid));
+
+      if (existingUser) {
+        // User already exists, log them in
+        if (!existingUser.roles.includes("admin")) {
+          if (onFailed) onFailed();
+          return rejectWithValue("You are not allowed to login");
+        }
+
+        const idToken = await firebaseUser.user.getIdToken();
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (!response.ok) {
+          if (onFailed) onFailed();
+          return rejectWithValue("Session not set");
+        }
+
+        if (onSuccess) onSuccess();
+        return fulfillWithValue({
+          ...existingUser,
+          firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+        });
+      }
+
+      // Create new user
+      const [user, axiosError] = await asyncHandler<
+        User,
+        AxiosError<{ message: string }>
+      >(
+        createUser({
+          uid: firebaseUser.user.uid,
+          roles: ["admin"],
+          email: firebaseUser.user.email || "",
+        })
+      );
+
+      if (axiosError || !user) {
+        await firebaseUser.user.delete();
+        if (onFailed) onFailed();
+        return rejectWithValue(
+          axiosError?.response?.data.message || "User creation failed"
+        );
+      }
+
+      const idToken = await firebaseUser.user.getIdToken();
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        if (onFailed) onFailed();
+        return rejectWithValue("Session not set");
+      }
+
+      if (onSuccess) onSuccess();
+      return fulfillWithValue({
+        ...user,
+        firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+      });
+    } else {
+      // Handle login flow
+      const [user, axiosError] = await asyncHandler<
+        User,
+        AxiosError<{ message: string }>
+      >(getUser(firebaseUser.user.uid));
+
+      if (axiosError || !user) {
+        if (onFailed) onFailed();
+        return rejectWithValue(
+          axiosError?.response?.data.message || "User not found"
+        );
+      }
+
+      if (!user.roles.includes("admin")) {
+        if (onFailed) onFailed();
+        return rejectWithValue("You are not allowed to login");
+      }
+
+      const idToken = await firebaseUser.user.getIdToken();
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        if (onFailed) onFailed();
+        return rejectWithValue("Session not set");
+      }
+
+      if (onSuccess) onSuccess();
+      return fulfillWithValue({
+        ...user,
+        firebase: firebaseUser.user.toJSON() as UserCredential["user"],
+      });
+    }
+  }
+);
+
+export const verifyEmailStatus = createAsyncThunk(
+  "auth/verifyEmailStatus",
+  async (_, { rejectWithValue, fulfillWithValue }) => {
+    const [isVerified, error] = await asyncHandler(checkEmailVerification());
+
+    if (error) {
+      return rejectWithValue("Unable to check email verification status");
+    }
+
+    return fulfillWithValue(isVerified);
+  }
+);
+
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (
@@ -133,6 +501,7 @@ export const registerUser = createAsyncThunk(
       createUser({
         uid: firebaseUser.user.uid,
         roles: ["admin"],
+        email: firebaseUser.user.email || "",
       })
     );
 
@@ -337,12 +706,13 @@ const authSlice = createSlice({
         state.register.error = "";
         state.register.status = "pending";
       })
-      .addCase(registerUser.fulfilled, (state: AuthInitialState, action) => {
+      .addCase(registerUser.fulfilled, (state: AuthInitialState) => {
         state.register.loading = false;
         state.register.error = "";
         state.register.status = "success";
-        state.infos = action.payload;
-        state.isLoggedIn = true;
+        // Don't set user as logged in until email is verified
+        // state.infos = action.payload;
+        // state.isLoggedIn = true;
       })
       .addCase(registerUser.rejected, (state: AuthInitialState, action) => {
         state.register.loading = false;
@@ -366,6 +736,76 @@ const authSlice = createSlice({
         state.logout.error = action.payload as string;
         state.logout.status = "error";
       })
+      .addCase(loginWithGoogle.pending, (state: AuthInitialState) => {
+        state.googleAuth.loading = true;
+        state.googleAuth.error = "";
+        state.googleAuth.status = "pending";
+      })
+      .addCase(loginWithGoogle.fulfilled, (state: AuthInitialState, action) => {
+        state.googleAuth.loading = false;
+        state.googleAuth.error = "";
+        state.googleAuth.status = "success";
+        state.infos = action.payload;
+        state.isLoggedIn = true;
+      })
+      .addCase(loginWithGoogle.rejected, (state: AuthInitialState, action) => {
+        state.googleAuth.loading = false;
+        state.googleAuth.error = action.payload as string;
+        state.googleAuth.status = "error";
+      })
+      .addCase(registerWithGoogle.pending, (state: AuthInitialState) => {
+        state.googleAuth.loading = true;
+        state.googleAuth.error = "";
+        state.googleAuth.status = "pending";
+      })
+      .addCase(
+        registerWithGoogle.fulfilled,
+        (state: AuthInitialState, action) => {
+          state.googleAuth.loading = false;
+          state.googleAuth.error = "";
+          state.googleAuth.status = "success";
+          state.infos = action.payload;
+          state.isLoggedIn = true;
+        }
+      )
+      .addCase(
+        registerWithGoogle.rejected,
+        (state: AuthInitialState, action) => {
+          state.googleAuth.loading = false;
+          state.googleAuth.error = action.payload as string;
+          state.googleAuth.status = "error";
+        }
+      )
+      .addCase(handleGoogleAuthRedirect.pending, (state: AuthInitialState) => {
+        state.googleAuth.loading = true;
+        state.googleAuth.error = "";
+        state.googleAuth.status = "pending";
+      })
+      .addCase(
+        handleGoogleAuthRedirect.fulfilled,
+        (state: AuthInitialState, action) => {
+          state.googleAuth.loading = false;
+          state.googleAuth.error = "";
+
+          if (action.payload) {
+            // Redirect result was processed successfully
+            state.googleAuth.status = "success";
+            state.infos = action.payload;
+            state.isLoggedIn = true;
+          } else {
+            // No redirect result means no redirect was in progress
+            state.googleAuth.status = "pending";
+          }
+        }
+      )
+      .addCase(
+        handleGoogleAuthRedirect.rejected,
+        (state: AuthInitialState, action) => {
+          state.googleAuth.loading = false;
+          state.googleAuth.error = action.payload as string;
+          state.googleAuth.status = "error";
+        }
+      )
       .addCase(resetPassword.pending, (state: AuthInitialState) => {
         state.reset.loading = true;
         state.reset.error = "";
@@ -380,7 +820,38 @@ const authSlice = createSlice({
         state.reset.loading = false;
         state.reset.error = action.payload as string;
         state.reset.status = "error";
-      });
+      })
+      .addCase(verifyEmailStatus.pending, (state: AuthInitialState) => {
+        state.verifyEmail.loading = true;
+        state.verifyEmail.error = "";
+        state.verifyEmail.status = "pending";
+      })
+      .addCase(
+        verifyEmailStatus.fulfilled,
+        (state: AuthInitialState, action) => {
+          state.verifyEmail.loading = false;
+          state.verifyEmail.error = "";
+          state.verifyEmail.status = "success";
+          // Update the user's email verification status in Firebase info
+          if (state.infos && state.infos.firebase) {
+            state.infos = {
+              ...state.infos,
+              firebase: {
+                ...state.infos.firebase,
+                emailVerified: action.payload,
+              },
+            } as AppUser;
+          }
+        }
+      )
+      .addCase(
+        verifyEmailStatus.rejected,
+        (state: AuthInitialState, action) => {
+          state.verifyEmail.loading = false;
+          state.verifyEmail.error = action.payload as string;
+          state.verifyEmail.status = "error";
+        }
+      );
   },
 });
 

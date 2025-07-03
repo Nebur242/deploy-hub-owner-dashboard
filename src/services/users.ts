@@ -9,6 +9,9 @@ import {
   updatePassword,
   EmailAuthProvider,
   reauthenticateWithCredential,
+  GoogleAuthProvider,
+  signInWithPopup,
+  UserCredential,
 } from "firebase/auth";
 import { API_ROUTES, AXIOS } from "../config/api";
 import { Role, User } from "@/common/types";
@@ -17,6 +20,7 @@ import { LoginDto, RegisterDto } from "@/common/dtos";
 export const createUser = async (createUserDto: {
   uid: string;
   roles: Role[];
+  email: string;
 }) => {
   const response = await AXIOS.post<{ data: User }>(
     API_ROUTES.users,
@@ -47,6 +51,80 @@ export const firebaseLoginUser = async (infos: LoginDto) => {
   return signInWithEmailAndPassword(auth, email, password);
 };
 
+export const firebaseLoginWithGoogle = async (): Promise<UserCredential> => {
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+  provider.addScope("profile");
+  provider.addScope("email");
+
+  // Configure provider settings for better compatibility
+  provider.setCustomParameters({
+    prompt: "select_account",
+  });
+
+  try {
+    // Try popup first
+    return await signInWithPopup(auth, provider);
+  } catch (error: unknown) {
+    // If popup is blocked or fails, fallback to redirect
+    const authError = error as { code?: string };
+    if (
+      authError.code === "auth/popup-blocked" ||
+      authError.code === "auth/popup-closed-by-user" ||
+      authError.code === "auth/cancelled-popup-request"
+    ) {
+      const { signInWithRedirect } = await import("firebase/auth");
+      await signInWithRedirect(auth, provider);
+      throw new Error("REDIRECT_IN_PROGRESS");
+    }
+    throw error;
+  }
+};
+
+export const handleGoogleRedirectResult =
+  async (): Promise<UserCredential | null> => {
+    const auth = getAuth();
+    const { getRedirectResult } = await import("firebase/auth");
+
+    try {
+      const result = await getRedirectResult(auth);
+      return result;
+    } catch (error: unknown) {
+      console.error("Error handling redirect result:", error);
+      throw error;
+    }
+  };
+
+export const firebaseRegisterWithGoogle = async (): Promise<UserCredential> => {
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+  provider.addScope("profile");
+  provider.addScope("email");
+
+  // Configure provider settings for better compatibility
+  provider.setCustomParameters({
+    prompt: "select_account",
+  });
+
+  try {
+    // Try popup first
+    return await signInWithPopup(auth, provider);
+  } catch (error: unknown) {
+    // If popup is blocked or fails, fallback to redirect
+    const authError = error as { code?: string };
+    if (
+      authError.code === "auth/popup-blocked" ||
+      authError.code === "auth/popup-closed-by-user" ||
+      authError.code === "auth/cancelled-popup-request"
+    ) {
+      const { signInWithRedirect } = await import("firebase/auth");
+      await signInWithRedirect(auth, provider);
+      throw new Error("REDIRECT_IN_PROGRESS");
+    }
+    throw error;
+  }
+};
+
 export const authUser = async (): Promise<FirebaseUser | null> => {
   const auth = getAuth();
   return new Promise((resolve) => {
@@ -68,6 +146,19 @@ export const firebaseSendPasswordResetEmail = async (email: string) => {
 
 export const firebaseSendValidationEmail = async (user: FirebaseUser) => {
   sendEmailVerification(user);
+};
+
+export const checkEmailVerification = async (): Promise<boolean> => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  // Reload user to get latest verification status
+  await user.reload();
+  return user.emailVerified;
 };
 
 /**

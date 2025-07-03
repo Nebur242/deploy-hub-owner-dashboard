@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import {
     useGetProjectQuery,
     useGetVersionQuery,
-    useUpdateVersionMutation
+    useUpdateVersionMutation,
+    useGetConfigurationsQuery
 } from "@/store/features/projects";
 import { toast } from "sonner";
 import { IconLoader, IconArrowBack } from "@tabler/icons-react";
@@ -14,6 +15,8 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
 import VersionForm, { VersionFormValues } from "../../components/version-form";
 import { getErrorMessage } from "@/utils/functions";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { verifyVersionInGithubAccounts } from "@/services/github";
 
 export default function UpdateVersionPage() {
     const router = useRouter();
@@ -33,12 +36,83 @@ export default function UpdateVersionPage() {
         versionId
     });
 
+    // Get configurations to check GitHub accounts
+    const { data: configurations = [], isLoading: isLoadingConfigurations } = useGetConfigurationsQuery(projectId);
+
     // Update version mutation
     const [updateVersion, {
         isLoading,
         error,
         isSuccess,
     }] = useUpdateVersionMutation();
+
+    // State for GitHub tag verification
+    const [isVerifyingGithub, setIsVerifyingGithub] = useState(false);
+    const [githubVerificationResult, setGithubVerificationResult] = useState<{
+        isValid: boolean;
+        foundInAccounts: string[];
+        message: string;
+    } | null>(null);
+
+    // Get all GitHub accounts from configurations
+    // Use useMemo to prevent recreating this array on every render
+    const allGithubAccounts = useMemo(() => configurations.flatMap(config =>
+        (config.githubAccounts || []).map(account => ({
+            username: account.username,
+            accessToken: account.accessToken,
+            repository: account.repository,
+            workflowFile: account.workflowFile
+        }))
+    ), [configurations]);
+
+    /**
+     * Verifies if a version string exists as a tag in the connected GitHub repositories
+     * 
+     * Note: When used with the VersionForm component, this function receives the debounced 
+     * version value, preventing excessive API calls during user input. The debouncing is
+     * handled in the VersionForm component using the useDebounce hook.
+     */
+    const verifyVersionTag = useCallback(async (versionStr: string) => {
+        // Skip API calls for very short or empty versions
+        if (!versionStr || versionStr.length < 3 || allGithubAccounts.length === 0) {
+            return;
+        }
+
+        // Validate it's roughly in semver format before making API calls
+        const semverRegex = /^\d+(\.\d+)?(\.\d+)?/;
+        if (!semverRegex.test(versionStr)) {
+            return;
+        }
+
+        setIsVerifyingGithub(true);
+        setGithubVerificationResult(null);
+
+        try {
+            // Version is already debounced in the form component
+            // Verify version against GitHub tags
+            const result = await verifyVersionInGithubAccounts(allGithubAccounts, versionStr);
+
+            // Only update if this is still the current version
+            setGithubVerificationResult(result);
+        } catch (err) {
+            console.error("Error verifying version tag:", err);
+            const error = err as Error;
+            setGithubVerificationResult({
+                isValid: false,
+                foundInAccounts: [],
+                message: `Error checking version tag: ${error.message}`
+            });
+        } finally {
+            setIsVerifyingGithub(false);
+        }
+    }, [allGithubAccounts]);
+
+    // Check version tag when version data is loaded
+    useEffect(() => {
+        if (version && version.version && allGithubAccounts.length > 0) {
+            verifyVersionTag(version.version);
+        }
+    }, [version, allGithubAccounts, verifyVersionTag]);
 
     // Submit handler
     const onSubmit = async (values: VersionFormValues) => {
@@ -87,6 +161,7 @@ export default function UpdateVersionPage() {
         return null;
     }
 
+    const isLoading_Data = isLoadingProject || isLoadingVersion || isLoadingConfigurations;
 
     return (
         <DashboardLayout
@@ -100,7 +175,7 @@ export default function UpdateVersionPage() {
                     </Link>
                 </Button>
 
-                {(isLoadingProject || isLoadingVersion) ? (
+                {isLoading_Data ? (
                     <div className="flex items-center justify-center py-12">
                         <IconLoader className="h-8 w-8 animate-spin text-primary" />
                     </div>
@@ -133,6 +208,9 @@ export default function UpdateVersionPage() {
                             error={error ? {
                                 message: getErrorMessage(error) || "An error occurred while updating the version.",
                             } : null}
+                            configurations={configurations}
+                            githubVerificationResult={githubVerificationResult}
+                            isVerifyingGithub={isVerifyingGithub}
                         />
                     </>
                 )}

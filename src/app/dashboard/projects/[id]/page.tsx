@@ -226,6 +226,18 @@ export default function ProjectPreviewPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
+                                    {project.image && (
+                                        <div className="mb-4">
+                                            <div className="relative w-full h-52 rounded-md overflow-hidden border border-muted">
+                                                <img
+                                                    src={JSON.parse(project.image).url}
+                                                    alt={project.name}
+                                                    className="object-cover w-full h-full"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div>
                                         <h3 className="text-lg font-semibold mb-2">Description</h3>
                                         <p className="text-muted-foreground">{project.description}</p>

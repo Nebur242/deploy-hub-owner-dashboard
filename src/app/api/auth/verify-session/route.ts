@@ -5,12 +5,22 @@ import { NextResponse } from "next/server";
 type VerifySessionResponse = {
   isValid: boolean;
   uid?: string;
+  emailVerified?: boolean;
+  email?: string;
   error?: string;
 };
 
 initFirebaseAdmin();
 
 export async function GET(request: Request) {
+  return verifySession(request);
+}
+
+export async function POST(request: Request) {
+  return verifySession(request);
+}
+
+async function verifySession(request: Request) {
   try {
     // Get the session cookie from the request
     const sessionCookie = request.headers
@@ -34,10 +44,15 @@ export async function GET(request: Request) {
       true // Check if cookie is revoked
     );
 
+    // Get the full user record to check email verification
+    const userRecord = await auth().getUser(decodedClaim.uid);
+
     return NextResponse.json<VerifySessionResponse>(
       {
         isValid: true,
         uid: decodedClaim.uid,
+        emailVerified: userRecord.emailVerified,
+        email: userRecord.email,
       },
       { status: 200 }
     );
