@@ -32,8 +32,8 @@ export default function UpdateVersionPage() {
         data: version,
         isLoading: isLoadingVersion
     } = useGetVersionQuery({
-        projectId,
-        versionId
+        project_id: projectId,
+        version_id: versionId
     });
 
     // Get configurations to check GitHub accounts
@@ -57,11 +57,11 @@ export default function UpdateVersionPage() {
     // Get all GitHub accounts from configurations
     // Use useMemo to prevent recreating this array on every render
     const allGithubAccounts = useMemo(() => configurations.flatMap(config =>
-        (config.githubAccounts || []).map(account => ({
+        (config.github_accounts || []).map(account => ({
             username: account.username,
-            accessToken: account.accessToken,
+            access_token: account.access_token,
             repository: account.repository,
-            workflowFile: account.workflowFile
+            workflow_file: account.workflow_file
         }))
     ), [configurations]);
 
@@ -119,11 +119,11 @@ export default function UpdateVersionPage() {
         try {
             // Call the RTK Query update mutation - only update allowed fields
             await updateVersion({
-                projectId,
+                project_id: projectId,
                 id: versionId,
                 body: {
-                    releaseNotes: values.releaseNotes || "",
-                    commitHash: values.commitHash
+                    release_notes: values.release_notes || "",
+                    commit_hash: values.commit_hash
                     // version and isStable fields are not included as they can't be modified
                 },
             }).unwrap();
@@ -198,9 +198,9 @@ export default function UpdateVersionPage() {
                                 // by providing them explicitly
                                 id: version.id,
                                 version: version.version || "",
-                                releaseNotes: version.releaseNotes || "",
-                                commitHash: version.commitHash || "",
-                                isStable: version.isStable || false
+                                release_notes: version.release_notes || "",
+                                commit_hash: version.commit_hash || "",
+                                is_stable: version.is_stable || false
                             } : null}
                             onSubmit={onSubmit}
                             isLoading={isLoading}

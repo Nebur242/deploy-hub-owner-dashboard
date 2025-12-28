@@ -26,8 +26,8 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) 
     ];
 
     const sortOptions = [
-        { value: 'createdAt', label: 'Date Created' },
-        { value: 'updatedAt', label: 'Date Updated' },
+        { value: 'created_at', label: 'Date Created' },
+        { value: 'updated_at', label: 'Date Updated' },
         { value: 'filename', label: 'Filename' },
         { value: 'size', label: 'File Size' },
     ];
@@ -70,7 +70,7 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) 
     const handleVisibilityChange = (value: string) => {
         onFilterChange({
             ...filters,
-            isPublic: value === 'all' ? undefined : value === 'public',
+            is_public: value === 'all' ? undefined : value === 'public',
             page: 1,
         });
     };
@@ -108,7 +108,7 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) 
         onFilterChange({
             page: 1,
             limit: filters.limit,
-            sortBy: 'createdAt',
+            sortBy: 'created_at',
             order: 'DESC',
         });
     };
@@ -138,9 +138,9 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) 
                     <Filter className="h-4 w-4" />
                 </Button>
                 {(filters.type ||
-                    filters.isPublic !== undefined ||
+                    filters.is_public !== undefined ||
                     (filters.tags && filters.tags.length > 0) ||
-                    filters.sortBy !== 'createdAt' ||
+                    filters.sortBy !== 'created_at' ||
                     filters.order !== 'DESC') && (
                         <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
                             Clear All
@@ -174,9 +174,9 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) 
                             <label className="text-sm font-medium">Visibility</label>
                             <Select
                                 value={
-                                    filters.isPublic === undefined
+                                    filters.is_public === undefined
                                         ? 'all'
-                                        : filters.isPublic
+                                        : filters.is_public
                                             ? 'public'
                                             : 'private'
                                 }
@@ -197,7 +197,7 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({ filters, onFilterChange }) 
                             <label className="text-sm font-medium">Sort By</label>
                             <div className="flex space-x-2">
                                 <Select
-                                    value={filters.sortBy || 'createdAt'}
+                                    value={filters.sortBy || 'created_at'}
                                     onValueChange={handleSortByChange}
                                 >
                                     <SelectTrigger className="flex-1">

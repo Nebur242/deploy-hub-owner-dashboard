@@ -12,11 +12,11 @@ const categoryBaseSchema = z.object({
     .max(500, { message: "Description must be less than 500 characters" })
     .optional(),
   icon: z.string(),
-  status: z.enum(["active", "inactive", "pending"]),
-  sortOrder: z
+  status: z.enum(["active", "inactive", "pending", "deleted"]),
+  sort_order: z
     .number()
     .min(1, { message: "Sort order must be a positive number" }),
-  parentId: z.string().nullable().optional(),
+  parent_id: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
 });
 
@@ -40,8 +40,8 @@ export const categoryQueryParamsDtoSchema = z.object({
   page: z.number().min(1, { message: "Page must be at least 1" }).optional(),
   limit: z.number().min(1, { message: "Limit must be at least 1" }).optional(),
   search: z.string().optional(),
-  parentId: z.string().optional(),
-  status: z.enum(["active", "inactive", "pending"]).optional(),
+  parent_id: z.string().optional(),
+  status: z.enum(["active", "inactive", "pending", "deleted"]).optional(),
 });
 
 // Type definitions from schemas

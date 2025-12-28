@@ -282,7 +282,7 @@ export default function LicensesPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline">
-                                                    {license.deploymentLimit} {license.deploymentLimit === 1 ? 'deployment' : 'deployments'}
+                                                    {license.deployment_limit} {license.deployment_limit === 1 ? 'deployment' : 'deployments'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>

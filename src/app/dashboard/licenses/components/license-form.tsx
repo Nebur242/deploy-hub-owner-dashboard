@@ -68,10 +68,10 @@ export default function LicenseForm({
             description: "",
             price: 0,
             currency: Currency.USD,
-            deploymentLimit: 1,
+            deployment_limit: 1,
             duration: 0, // Default unlimited
             features: [],
-            projectIds: [], // Will store project IDs
+            project_ids: [], // Will store project IDs
             status: LicenseStatus.DRAFT, // Default status
             popular: false, // Default popular
         },
@@ -229,7 +229,7 @@ export default function LicenseForm({
 
                                     <FormField
                                         control={form.control}
-                                        name="deploymentLimit"
+                                        name="deployment_limit"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Deployment Limit</FormLabel>
@@ -334,7 +334,7 @@ export default function LicenseForm({
                                 <h3 className="text-lg font-semibold mb-4">Associated Projects</h3>
                                 <FormField
                                     control={form.control}
-                                    name="projectIds"
+                                    name="project_ids"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Projects</FormLabel>

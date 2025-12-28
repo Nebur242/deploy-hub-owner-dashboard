@@ -21,6 +21,7 @@ export type NotificationSettings = {
 export type User = {
   id: string;
   uid: string;
+  email: string;
   firstName?: string;
   lastName?: string;
   profilePicture?: string;

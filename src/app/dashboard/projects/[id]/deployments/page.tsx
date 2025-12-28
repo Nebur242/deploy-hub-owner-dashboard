@@ -48,7 +48,7 @@ export default function ProjectDeploymentsPage() {
     isError,
     refetch
   } = useGetDeploymentsQuery({
-    projectId,
+    project_id: projectId,
     page: currentPage,
     limit: 10,
   }, {
@@ -190,20 +190,20 @@ export default function ProjectDeploymentsPage() {
                     <TableCell>
                       <div className="flex items-center">
                         <IconServer className="h-4 w-4 mr-1" />
-                        {deployment.configuration?.deploymentOption.provider || "Unknown Provider"}
+                        {deployment.configuration?.deployment_option.provider || "Unknown Provider"}
                       </div>
                     </TableCell>
                     <TableCell>
                       <DeploymentStatusBadge status={deployment.status} />
                     </TableCell>
                     <TableCell>
-                      {formatDistanceToNow(new Date(deployment.createdAt), {
+                      {formatDistanceToNow(new Date(deployment.created_at), {
                         addSuffix: true,
                       })}
                     </TableCell>
                     <TableCell>
-                      {deployment.completedAt
-                        ? formatDistanceToNow(new Date(deployment.completedAt), {
+                      {deployment.completed_at
+                        ? formatDistanceToNow(new Date(deployment.completed_at), {
                           addSuffix: true,
                         })
                         : "-"}

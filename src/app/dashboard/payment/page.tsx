@@ -219,7 +219,7 @@ export default function PaymentPage() {
                                 <h3 className="font-medium mb-1">{order.license.name}</h3>
                                 <p className="text-sm text-gray-600 mb-1">{order.license.description}</p>
                                 <div className="text-xs text-gray-500">
-                                    {order.license.deploymentLimit} deployments •
+                                    {order.license.deployment_limit} deployments •
                                     {order.license.duration === 0 ? " Unlimited duration" : ` ${order.license.duration} days`}
                                 </div>
                             </div>

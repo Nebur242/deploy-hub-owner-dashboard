@@ -74,10 +74,10 @@ export default function EditLicensePage() {
                 description: license.description,
                 price: license.price,
                 currency: license.currency,
-                deploymentLimit: license.deploymentLimit,
+                deployment_limit: license.deployment_limit,
                 duration: license.duration,
                 features: license.features || [],
-                projectIds: license.projects?.map(project => project.id) || [],
+                project_ids: license.projects?.map(project => project.id) || [],
                 status: license.status,
                 popular: license.popular || false,
             });

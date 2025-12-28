@@ -9,25 +9,25 @@ export interface Project extends BaseEntity {
   name: string;
   description: string;
   slug: string;
-  ownerId: string;
+  owner_id: string;
   repository: string;
-  techStack: TechStack[];
+  tech_stack: TechStack[];
   visibility: Visibility;
   categories: Category[];
   versions?: ProjectVersion[];
   configurations?: ProjectConfiguration[];
   licenses?: LicenseOption[];
-  previewUrl?: string;
+  preview_url?: string;
   image?: string | null;
 }
 
 // Project Version entity
 export interface ProjectVersion extends BaseEntity {
-  projectId: string;
+  project_id: string;
   version: string;
-  releaseNotes: string;
-  commitHash?: string;
-  isLatest: boolean;
-  isStable: boolean;
+  release_notes: string;
+  commit_hash?: string;
+  is_latest: boolean;
+  is_stable: boolean;
   project: Project;
 }

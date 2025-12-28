@@ -43,8 +43,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onView, onEdit, onDelete, 
                         loading="lazy"
                     />
                     <div className="absolute top-2 right-2 z-20">
-                        <Badge variant={media.isPublic ? "default" : "outline"} className="bg-background/90 text-foreground backdrop-blur-sm border shadow-sm text-xs py-0">
-                            {media.isPublic ? "Public" : "Private"}
+                        <Badge variant={media.is_public ? "default" : "outline"} className="bg-background/90 text-foreground backdrop-blur-sm border shadow-sm text-xs py-0">
+                            {media.is_public ? "Public" : "Private"}
                         </Badge>
                     </div>
                 </div>
@@ -55,9 +55,9 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onView, onEdit, onDelete, 
             return (
                 <div className="relative w-full aspect-video bg-muted rounded-t-md overflow-hidden group-hover:opacity-90 transition-opacity">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {media.thumbnailUrl ? (
+                    {media.thumbnail_url ? (
                         <Image
-                            src={media.thumbnailUrl}
+                            src={media.thumbnail_url}
                             alt={media.alt || media.filename}
                             fill
                             className="object-cover"
@@ -77,8 +77,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onView, onEdit, onDelete, 
                         </Badge>
                     </div>
                     <div className="absolute top-2 right-2 z-20">
-                        <Badge variant={media.isPublic ? "default" : "outline"} className="bg-background/90 text-foreground backdrop-blur-sm border shadow-sm text-xs py-0">
-                            {media.isPublic ? "Public" : "Private"}
+                        <Badge variant={media.is_public ? "default" : "outline"} className="bg-background/90 text-foreground backdrop-blur-sm border shadow-sm text-xs py-0">
+                            {media.is_public ? "Public" : "Private"}
                         </Badge>
                     </div>
                 </div>
@@ -105,8 +105,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onView, onEdit, onDelete, 
             )}>
                 {iconMap[media.type] || iconMap[MediaType.OTHER]}
                 <div className="absolute top-2 right-2">
-                    <Badge variant={media.isPublic ? "default" : "outline"} className="bg-background/90 text-foreground backdrop-blur-sm border shadow-sm text-xs py-0">
-                        {media.isPublic ? "Public" : "Private"}
+                    <Badge variant={media.is_public ? "default" : "outline"} className="bg-background/90 text-foreground backdrop-blur-sm border shadow-sm text-xs py-0">
+                        {media.is_public ? "Public" : "Private"}
                     </Badge>
                 </div>
             </div>
@@ -139,7 +139,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onView, onEdit, onDelete, 
                         </div>
                         <div className="flex items-center gap-1" title="Upload date">
                             <Calendar className="h-3 w-3" />
-                            <span>{formatDate(media.createdAt)}</span>
+                            <span>{formatDate(media.created_at)}</span>
                         </div>
                     </div>
 

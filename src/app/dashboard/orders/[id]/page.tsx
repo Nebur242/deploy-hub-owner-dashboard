@@ -193,7 +193,7 @@ export default function OrderDetails() {
                                 {getBadgeForOrderStatus(order.status)}
                             </div>
                             <CardDescription>
-                                Created on {formatDate(order.createdAt)}
+                                Created on {formatDate(order.created_at)}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -210,26 +210,26 @@ export default function OrderDetails() {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-500">Created</h3>
-                                        <p className="mt-1">{formatDate(order.createdAt)}</p>
+                                        <p className="mt-1">{formatDate(order.created_at)}</p>
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>
-                                        <p className="mt-1">{formatDate(order.updatedAt)}</p>
+                                        <p className="mt-1">{formatDate(order.updated_at)}</p>
                                     </div>
-                                    {order.completedAt && (
+                                    {order.completed_at && (
                                         <div>
                                             <h3 className="text-sm font-medium text-gray-500">Completed</h3>
-                                            <p className="mt-1">{formatDate(order.completedAt)}</p>
+                                            <p className="mt-1">{formatDate(order.completed_at)}</p>
                                         </div>
                                     )}
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-500">Active</h3>
-                                        <p className="mt-1">{order.isActive ? "Yes" : "No"}</p>
+                                        <p className="mt-1">{order.is_active ? "Yes" : "No"}</p>
                                     </div>
-                                    {order.expiresAt && (
+                                    {order.expires_at && (
                                         <div>
                                             <h3 className="text-sm font-medium text-gray-500">Expires</h3>
-                                            <p className="mt-1">{formatDate(order.expiresAt)}</p>
+                                            <p className="mt-1">{formatDate(order.expires_at)}</p>
                                         </div>
                                     )}
                                 </div>
@@ -247,7 +247,7 @@ export default function OrderDetails() {
                                             </div>
                                             <p className="text-sm text-gray-600 mb-4">{order.license.description}</p>
                                             <div className="flex flex-wrap gap-2">
-                                                <Badge variant="secondary">{order.license.deploymentLimit} deployments</Badge>
+                                                <Badge variant="secondary">{order.license.deployment_limit} deployments</Badge>
                                                 <Badge variant="secondary">
                                                     {order.license.duration === 0
                                                         ? "Unlimited duration"
@@ -304,12 +304,12 @@ export default function OrderDetails() {
                                                 <div key={payment.id} className="flex items-center justify-between">
                                                     <div>
                                                         <p className="text-sm font-medium">
-                                                            {payment.paymentMethod.replace('_', ' ')}
+                                                            {payment.payment_method.replace('_', ' ')}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
-                                                            {payment.processedAt
-                                                                ? formatDate(payment.processedAt)
-                                                                : formatDate(payment.createdAt)}
+                                                            {payment.processed_at
+                                                                ? formatDate(payment.processed_at)
+                                                                : formatDate(payment.created_at)}
                                                         </p>
                                                     </div>
                                                     <div className="flex items-center">

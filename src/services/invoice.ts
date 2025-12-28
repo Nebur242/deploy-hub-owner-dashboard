@@ -14,7 +14,7 @@ export const generateInvoice = async (order: Order): Promise<Blob> => {
 
   // Set document properties
   doc.setProperties({
-    title: `Invoice #INV-${order.referenceNumber || order.id}`,
+    title: `Invoice #INV-${order.reference_number || order.id}`,
     subject: "Order Invoice",
     author: "Deploy Hub",
     keywords: "invoice, order, license",
@@ -50,9 +50,9 @@ export const generateInvoice = async (order: Order): Promise<Blob> => {
   );
 
   // Add invoice information
-  const invoiceNumber = `INV-${order.referenceNumber || order.id}`;
+  const invoiceNumber = `INV-${order.reference_number || order.id}`;
   const invoiceDate = formatDate(
-    order.completedAt || order.updatedAt || order.createdAt
+    order.completed_at || order.updated_at || order.created_at
   );
 
   doc.setFontSize(10);
@@ -60,7 +60,7 @@ export const generateInvoice = async (order: Order): Promise<Blob> => {
     [
       `Invoice Number: ${invoiceNumber}`,
       `Date: ${invoiceDate}`,
-      `Order Reference: ${order.referenceNumber || order.id}`,
+      `Order Reference: ${order.reference_number || order.id}`,
     ],
     pageWidth - margin - 80,
     margin + 10
@@ -133,7 +133,7 @@ export const generateInvoice = async (order: Order): Promise<Blob> => {
       [
         `Name: ${order.license.name}`,
         `Description: ${order.license.description}`,
-        `Deployment Limit: ${order.license.deploymentLimit} deployments`,
+        `Deployment Limit: ${order.license.deployment_limit} deployments`,
         `Duration: ${
           order.license.duration === 0
             ? "Unlimited"
@@ -175,7 +175,7 @@ export const downloadInvoice = async (order: Order): Promise<void> => {
     // Create a link element to trigger the download
     const link = document.createElement("a");
     link.href = url;
-    link.download = `invoice-${order.referenceNumber || order.id}.pdf`;
+    link.download = `invoice-${order.reference_number || order.id}.pdf`;
 
     // Append to the document, click it, and then remove it
     document.body.appendChild(link);

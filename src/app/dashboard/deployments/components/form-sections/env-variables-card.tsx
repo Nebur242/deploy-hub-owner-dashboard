@@ -43,7 +43,7 @@ export function EnvVariablesCard({
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{configError}</AlertDescription>
           </Alert>
-        ) : !form.getValues("configurationId") ? (
+        ) : !form.getValues("configuration_id") ? (
           <Alert>
             <IconAlertCircle className="h-4 w-4" />
             <AlertTitle>Required</AlertTitle>
@@ -58,30 +58,30 @@ export function EnvVariablesCard({
         ) : (
           <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             {configEnvVars.map((envVar) => (
-              <div key={envVar.key} className={`${envVar.isRequired ? 'block' : 'hidden'} p-4 border rounded-md`}>
+              <div key={envVar.key} className={`${envVar.is_required ? 'block' : 'hidden'} p-4 border rounded-md`}>
                 <div className="mb-2">
                   <span className="font-medium">{envVar.key}</span>
                   <p className="text-sm text-muted-foreground mt-1">{envVar.description}</p>
                 </div>
 
                 <Input
-                  type={envVar.isSecret ? "password" : "text"}
+                  type={envVar.is_secret ? "password" : "text"}
                   placeholder={
-                    envVar.isRequired
+                    envVar.is_required
                       ? `Enter value for ${envVar.key} (required)`
-                      : `Enter value for ${envVar.key} (default: ${envVar.defaultValue || "empty"})`
+                      : `Enter value for ${envVar.key} (default: ${envVar.default_value || "empty"})`
                   }
                   value={envVarValues[envVar.key] || ""}
                   onChange={(e) => onEnvVarChange(envVar.key, e.target.value)}
                   disabled={isLoading || success}
-                  className={envVar.isRequired && !envVarValues[envVar.key] ? "border-red-500" : ""}
+                  className={envVar.is_required && !envVarValues[envVar.key] ? "border-red-500" : ""}
                 />
 
                 <div className="flex items-center gap-2 mt-3">
-                  {envVar.isRequired && (
+                  {envVar.is_required && (
                     <Badge variant="outline" className="bg-red-500/10 text-red-500">Required</Badge>
                   )}
-                  {envVar.isSecret && (
+                  {envVar.is_secret && (
                     <Badge variant="outline" className="bg-blue-500/10 text-blue-500">Secret</Badge>
                   )}
                 </div>
@@ -90,7 +90,7 @@ export function EnvVariablesCard({
           </div>
         )}
 
-        <input type="hidden" {...form.register("environmentVariables")} />
+        <input type="hidden" {...form.register('environment_variables')} />
       </CardContent>
     </Card>
   );

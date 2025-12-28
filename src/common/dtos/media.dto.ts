@@ -24,7 +24,7 @@ export const createMediaDtoSchema = z.object({
   type: z.nativeEnum(MediaType),
   alt: z.string().optional(),
   metadata: z.record(z.string()).optional(),
-  isPublic: z.boolean().default(true),
+  is_public: z.boolean().default(true),
   tags: z.array(z.string()).default([]),
 });
 
@@ -34,7 +34,7 @@ export const updateMediaDtoSchema = z.object({
   filename: z.string().optional(),
   alt: z.string().optional(),
   metadata: z.record(z.string()).optional(),
-  isPublic: z.boolean().optional(),
+  is_public: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -45,9 +45,9 @@ export const mediaQueryParamsDtoSchema = z.object({
   sortBy: z.string().optional(),
   order: z.enum(["ASC", "DESC"]).optional(),
   type: z.nativeEnum(MediaType).optional(),
-  ownerId: z.string().optional(),
+  owner_id: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  isPublic: z.boolean().optional(),
+  is_public: z.boolean().optional(),
   search: z.string().optional(),
 });
 

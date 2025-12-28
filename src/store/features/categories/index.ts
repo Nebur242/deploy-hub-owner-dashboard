@@ -40,7 +40,7 @@ export const categoriesApi = createApi({
         if (params.page) queryParams.append("page", params.page.toString());
         if (params.limit) queryParams.append("limit", params.limit.toString());
         if (params.search) queryParams.append("search", params.search);
-        if (params.parentId) queryParams.append("parentId", params.parentId);
+        if (params.parent_id) queryParams.append("parent_id", params.parent_id);
         if (params.status) queryParams.append("status", params.status);
 
         return {

@@ -15,7 +15,7 @@ export interface ProjectSearchParams {
   page?: number;
   limit?: number;
   search?: string;
-  techStack?: string;
+  tech_stack?: string;
   visibility?: string;
   categoryIds?: string[];
   sortBy?: string;
@@ -47,8 +47,8 @@ export const projectsApi = createApi({
             queryParams.append("limit", params.limit.toString());
           if (params.page) queryParams.append("page", params.page.toString());
           if (params.search) queryParams.append("search", params.search);
-          if (params.techStack)
-            queryParams.append("techStack", params.techStack);
+          if (params.tech_stack)
+            queryParams.append("tech_stack", params.tech_stack);
           if (params.visibility)
             queryParams.append("visibility", params.visibility);
         }
@@ -138,86 +138,86 @@ export const projectsApi = createApi({
 
     // PROJECT VERSIONS
     getVersions: builder.query<ProjectVersion[], string>({
-      query: (projectId) => ({
-        url: `projects/${projectId}/versions`,
+      query: (project_id) => ({
+        url: `projects/${project_id}/versions`,
         method: "GET",
       }),
-      providesTags: (result, error, projectId) => [
-        { type: "ProjectVersion", id: projectId },
+      providesTags: (result, error, project_id) => [
+        { type: "ProjectVersion", id: project_id },
       ],
     }),
 
     getVersion: builder.query<
       ProjectVersion,
-      { projectId: string; versionId: string }
+      { project_id: string; version_id: string }
     >({
-      query: ({ projectId, versionId }) => ({
-        url: `projects/${projectId}/versions/${versionId}`,
+      query: ({ project_id, version_id }) => ({
+        url: `projects/${project_id}/versions/${version_id}`,
         method: "GET",
       }),
-      providesTags: (result, error, { versionId }) => [
-        { type: "ProjectVersion", id: versionId },
+      providesTags: (result, error, { version_id }) => [
+        { type: "ProjectVersion", id: version_id },
       ],
     }),
 
     createVersion: builder.mutation<
       ProjectVersion,
-      { projectId: string; body: Partial<ProjectVersion> }
+      { project_id: string; body: Partial<ProjectVersion> }
     >({
-      query: ({ projectId, body }) => ({
-        url: `projects/${projectId}/versions`,
+      query: ({ project_id, body }) => ({
+        url: `projects/${project_id}/versions`,
         method: "POST",
         data: body,
       }),
-      invalidatesTags: (result, error, { projectId }) => [
-        { type: "ProjectVersion", id: projectId },
-        { type: "Project", id: projectId },
+      invalidatesTags: (result, error, { project_id }) => [
+        { type: "ProjectVersion", id: project_id },
+        { type: "Project", id: project_id },
       ],
     }),
 
     updateVersion: builder.mutation<
       ProjectVersion,
       {
-        projectId: string;
+        project_id: string;
         id: string;
-        body: Pick<ProjectVersion, "commitHash" | "releaseNotes">;
+        body: Pick<ProjectVersion, "commit_hash" | "release_notes">;
       }
     >({
-      query: ({ projectId, body, id }) => ({
-        url: `projects/${projectId}/versions/${id}`,
+      query: ({ project_id, body, id }) => ({
+        url: `projects/${project_id}/versions/${id}`,
         method: "PATCH",
         data: body,
       }),
-      invalidatesTags: (result, error, { projectId, id }) => [
+      invalidatesTags: (result, error, { project_id, id }) => [
         { type: "ProjectVersion", id },
-        { type: "ProjectVersion", id: projectId },
+        { type: "ProjectVersion", id: project_id },
       ],
     }),
 
     setVersionAsStable: builder.mutation<
       ProjectVersion,
-      { projectId: string; versionId: string }
+      { project_id: string; version_id: string }
     >({
-      query: ({ projectId, versionId }) => ({
-        url: `projects/${projectId}/versions/${versionId}/set-stable`,
+      query: ({ project_id, version_id }) => ({
+        url: `projects/${project_id}/versions/${version_id}/set-stable`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, { projectId, versionId }) => [
-        { type: "ProjectVersion", id: projectId },
-        { type: "ProjectVersion", id: versionId },
+      invalidatesTags: (result, error, { project_id, version_id }) => [
+        { type: "ProjectVersion", id: project_id },
+        { type: "ProjectVersion", id: version_id },
       ],
     }),
 
     deleteVersion: builder.mutation<
       void,
-      { projectId: string; versionId: string }
+      { project_id: string; version_id: string }
     >({
-      query: ({ projectId, versionId }) => ({
-        url: `projects/${projectId}/versions/${versionId}`,
+      query: ({ project_id, version_id }) => ({
+        url: `projects/${project_id}/versions/${version_id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, { projectId }) => [
-        { type: "ProjectVersion", id: projectId },
+      invalidatesTags: (result, error, { project_id }) => [
+        { type: "ProjectVersion", id: project_id },
       ],
     }),
 

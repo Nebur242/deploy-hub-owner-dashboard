@@ -24,13 +24,6 @@ import {
   ActionCard
 } from "./form-sections";
 
-// Default values for form
-const defaultValues: Partial<DeploymentFormValues> = {
-  environment: DeploymentEnvironment.PREVIEW,
-  branch: "main",
-  environmentVariables: [],
-};
-
 export type { DeploymentFormValues };
 
 export default function DeploymentForm({
@@ -60,9 +53,11 @@ export default function DeploymentForm({
   const form = useForm<DeploymentFormValues>({
     resolver: zodResolver(deploymentSchema),
     defaultValues: initialData || {
-      ...defaultValues,
-      projectId: initialProjectId || "",
-      configurationId: initialConfigurationId || "",
+      environment: DeploymentEnvironment.PREVIEW,
+      branch: "main",
+      environment_variables: [],
+      project_id: initialProjectId || "",
+      configuration_id: initialConfigurationId || "",
     },
   });
 
@@ -105,7 +100,7 @@ export default function DeploymentForm({
     try {
       // Validate required environment variables
       const missingRequiredVars = configEnvVars
-        .filter(envVar => envVar.isRequired && (!envVarValues[envVar.key] || envVarValues[envVar.key].trim() === ''))
+        .filter(envVar => envVar.is_required && (!envVarValues[envVar.key] || envVarValues[envVar.key].trim() === ''))
         .map(envVar => envVar.key);
 
       if (missingRequiredVars.length > 0) {
@@ -119,9 +114,9 @@ export default function DeploymentForm({
       // Process the form data
       const processedData = {
         ...data,
-        environmentVariables: configEnvVars.map(envVar => ({
+        environment_variables: configEnvVars.map(envVar => ({
           ...envVar,
-          defaultValue: envVarValues[envVar.key] || envVar.defaultValue || ''
+          default_value: envVarValues[envVar.key] || envVar.default_value || ''
         }))
       };
 
@@ -138,8 +133,8 @@ export default function DeploymentForm({
   };
 
   // Get current project and configuration IDs
-  const currentProjectId = form.watch("projectId");
-  const currentConfigId = form.watch("configurationId");
+  const currentProjectId = form.watch("project_id");
+  const currentConfigId = form.watch("configuration_id");
 
   // Fetch configuration data when projectId and configurationId are available
   const {
@@ -179,17 +174,17 @@ export default function DeploymentForm({
   useEffect(() => {
     if (!configData) return;
     console.log("Configuration data:", configData);
-    setConfigEnvVars(configData.deploymentOption.environmentVariables);
+    setConfigEnvVars(configData.deployment_option.environment_variables);
 
     // Initialize env var values with default values from configuration
     const initialValues: Record<string, string> = {};
-    configData.deploymentOption.environmentVariables.forEach(envVar => {
+    configData.deployment_option.environment_variables.forEach(envVar => {
       // Set the defaultValue from the environment variable
-      initialValues[envVar.key] = envVar.defaultValue || "";
+      initialValues[envVar.key] = envVar.default_value || "";
     });
 
     setEnvVarValues(initialValues);
-    form.setValue("environmentVariables", configData.deploymentOption.environmentVariables);
+    form.setValue('environment_variables', configData.deployment_option.environment_variables);
   }, [configData, form]);
 
   // Only reset environment variables when project ID actually changes (not on first render)
@@ -227,14 +222,14 @@ export default function DeploymentForm({
       // Update both the value and the defaultValue for the environment variable
       updatedEnvVars[envVarIndex] = {
         ...updatedEnvVars[envVarIndex],
-        defaultValue: value // Always keep the user's latest value
+        default_value: value // Always keep the user's latest value
       };
 
       // Update the configEnvVars state
       setConfigEnvVars(updatedEnvVars);
 
       // Update the form values with the new values
-      form.setValue("environmentVariables", updatedEnvVars);
+      form.setValue("environment_variables", updatedEnvVars);
     }
   };
 
@@ -246,7 +241,7 @@ export default function DeploymentForm({
     }
 
     // Reset configuration and environment variables
-    form.setValue("configurationId", "");
+    form.setValue("configuration_id", "");
     setConfigEnvVars([]);
     setEnvVarValues({});
 

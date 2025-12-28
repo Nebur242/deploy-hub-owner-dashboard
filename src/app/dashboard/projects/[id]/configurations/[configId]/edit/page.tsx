@@ -74,8 +74,8 @@ export default function EditConfigurationPage() {
     if (configuration) {
       setInitialValues({
         name: configuration.name || "",
-        githubAccounts: configuration.githubAccounts || [],
-        deploymentOption: configuration.deploymentOption,
+        github_accounts: configuration.github_accounts || [],
+        deployment_option: configuration.deployment_option,
       });
     }
   }, [configuration, projectId]);

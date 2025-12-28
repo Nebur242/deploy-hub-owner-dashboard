@@ -174,7 +174,7 @@ export default function ViewLicensePage() {
                                         <h3 className="text-sm font-medium text-muted-foreground">Deployments</h3>
                                         <p className="mt-1">
                                             <Badge variant="outline" className="text-lg font-semibold">
-                                                {license?.deploymentLimit} {license?.deploymentLimit === 1 ? 'deployment' : 'deployments'}
+                                                {license?.deployment_limit} {license?.deployment_limit === 1 ? 'deployment' : 'deployments'}
                                             </Badge>
                                         </p>
                                     </div>
@@ -242,7 +242,7 @@ export default function ViewLicensePage() {
                                         <div>
                                             <p className="text-sm text-muted-foreground">Created On</p>
                                             <p className="text-lg font-medium">
-                                                {license && formatDate(license.createdAt)}
+                                                {license && formatDate(license.created_at)}
                                             </p>
                                         </div>
                                     </div>
@@ -306,14 +306,14 @@ export default function ViewLicensePage() {
                                     <TableBody>
                                         {licensePurchases.map(purchase => (
                                             <TableRow key={purchase.id}>
-                                                <TableCell>{purchase.userId.substring(0, 8)}...</TableCell>
+                                                <TableCell>{purchase.user_id.substring(0, 8)}...</TableCell>
                                                 <TableCell>
                                                     {purchase.project ? (
-                                                        <Link href={`/dashboard/projects/${purchase.projectId}`} className="text-primary hover:underline">
+                                                        <Link href={`/dashboard/projects/${purchase.project_id}`} className="text-primary hover:underline">
                                                             {purchase.project.name}
                                                         </Link>
                                                     ) : (
-                                                        purchase.projectId.substring(0, 8) + '...'
+                                                        purchase.project_id.substring(0, 8) + '...'
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
@@ -326,11 +326,11 @@ export default function ViewLicensePage() {
                                                 </TableCell>
                                                 <TableCell>{formatCurrency(purchase.currency, purchase.amount)}</TableCell>
                                                 <TableCell>
-                                                    {purchase.deploymentsUsed} / {purchase.deploymentsAllowed}
+                                                    {purchase.deployments_used} / {purchase.deployments_allowed}
                                                 </TableCell>
-                                                <TableCell>{formatDate(purchase.createdAt)}</TableCell>
+                                                <TableCell>{formatDate(purchase.created_at)}</TableCell>
                                                 <TableCell>
-                                                    {purchase.expiresAt ? formatDate(purchase.expiresAt) : "Never"}
+                                                    {purchase.expires_at ? formatDate(purchase.expires_at) : "Never"}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

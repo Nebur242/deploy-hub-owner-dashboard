@@ -28,8 +28,8 @@ export default function CreateCategoryPage() {
       description: data.description,
       icon: data.icon,
       status: data.status,
-      parentId: data.parentCategory,
-      sortOrder: data.sortOrder,
+      parent_id: data.parentCategory,
+      sort_order: data.sort_order,
       image: data.image ? JSON.stringify(data.image) : null,
     };
 

@@ -76,8 +76,8 @@ export default function EditCategoryPage() {
         description: category.description,
         icon: category.icon,
         status: category.status,
-        parentCategory: category.parentId || "root",
-        sortOrder: category.sortOrder,
+        parentCategory: category.parent_id || "root",
+        sort_order: category.sort_order,
         image: category.image || null,
       });
     }
@@ -110,8 +110,8 @@ export default function EditCategoryPage() {
         description: data.description,
         icon: data.icon,
         status: data.status,
-        parentId: data.parentCategory,
-        sortOrder: data.sortOrder,
+        parent_id: data.parentCategory,
+        sort_order: data.sort_order,
         image: data.image || null,
       };
 

@@ -34,7 +34,8 @@ export const ordersApi = createApi({
         if (params.page) queryParams.append("page", params.page.toString());
         if (params.limit) queryParams.append("limit", params.limit.toString());
         if (params.status) queryParams.append("status", params.status);
-        if (params.licenseId) queryParams.append("licenseId", params.licenseId);
+        if (params.licenseId)
+          queryParams.append("license_id", params.licenseId);
         if (params.currency) queryParams.append("currency", params.currency);
         if (params.isActive)
           queryParams.append("isActive", params.isActive.toString());

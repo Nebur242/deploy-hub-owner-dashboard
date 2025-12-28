@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Check, Code, FileText, Image, MessageSquare, Music, PenTool, Video } from "lucide-react";
+import { Check, Code, FileText, Image as ImageIcon, MessageSquare, Music, PenTool, Video } from "lucide-react";
 import { IconSelectionCardProps } from "./types";
 
 export function IconSelectionCard({ form, isLoading, success }: IconSelectionCardProps) {
     const icons = [
         { name: "code", icon: <Code className="h-6 w-6" /> },
-        { name: "image", icon: <Image className="h-6 w-6" /> },
+        { name: "image", icon: <ImageIcon className="h-6 w-6" /> },
         { name: "video", icon: <Video className="h-6 w-6" /> },
         { name: "music", icon: <Music className="h-6 w-6" /> },
         { name: "text", icon: <FileText className="h-6 w-6" /> },

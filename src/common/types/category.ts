@@ -1,18 +1,21 @@
 import { BaseEntity } from "./base";
 import { User } from "./user";
 
+// Category status enum
+export type CategoryStatus = "active" | "inactive" | "pending" | "deleted";
+
 // Category entity
 export interface Category extends BaseEntity {
   name: string;
   slug: string;
   description: string;
   icon: string;
-  ownerId: string;
+  owner_id: string;
   owner: User;
-  parentId?: string | null;
+  parent_id?: string | null;
   parent?: Category;
   image?: string | null;
   children: Category[];
-  status: "active" | "inactive" | "pending";
-  sortOrder: number;
+  status: CategoryStatus;
+  sort_order: number;
 }

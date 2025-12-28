@@ -17,10 +17,10 @@ export const categorySchema = z.object({
     .min(1, { message: "Description is required" })
     .max(500, { message: "Description must be less than 500 characters" }),
   icon: z.string(),
-  status: z.enum(["active", "inactive", "pending"]),
+  status: z.enum(["active", "inactive", "pending", "deleted"]),
   image: z.string().nullable().optional(),
   parentCategory: z.string().optional(),
-  sortOrder: z
+  sort_order: z
     .number()
     .min(1, { message: "Sort order must be a positive number" }),
 });

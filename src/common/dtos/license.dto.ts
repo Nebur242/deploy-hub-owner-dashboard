@@ -8,7 +8,7 @@ const licenseBaseDtoSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().nonnegative("Price must be a non-negative number"),
   currency: z.nativeEnum(Currency).default(Currency.USD),
-  deploymentLimit: z.number().int().nonnegative().default(1),
+  deployment_limit: z.number().int().nonnegative().default(1),
   duration: z.number().int().nonnegative().default(0), // 0 for unlimited
   features: z.array(z.string()).default([]),
   status: z.nativeEnum(LicenseStatus).default(LicenseStatus.DRAFT),
@@ -17,7 +17,7 @@ const licenseBaseDtoSchema = z.object({
 
 // Schema for creating new licenses
 export const createLicenseDtoSchema = licenseBaseDtoSchema.extend({
-  projectIds: z
+  project_ids: z
     .array(z.string())
     .min(1, "At least one project must be associated"),
 });
@@ -25,7 +25,7 @@ export const createLicenseDtoSchema = licenseBaseDtoSchema.extend({
 // Schema for updating existing licenses
 export const updateLicenseDtoSchema = licenseBaseDtoSchema.extend({
   id: z.string(),
-  projectIds: z.array(z.string()).optional(),
+  project_ids: z.array(z.string()).optional(),
 });
 
 // Schema for purchasing a license

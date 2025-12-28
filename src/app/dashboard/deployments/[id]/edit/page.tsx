@@ -32,7 +32,7 @@ export default function EditDeploymentPage() {
   // Set initial project ID once deployment data is loaded
   useEffect(() => {
     if (deployment) {
-      setCurrentProjectId(deployment.projectId);
+      setCurrentProjectId(deployment.project_id);
     }
   }, [deployment]);
 
@@ -77,7 +77,7 @@ export default function EditDeploymentPage() {
   // Process configurations data for form use
   const configurations = configurationsData?.map(config => ({
     ...config,
-    name: `Configuration ${config.id.substring(0, 4)} (${config.deploymentOption.provider})`
+    name: `Configuration ${config.id.substring(0, 4)} (${config.deployment_option.provider})`
   })) || [];
 
   // Determine if we're still loading data
@@ -140,8 +140,8 @@ export default function EditDeploymentPage() {
       </Alert>
 
       <DeploymentForm
-        initialProjectId={deployment.projectId}
-        initialConfigurationId={deployment.configurationId}
+        initialProjectId={deployment.project_id}
+        initialConfigurationId={deployment.configuration_id}
         projects={projects}
         configurations={configurations}
         isEditing={true}

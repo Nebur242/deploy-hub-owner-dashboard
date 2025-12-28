@@ -87,7 +87,7 @@ export default function DeploymentsPage() {
 
   // Main deployments query
   const { data, isLoading, isFetching, error, refetch } = useGetDeploymentsQuery({
-    projectId: selectedProjectId || "",
+    project_id: selectedProjectId || "",
     status: statusFilter !== "all" ? statusFilter as DeploymentStatus : undefined,
     environment: environmentFilter !== "all" ? environmentFilter as DeploymentEnvironment : undefined,
     page: currentPage,
@@ -310,13 +310,13 @@ export default function DeploymentsPage() {
                         <DeploymentStatusBadge status={deployment.status} />
                       </TableCell>
                       <TableCell>
-                        {formatDistanceToNow(new Date(deployment.createdAt), {
+                        {formatDistanceToNow(new Date(deployment.created_at), {
                           addSuffix: true,
                         })}
                       </TableCell>
                       <TableCell>
-                        {deployment.completedAt
-                          ? formatDistanceToNow(new Date(deployment.completedAt), {
+                        {deployment.completed_at
+                          ? formatDistanceToNow(new Date(deployment.completed_at), {
                             addSuffix: true,
                           })
                           : "-"}
@@ -353,7 +353,7 @@ export default function DeploymentsPage() {
                               )}
                             </Button>
                           )}
-                          {deployment.deploymentUrl && (
+                          {deployment.deployment_url && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -361,7 +361,7 @@ export default function DeploymentsPage() {
                               asChild
                             >
                               <a
-                                href={deployment.deploymentUrl}
+                                href={deployment.deployment_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >

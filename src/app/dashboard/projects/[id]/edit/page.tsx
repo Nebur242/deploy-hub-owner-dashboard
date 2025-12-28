@@ -118,10 +118,10 @@ export default function EditProjectPage() {
         slug: project.slug,
         description: project.description,
         repository: project.repository || "",
-        techStack: project.techStack,
+        tech_stack: project.tech_stack,
         visibility: project.visibility,
         categories: project.categories || [],
-        previewUrl: project.previewUrl || "",
+        preview_url: project.preview_url || "",
         image: project.image || null,
       });
     }
@@ -272,7 +272,7 @@ export default function EditProjectPage() {
                         </h4>
                         <div className="flex flex-wrap gap-2 mt-1">
                           <Badge variant="outline">
-                            {config.deploymentOption.provider}
+                            {config.deployment_option.provider}
                           </Badge>
                         </div>
                       </div>
@@ -282,7 +282,7 @@ export default function EditProjectPage() {
                           Environment Variables
                         </h4>
                         <p className="text-sm mt-1">
-                          {config.deploymentOption.environmentVariables.length} variables defined
+                          {config.deployment_option.environment_variables.length} variables defined
                         </p>
                       </div>
 
@@ -291,7 +291,7 @@ export default function EditProjectPage() {
                           Github Accounts
                         </h4>
                         <p className="text-sm mt-1">
-                          {config.githubAccounts.length} accounts defined
+                          {config.github_accounts.length} accounts defined
                         </p>
                       </div>
 

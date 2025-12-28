@@ -16,16 +16,16 @@ interface GithubValidationResponse {
  */
 export async function validateGithubConfig(
   username: string,
-  accessToken: string,
+  access_token: string,
   repository: string,
-  workflowFile: string
+  workflow_file: string
 ): Promise<GithubValidationResponse> {
   try {
     // Create Axios instance with GitHub API base URL and auth token
     const githubApi = axios.create({
       baseURL: "https://api.github.com",
       headers: {
-        Authorization: `token ${accessToken}`,
+        Authorization: `token ${access_token}`,
         Accept: "application/vnd.github.v3+json",
       },
     });
@@ -79,9 +79,9 @@ export async function validateGithubConfig(
 
     // Step 3: Validate workflow file exists
     // GitHub workflows should be in the .github/workflows directory
-    const workflowPath = workflowFile.startsWith(".github/workflows/")
-      ? workflowFile
-      : `.github/workflows/${workflowFile}`;
+    const workflowPath = workflow_file.startsWith(".github/workflows/")
+      ? workflow_file
+      : `.github/workflows/${workflow_file}`;
 
     try {
       await githubApi.get(
@@ -167,7 +167,7 @@ function cleanupCache() {
  */
 export async function verifyVersionTag(
   username: string,
-  accessToken: string,
+  access_token: string,
   repository: string,
   version: string
 ): Promise<GithubValidationResponse> {
@@ -202,7 +202,7 @@ export async function verifyVersionTag(
     const githubApi = axios.create({
       baseURL: "https://api.github.com",
       headers: {
-        Authorization: `token ${accessToken}`,
+        Authorization: `token ${access_token}`,
         Accept: "application/vnd.github.v3+json",
       },
     });
@@ -296,7 +296,7 @@ const accountVerificationCache: Record<string, AccountVerificationCacheEntry> =
 export async function verifyVersionInGithubAccounts(
   accounts: Array<{
     username: string;
-    accessToken: string;
+    access_token: string;
     repository: string;
     workflowFile?: string;
   }>,
@@ -346,7 +346,7 @@ export async function verifyVersionInGithubAccounts(
     accounts.map(async (account) => {
       const result = await verifyVersionTag(
         account.username,
-        account.accessToken,
+        account.access_token,
         account.repository,
         version
       );
@@ -403,14 +403,14 @@ export async function verifyVersionInGithubAccounts(
  */
 export async function getWorkflowFiles(
   username: string,
-  accessToken: string,
+  access_token: string,
   repository: string
 ): Promise<{ files: string[]; error?: string }> {
   try {
     const githubApi = axios.create({
       baseURL: "https://api.github.com",
       headers: {
-        Authorization: `token ${accessToken}`,
+        Authorization: `token ${access_token}`,
         Accept: "application/vnd.github.v3+json",
       },
     });
@@ -467,23 +467,23 @@ export async function getWorkflowFiles(
  */
 export async function getWorkflowFileContent(
   username: string,
-  accessToken: string,
+  access_token: string,
   repository: string,
-  workflowFile: string
+  workflow_file: string
 ): Promise<{ content: string; error?: string }> {
   try {
     const githubApi = axios.create({
       baseURL: "https://api.github.com",
       headers: {
-        Authorization: `token ${accessToken}`,
+        Authorization: `token ${access_token}`,
         Accept: "application/vnd.github.v3+json",
       },
     });
 
     // Ensure proper path format
-    const workflowPath = workflowFile.startsWith(".github/workflows/")
-      ? workflowFile
-      : `.github/workflows/${workflowFile}`;
+    const workflowPath = workflow_file.startsWith(".github/workflows/")
+      ? workflow_file
+      : `.github/workflows/${workflow_file}`;
 
     const { data } = await githubApi.get(
       `/repos/${username}/${repository}/contents/${workflowPath}`
@@ -531,9 +531,9 @@ export async function getWorkflowFileContent(
  */
 export async function createWorkflowFile(
   username: string,
-  accessToken: string,
+  access_token: string,
   repository: string,
-  workflowFile: string,
+  workflow_file: string,
   content: string,
   commitMessage: string = "Add GitHub workflow file"
 ): Promise<{ success: boolean; error?: string }> {
@@ -541,15 +541,15 @@ export async function createWorkflowFile(
     const githubApi = axios.create({
       baseURL: "https://api.github.com",
       headers: {
-        Authorization: `token ${accessToken}`,
+        Authorization: `token ${access_token}`,
         Accept: "application/vnd.github.v3+json",
       },
     });
 
     // Ensure proper path format
-    const workflowPath = workflowFile.startsWith(".github/workflows/")
-      ? workflowFile
-      : `.github/workflows/${workflowFile}`;
+    const workflowPath = workflow_file.startsWith(".github/workflows/")
+      ? workflow_file
+      : `.github/workflows/${workflow_file}`;
 
     // Check if file already exists
     try {

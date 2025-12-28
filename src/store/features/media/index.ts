@@ -28,8 +28,8 @@ function buildMediaQueryString(params: MediaQueryParamsDto): URLSearchParams {
     queryString.append("type", params.type.toString());
   }
 
-  if (params.ownerId) {
-    queryString.append("ownerId", params.ownerId);
+  if (params.owner_id) {
+    queryString.append("owner_id", params.owner_id);
   }
 
   // Handle array of tags
@@ -38,8 +38,8 @@ function buildMediaQueryString(params: MediaQueryParamsDto): URLSearchParams {
   }
 
   // Handle boolean
-  if (params.isPublic !== undefined) {
-    queryString.append("isPublic", params.isPublic.toString());
+  if (params.is_public !== undefined) {
+    queryString.append("is_public", params.is_public.toString());
   }
 
   if (params.search) {
@@ -80,7 +80,7 @@ export const mediaApi = createApi({
 
     createMedia: builder.mutation<
       Media,
-      Omit<Media, "id" | "createdAt" | "updatedAt">
+      Omit<Media, "id" | "created_at" | "updated_at">
     >({
       query: (media) => ({
         url: "/media",

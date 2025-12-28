@@ -90,17 +90,17 @@ export default function ProjectVersionsPage() {
     // Filter versions based on search term and stability filter
     const filteredVersions = versions.filter((version) => {
         const matchesSearch = version.version.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (version.releaseNotes && version.releaseNotes.toLowerCase().includes(searchTerm.toLowerCase()));
+            (version.release_notes && version.release_notes.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesStability = stabilityFilter === "all" ||
-            (stabilityFilter === "stable" && version.isStable) ||
-            (stabilityFilter === "unstable" && !version.isStable);
+            (stabilityFilter === "stable" && version.is_stable) ||
+            (stabilityFilter === "unstable" && !version.is_stable);
 
         return matchesSearch && matchesStability;
     });
 
     // Find current stable version (if any)
-    const currentStableVersion = versions.find(v => v.isStable);
+    const currentStableVersion = versions.find(v => v.is_stable);
 
     // For handling delete confirmation
     const handleDeleteClick = (version: ProjectVersion) => {
@@ -115,8 +115,8 @@ export default function ProjectVersionsPage() {
         try {
             // Call the RTK Query delete mutation
             await deleteVersion({
-                projectId,
-                versionId: versionToDelete.id,
+                project_id: projectId,
+                version_id: versionToDelete.id,
             }).unwrap();
 
             // Show success toast
@@ -151,8 +151,8 @@ export default function ProjectVersionsPage() {
         try {
             // Call the RTK Query set stable mutation
             await setVersionAsStable({
-                projectId,
-                versionId: versionToSetStable.id,
+                project_id: projectId,
+                version_id: versionToSetStable.id,
             }).unwrap();
 
             // Show success toast
@@ -276,7 +276,7 @@ export default function ProjectVersionsPage() {
                                     <TableRow key={version.id}>
                                         <TableCell className="font-medium">
                                             {version.version}
-                                            {version.isLatest && (
+                                            {version.is_latest && (
                                                 <Badge className="ml-2 bg-blue-500 text-white hover:bg-blue-600">
                                                     Latest
                                                 </Badge>
@@ -284,26 +284,26 @@ export default function ProjectVersionsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <Badge
-                                                variant={version.isStable ? "default" : "outline"}
+                                                variant={version.is_stable ? "default" : "outline"}
                                                 className={
-                                                    version.isStable
+                                                    version.is_stable
                                                         ? "bg-green-500 hover:bg-green-600"
                                                         : "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
                                                 }
                                             >
-                                                {version.isStable ? "Stable" : "Unstable"}
+                                                {version.is_stable ? "Stable" : "Unstable"}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="max-w-[300px] truncate">
-                                            {version.releaseNotes || "No release notes"}
+                                            {version.release_notes || "No release notes"}
                                         </TableCell>
                                         <TableCell className="font-mono text-xs">
-                                            {version.commitHash
-                                                ? version.commitHash.substring(0, 8)
+                                            {version.commit_hash
+                                                ? version.commit_hash.substring(0, 8)
                                                 : "N/A"}
                                         </TableCell>
                                         <TableCell>
-                                            {new Date(version.createdAt).toLocaleDateString()}
+                                            {new Date(version.created_at).toLocaleDateString()}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end space-x-1">
@@ -333,7 +333,7 @@ export default function ProjectVersionsPage() {
                                                     </Link>
                                                 </Button>
 
-                                                {!version.isStable && (
+                                                {!version.is_stable && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -353,7 +353,7 @@ export default function ProjectVersionsPage() {
                                                         )}
                                                     </Button>
                                                 )}
-                                                {version.isStable && (
+                                                {version.is_stable && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -370,7 +370,7 @@ export default function ProjectVersionsPage() {
                                                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                                     onClick={() => handleDeleteClick(version)}
                                                     disabled={
-                                                        isDeleting && versionToDelete?.id === version.id || version.isStable
+                                                        isDeleting && versionToDelete?.id === version.id || version.is_stable
                                                     }
                                                 >
                                                     {isDeleting &&
@@ -403,7 +403,7 @@ export default function ProjectVersionsPage() {
                         <AlertDialogDescription>
                             This will permanently delete the version &quot;
                             {versionToDelete?.version}&quot;. This action cannot be undone.
-                            {versionToDelete?.isStable && (
+                            {versionToDelete?.is_stable && (
                                 <p className="mt-2 text-red-500 font-semibold">
                                     Stable versions cannot be deleted. Please mark another version as stable first.
                                 </p>
@@ -415,7 +415,7 @@ export default function ProjectVersionsPage() {
                         <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
                             onClick={handleConfirmDelete}
-                            disabled={isDeleting || versionToDelete?.isStable}
+                            disabled={isDeleting || versionToDelete?.is_stable}
                         >
                             {isDeleting ? (
                                 <>

@@ -37,7 +37,7 @@ export function ProjectDetailsCard({
     // No need to set projectId value here since we're handling it directly in the onValueChange
 
     // When project changes, reset configuration with validation
-    form.setValue("configurationId", "", { shouldValidate: true, shouldDirty: true });
+    form.setValue("configuration_id", "", { shouldValidate: true, shouldDirty: true });
 
     // Call parent handler if provided
     if (onProjectChange) {
@@ -48,9 +48,9 @@ export function ProjectDetailsCard({
   const handleConfigChange = (value: string) => {
     // No need to set configurationId value here since we're handling it directly in the onValueChange
 
-    // Clear any validation errors for configurationId when a value is selected
+    // Clear any validation errors for configuration_id when a value is selected
     if (value) {
-      form.clearErrors("configurationId");
+      form.clearErrors("configuration_id");
     }
 
     if (onConfigChange) {
@@ -66,7 +66,7 @@ export function ProjectDetailsCard({
       <CardContent className="space-y-6">
         <FormField
           control={form.control}
-          name="projectId"
+          name="project_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Project</FormLabel>
@@ -111,7 +111,7 @@ export function ProjectDetailsCard({
 
         <FormField
           control={form.control}
-          name="configurationId"
+          name="configuration_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Configuration</FormLabel>
@@ -126,7 +126,7 @@ export function ProjectDetailsCard({
                 disabled={
                   isLoading ||
                   success ||
-                  !form.watch("projectId")
+                  !form.watch("project_id")
                   // Removed the initialConfigurationId condition
                 }
               >
@@ -136,9 +136,9 @@ export function ProjectDetailsCard({
                       <span className="flex items-center text-muted-foreground">
                         <IconLoader className="h-4 w-4 mr-2 animate-spin" /> Loading...
                       </span>
-                    ) : !field.value && !form.watch("projectId") ? (
+                    ) : !field.value && !form.watch("project_id") ? (
                       <span className="text-muted-foreground">Select a project first</span>
-                    ) : !configurations.length && form.watch("projectId") ? (
+                    ) : !configurations.length && form.watch("project_id") ? (
                       <span className="text-muted-foreground">No configurations available</span>
                     ) : (
                       <SelectValue placeholder="Select a configuration" />
@@ -154,7 +154,7 @@ export function ProjectDetailsCard({
                     ))
                   ) : (
                     <SelectItem value="no-configs" disabled>
-                      {form.watch("projectId")
+                      {form.watch("project_id")
                         ? "No configurations for this project"
                         : "Select a project first"}
                     </SelectItem>

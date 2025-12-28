@@ -161,10 +161,10 @@ export default function DeploymentDetailPage() {
         </Button>
       )}
 
-      {deployment.deploymentUrl && (
+      {deployment.deployment_url && (
         <Button asChild>
           <a
-            href={deployment.deploymentUrl}
+            href={deployment.deployment_url}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-green-500 hover:bg-green-600 text-white"
@@ -232,7 +232,7 @@ export default function DeploymentDetailPage() {
             <div>
               <CardTitle className="text-xl">Deployment Status</CardTitle>
               <CardDescription>
-                Created {formatDistanceToNow(new Date(deployment.createdAt), { addSuffix: true })}
+                Created {formatDistanceToNow(new Date(deployment.created_at), { addSuffix: true })}
               </CardDescription>
             </div>
             <DeploymentStatusBadge status={deployment.status} />
@@ -259,8 +259,8 @@ export default function DeploymentDetailPage() {
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Completed</div>
                 <div className="font-medium mt-1">
-                  {deployment.completedAt
-                    ? formatDistanceToNow(new Date(deployment.completedAt), {
+                  {deployment.completed_at
+                    ? formatDistanceToNow(new Date(deployment.completed_at), {
                       addSuffix: true,
                     })
                     : "-"}
@@ -268,27 +268,27 @@ export default function DeploymentDetailPage() {
               </div>
             </div>
 
-            {deployment.errorMessage && (
+            {deployment.error_message && (
               <Alert variant="destructive" className="mt-4">
                 <IconAlertCircle className="h-4 w-4" />
                 <AlertTitle>Deployment Error</AlertTitle>
                 <AlertDescription>
-                  {deployment.errorMessage}
+                  {deployment.error_message}
                 </AlertDescription>
               </Alert>
             )}
           </CardContent>
-          {deployment.deploymentUrl && (
+          {deployment.deployment_url && (
             <CardFooter className="flex justify-between">
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Deployment URL:</span>{" "}
                 <a
-                  href={deployment.deploymentUrl}
+                  href={deployment.deployment_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline"
                 >
-                  {deployment.deploymentUrl}
+                  {deployment.deployment_url}
                 </a>
               </div>
             </CardFooter>
@@ -324,7 +324,7 @@ export default function DeploymentDetailPage() {
                     <div className="flex-1">
                       <p className="font-medium">Created</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(deployment.createdAt), "PPpp")}
+                        {format(new Date(deployment.created_at), "PPpp")}
                       </p>
                     </div>
                   </div>
@@ -351,8 +351,8 @@ export default function DeploymentDetailPage() {
                       <div className="flex-1">
                         <p className="font-medium">Deployment Successful</p>
                         <p className="text-sm text-muted-foreground">
-                          {deployment.completedAt
-                            ? format(new Date(deployment.completedAt), "PPpp")
+                          {deployment.completed_at
+                            ? format(new Date(deployment.completed_at), "PPpp")
                             : "Unknown time"}
                         </p>
                       </div>
@@ -367,13 +367,13 @@ export default function DeploymentDetailPage() {
                       <div className="flex-1">
                         <p className="font-medium">Deployment Failed</p>
                         <p className="text-sm text-muted-foreground">
-                          {deployment.completedAt
-                            ? format(new Date(deployment.completedAt), "PPpp")
+                          {deployment.completed_at
+                            ? format(new Date(deployment.completed_at), "PPpp")
                             : "Unknown time"}
                         </p>
-                        {deployment.errorMessage && (
+                        {deployment.error_message && (
                           <p className="text-sm text-red-500 mt-1">
-                            {deployment.errorMessage}
+                            {deployment.error_message}
                           </p>
                         )}
                       </div>
@@ -392,10 +392,10 @@ export default function DeploymentDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {deployment.environmentVariables &&
-                  deployment.environmentVariables.length > 0 ? (
+                {deployment.environment_variables &&
+                  deployment.environment_variables.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {deployment.environmentVariables.map((envVar, index) => (
+                    {deployment.environment_variables.map((envVar, index) => (
                       <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <span className="font-mono text-sm">{envVar.key}</span>
                         <Badge variant="outline">
@@ -433,26 +433,26 @@ export default function DeploymentDetailPage() {
                       <div className="p-3 border rounded">
                         <span className="text-sm font-medium text-muted-foreground">Provider</span>
                         <p className="font-medium">
-                          {deployment.configuration?.deploymentOption?.provider ?? "Unknown"}
+                          {deployment.configuration?.deployment_option?.provider ?? "Unknown"}
                         </p>
                       </div>
-                      {deployment.workflowRunId && (
+                      {deployment.workflow_run_id && (
                         <div className="p-3 border rounded">
                           <span className="text-sm font-medium text-muted-foreground">Workflow ID</span>
-                          <p className="font-medium">{deployment.workflowRunId}</p>
+                          <p className="font-medium">{deployment.workflow_run_id}</p>
                         </div>
                       )}
-                      {deployment.retryCount > 0 && (
+                      {deployment.retry_count > 0 && (
                         <div className="p-3 border rounded">
                           <span className="text-sm font-medium text-muted-foreground">Retry Count</span>
-                          <p className="font-medium">{deployment.retryCount}</p>
+                          <p className="font-medium">{deployment.retry_count}</p>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* GitHub Account Info (if available) */}
-                  {deployment.githubAccount && (
+                  {deployment.github_account && (
                     <div className="mt-6">
                       <h3 className="text-lg font-medium flex items-center">
                         <IconBrandGithub className="h-5 w-5 mr-2" /> GitHub Details
@@ -460,15 +460,15 @@ export default function DeploymentDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                         <div className="p-3 border rounded">
                           <span className="text-sm font-medium text-muted-foreground">Repository</span>
-                          <p className="font-medium">{deployment.githubAccount.repository}</p>
+                          <p className="font-medium">{deployment.github_account.repository}</p>
                         </div>
                         <div className="p-3 border rounded">
                           <span className="text-sm font-medium text-muted-foreground">Username</span>
-                          <p className="font-medium">{deployment.githubAccount.username}</p>
+                          <p className="font-medium">{deployment.github_account.username}</p>
                         </div>
                         <div className="p-3 border rounded">
                           <span className="text-sm font-medium text-muted-foreground">Workflow File</span>
-                          <p className="font-medium">{deployment.githubAccount.workflowFile}</p>
+                          <p className="font-medium">{deployment.github_account.workflow_file}</p>
                         </div>
                       </div>
                     </div>

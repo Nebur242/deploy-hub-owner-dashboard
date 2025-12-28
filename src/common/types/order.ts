@@ -7,6 +7,7 @@ export enum OrderStatus {
   CANCELLED = "cancelled",
   REFUNDED = "refunded",
   FAILED = "failed",
+  PROCESSING = "processing",
 }
 
 export enum PaymentMethod {
@@ -22,39 +23,53 @@ export enum PaymentStatus {
   FAILED = "failed",
   REFUNDED = "refunded",
   CANCELLED = "cancelled",
+  PROCESSING = "processing",
+}
+
+export interface BillingInfo {
+  first_name: string;
+  last_name: string;
+  email: string;
+  company?: string;
+  address?: string;
+  city: string;
+  state?: string;
+  postal_code?: string;
+  country: string;
 }
 
 export interface Order {
   id: string;
-  userId: string;
-  licenseId: string;
+  user_id: string;
+  license_id: string;
   amount: number;
   currency: string;
   status: OrderStatus;
-  referenceNumber: string;
+  reference_number: string;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string | null;
-  isActive: boolean;
-  expiresAt?: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+  is_active: boolean;
+  expires_at?: string | null;
   license: LicenseOption;
   payments?: Payment[];
   user?: User;
+  billing?: BillingInfo;
 }
 
 export interface Payment {
   id: string;
-  orderId: string;
+  order_id: string;
   amount: number;
   currency: string;
   status: PaymentStatus;
-  paymentMethod: PaymentMethod;
-  transactionId?: string;
-  paymentGatewayResponse?: string;
-  createdAt: string;
-  updatedAt: string;
-  processedAt?: string | null;
+  payment_method: PaymentMethod;
+  transaction_id?: string;
+  payment_gateway_response?: string;
+  created_at: string;
+  updated_at: string;
+  processed_at?: string | null;
   order: Order;
 }
 

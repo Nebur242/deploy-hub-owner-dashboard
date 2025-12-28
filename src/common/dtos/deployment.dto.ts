@@ -4,12 +4,12 @@ import { DeploymentProvider } from "../enums/project";
 // Deployment configuration schema
 export const deploymentConfigurationDtoSchema = z
   .object({
-    siteId: z.string().optional(),
-    teamId: z.string().optional(),
-    projectName: z.string().optional(),
-    installCommand: z.string().optional(),
-    buildCommand: z.string().optional(),
-    publishDirectory: z.string().optional(),
+    site_id: z.string().optional(),
+    team_id: z.string().optional(),
+    project_name: z.string().optional(),
+    install_command: z.string().optional(),
+    build_command: z.string().optional(),
+    publish_directory: z.string().optional(),
     repository: z.string(),
     username: z.string().optional(),
   })
@@ -17,12 +17,12 @@ export const deploymentConfigurationDtoSchema = z
 
 // Schema for creating a new deployment
 export const createDeploymentDtoSchema = z.object({
-  projectId: z.string(),
-  versionId: z.string(),
-  licenseId: z.string(),
+  project_id: z.string(),
+  version_id: z.string(),
+  license_id: z.string(),
   provider: z.nativeEnum(DeploymentProvider),
   configuration: deploymentConfigurationDtoSchema,
-  environmentVariables: z.record(z.string()).optional(),
+  environment_variables: z.record(z.string()).optional(),
 });
 
 // Schema for canceling a deployment

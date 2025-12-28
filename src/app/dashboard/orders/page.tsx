@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useGetOrdersQuery } from "@/store/features/orders";
 import {
     Table,
@@ -54,7 +54,7 @@ export default function OrdersPage() {
         limit: itemsPerPage,
     });
 
-    const orders = data?.items || [];
+    const orders = useMemo(() => data?.items || [], [data?.items]);
     const totalOrders = data?.meta?.totalItems || 0;
     const totalPages = data?.meta?.totalPages || 1;
 
@@ -237,7 +237,7 @@ export default function OrdersPage() {
                                             className={order.status === OrderStatus.PENDING ? "bg-amber-50" : ""}
                                         >
                                             <TableCell className="font-medium">
-                                                {order.referenceNumber || order.id}
+                                                {order.reference_number || order.id}
                                             </TableCell>
                                             <TableCell>
                                                 {order.license?.name || "Unknown License"}
@@ -246,7 +246,7 @@ export default function OrdersPage() {
                                                 {formatCurrency(order.currency, order.amount)}
                                             </TableCell>
                                             <TableCell>
-                                                {formatDate(order.createdAt)}
+                                                {formatDate(order.created_at)}
                                             </TableCell>
                                             <TableCell>
                                                 {order.status === OrderStatus.PENDING ? (

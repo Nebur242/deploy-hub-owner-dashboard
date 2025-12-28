@@ -108,10 +108,10 @@ export const licensesApi = createApi({
           if (params.search) queryParams.append("search", params.search);
           if (params.status) queryParams.append("status", params.status);
           if (params.licenseId)
-            queryParams.append("licenseId", params.licenseId);
+            queryParams.append("license_id", params.licenseId);
           if (params.projectId)
-            queryParams.append("projectId", params.projectId);
-          if (params.userId) queryParams.append("userId", params.userId);
+            queryParams.append("project_id", params.projectId);
+          if (params.userId) queryParams.append("user_id", params.userId);
           if (params.sortBy) queryParams.append("sortBy", params.sortBy);
           if (params.sortDirection)
             queryParams.append("sortDirection", params.sortDirection);

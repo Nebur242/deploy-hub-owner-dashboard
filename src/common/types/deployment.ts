@@ -1,37 +1,63 @@
 import { BaseEntity } from "./base";
-import { DeploymentProvider, DeploymentStatus } from "../enums/project";
-import { Project } from "./project";
-import { ProjectVersion } from "./project";
+import { DeploymentStatus } from "../enums/project";
+import { Project, ProjectVersion } from "./project";
+import { ProjectConfiguration, EnvironmentVariable } from "./configuration";
+import { LicenseOption, UserLicense } from "./license";
+import { User } from "./user";
 
-// Deployment Configuration entity
-export interface DeploymentConfiguration {
-  siteId?: string;
-  teamId?: string;
-  projectName?: string;
-  installCommand?: string;
-  buildCommand?: string;
-  publishDirectory?: string;
-  repository: string;
-  username?: string;
-  [key: string]: unknown; // For additional provider-specific fields
+// Deployment Environment enum
+export enum DeploymentEnvironment {
+  PRODUCTION = "production",
+  PREVIEW = "preview",
 }
 
-// Deployment entity
+// GitHub Account info used in deployment
+export interface DeploymentGitHubAccount {
+  username: string;
+  access_token: string;
+  repository: string;
+  workflow_file: string;
+  available: boolean;
+  failure_count: number;
+  last_used?: string;
+}
+
+// Webhook info for deployment
+export interface DeploymentWebhookInfo {
+  hook_id: number;
+  repository_owner: string;
+  repository_name: string;
+}
+
+// Environment variable value for deployment
+export interface DeploymentEnvironmentVariable extends EnvironmentVariable {
+  value?: string;
+}
+
+// Deployment entity - matches API entity
 export interface Deployment extends BaseEntity {
-  userId: string;
-  projectId: string;
-  versionId: string;
-  licenseId: string;
-  status: DeploymentStatus;
-  provider: DeploymentProvider;
-  configuration: DeploymentConfiguration;
-  deploymentUrl?: string;
-  githubWorkflowId?: string;
-  logUrl?: string;
-  logs?: string;
-  errorMessage?: string;
-  startedAt?: string;
-  completedAt?: string;
+  owner_id: string;
+  owner?: User;
+  project_id: string;
   project?: Project;
+  license_id: string;
+  license?: LicenseOption;
+  user_license_id: string;
+  user_license?: UserLicense;
+  configuration_id: string;
+  configuration?: ProjectConfiguration;
+  environment: DeploymentEnvironment;
+  branch: string;
+  workflow_run_id?: string;
+  site_id?: string;
+  status: DeploymentStatus;
+  deployment_url?: string;
+  environment_variables: DeploymentEnvironmentVariable[];
+  github_account?: DeploymentGitHubAccount;
+  error_message?: string;
+  retry_count: number;
+  webhook_info?: DeploymentWebhookInfo;
+  completed_at?: string;
+  // Computed fields from API responses
   version?: ProjectVersion;
 }

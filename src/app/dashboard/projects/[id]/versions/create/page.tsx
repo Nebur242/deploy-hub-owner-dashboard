@@ -46,11 +46,11 @@ export default function CreateVersionPage() {
     // Get all GitHub accounts from project configurations
     // Use useMemo to prevent recreating this array on every render
     const allGithubAccounts = useMemo(() => configurations.flatMap(config =>
-        (config.githubAccounts || []).map(account => ({
+        (config.github_accounts || []).map(account => ({
             username: account.username,
-            accessToken: account.accessToken,
+            access_token: account.access_token,
             repository: account.repository,
-            workflowFile: account.workflowFile
+            workflow_file: account.workflow_file
         }))
     ), [configurations]);
 
@@ -131,7 +131,7 @@ export default function CreateVersionPage() {
         try {
             // Call the RTK Query create mutation
             await createVersion({
-                projectId,
+                project_id: projectId,
                 body: values,
             }).unwrap();
 

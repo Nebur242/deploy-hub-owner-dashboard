@@ -19,10 +19,10 @@ export enum Visibility {
 
 export enum DeploymentStatus {
   PENDING = "pending",
-  IN_PROGRESS = "in_progress",
+  RUNNING = "running",
   SUCCESS = "success",
   FAILED = "failed",
-  CANCELLED = "cancelled",
+  CANCELED = "canceled",
 }
 
 export enum DeploymentProvider {

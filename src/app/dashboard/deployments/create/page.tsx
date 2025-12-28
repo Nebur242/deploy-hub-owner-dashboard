@@ -118,7 +118,7 @@ export default function CreateDeploymentPage() {
   const configurations = configurationsData?.map(config => ({
     ...config,
     id: config.id,
-    name: config.name || `Configuration ${config.id.substring(0, 4)} (${config.deploymentOption.provider})`
+    name: config.name || `Configuration ${config.id.substring(0, 4)} (${config.deployment_option.provider})`
   })) || [];
 
   // Handle form submission
@@ -127,13 +127,13 @@ export default function CreateDeploymentPage() {
     setSubmissionError(null);
 
     // Process environment variables from the form
-    const formattedEnvVars = data.environmentVariables.map(envVar => {
+    const formattedEnvVars = data.environment_variables.map(envVar => {
       return {
         key: envVar.key,
-        isSecret: envVar.isSecret || false,
-        isRequired: envVar.isRequired || false,
+        is_secret: envVar.is_secret || false,
+        is_required: envVar.is_required || false,
         description: envVar.description || "",
-        defaultValue: envVar.defaultValue || "",
+        default_value: envVar.default_value || "",
         video: envVar.video || null,
         type: envVar.type || "text", // Add the required type property
       };
@@ -141,11 +141,11 @@ export default function CreateDeploymentPage() {
 
     // Create the deployment using the mutation
     const result = createDeployment({
-      projectId: data.projectId,
-      configurationId: data.configurationId,
+      project_id: data.project_id,
+      configuration_id: data.configuration_id,
       environment: data.environment,
       branch: data.branch,
-      environmentVariables: formattedEnvVars,
+      environment_variables: formattedEnvVars,
     });
 
     try {

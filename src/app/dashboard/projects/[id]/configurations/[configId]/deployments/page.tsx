@@ -52,7 +52,7 @@ export default function ConfigurationDeploymentsPage() {
     isError,
     refetch
   } = useGetDeploymentsQuery({
-    projectId,
+    project_id: projectId,
     page: currentPage,
     limit: 10,
   }, {
@@ -191,8 +191,8 @@ export default function ConfigurationDeploymentsPage() {
               <TableBody>
                 {deployments.map((deployment) => {
                   // Calculate duration if both timestamps exist
-                  const duration = deployment.completedAt && deployment.createdAt
-                    ? new Date(deployment.completedAt).getTime() - new Date(deployment.createdAt).getTime()
+                  const duration = deployment.completed_at && deployment.created_at
+                    ? new Date(deployment.completed_at).getTime() - new Date(deployment.created_at).getTime()
                     : null;
 
                   // Format duration in a readable way
@@ -212,10 +212,10 @@ export default function ConfigurationDeploymentsPage() {
                       <TableCell>
                         <div className="flex items-center">
                           <IconCalendar className="h-4 w-4 mr-1" />
-                          {format(new Date(deployment.createdAt), "MMM d, yyyy")}
+                          {format(new Date(deployment.created_at), "MMM d, yyyy")}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {format(new Date(deployment.createdAt), "h:mm a")}
+                          {format(new Date(deployment.created_at), "h:mm a")}
                         </div>
                       </TableCell>
                       <TableCell>

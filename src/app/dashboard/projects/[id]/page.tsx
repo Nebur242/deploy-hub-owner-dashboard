@@ -80,7 +80,7 @@ export default function ProjectPreviewPage() {
         data: deploymentsData,
         isLoading: isLoadingDeployments
     } = useGetDeploymentsQuery({
-        projectId,
+        project_id: projectId,
         limit: 5,
         page: 1
     }, {
@@ -124,10 +124,10 @@ export default function ProjectPreviewPage() {
     };
 
     // Get the stable version if available
-    const stableVersion = versions.find(v => v.isStable);
+    const stableVersion = versions.find(v => v.is_stable);
 
     // Get the latest version if available
-    const latestVersion = versions.find(v => v.isLatest);
+    const latestVersion = versions.find(v => v.is_latest);
 
     // Breadcrumb items
     const breadcrumbItems: BreadcrumbItem[] = [
@@ -204,7 +204,7 @@ export default function ProjectPreviewPage() {
                                         <div>
                                             <CardTitle className="text-2xl">{project.name}</CardTitle>
                                             <CardDescription>
-                                                Created on {formatDate(project.createdAt)}
+                                                Created on {formatDate(project.created_at)}
                                             </CardDescription>
                                         </div>
                                         <Badge
@@ -229,6 +229,7 @@ export default function ProjectPreviewPage() {
                                     {project.image && (
                                         <div className="mb-4">
                                             <div className="relative w-full h-52 rounded-md overflow-hidden border border-muted">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img
                                                     src={JSON.parse(project.image).url}
                                                     alt={project.name}
@@ -248,7 +249,7 @@ export default function ProjectPreviewPage() {
                                     <div>
                                         <h3 className="text-lg font-semibold mb-2">Tech Stack</h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {project.techStack.map((tech) => (
+                                            {project.tech_stack.map((tech) => (
                                                 <Badge key={tech} variant="outline">
                                                     {tech}
                                                 </Badge>
@@ -292,19 +293,19 @@ export default function ProjectPreviewPage() {
                                         </>
                                     )}
 
-                                    {project.previewUrl && (
+                                    {project.preview_url && (
                                         <>
                                             <Separator />
                                             <div>
                                                 <h3 className="text-lg font-semibold mb-2">Preview URL</h3>
                                                 <div className="flex items-center">
                                                     <a
-                                                        href={project.previewUrl}
+                                                        href={project.preview_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-blue-500 hover:underline flex items-center"
                                                     >
-                                                        {project.previewUrl}
+                                                        {project.preview_url}
                                                         <IconExternalLink className="h-4 w-4 ml-1" />
                                                     </a>
                                                 </div>
@@ -365,7 +366,7 @@ export default function ProjectPreviewPage() {
                                                         <TableRow key={version.id}>
                                                             <TableCell className="font-medium">
                                                                 {version.version}
-                                                                {version.isLatest && (
+                                                                {version.is_latest && (
                                                                     <Badge className="ml-2 bg-blue-500 text-white hover:bg-blue-600">
                                                                         Latest
                                                                     </Badge>
@@ -373,18 +374,18 @@ export default function ProjectPreviewPage() {
                                                             </TableCell>
                                                             <TableCell>
                                                                 <Badge
-                                                                    variant={version.isStable ? "default" : "outline"}
+                                                                    variant={version.is_stable ? "default" : "outline"}
                                                                     className={
-                                                                        version.isStable
+                                                                        version.is_stable
                                                                             ? "bg-green-500 hover:bg-green-600"
                                                                             : "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
                                                                     }
                                                                 >
-                                                                    {version.isStable ? "Stable" : "Unstable"}
+                                                                    {version.is_stable ? "Stable" : "Unstable"}
                                                                 </Badge>
                                                             </TableCell>
                                                             <TableCell>
-                                                                {formatDate(version.createdAt)}
+                                                                {formatDate(version.created_at)}
                                                             </TableCell>
                                                             <TableCell className="text-right">
                                                                 <Button
@@ -491,7 +492,7 @@ export default function ProjectPreviewPage() {
                                                                 <DeploymentStatusBadge status={deployment.status} />
                                                             </TableCell>
                                                             <TableCell>
-                                                                {formatDistanceToNow(new Date(deployment.createdAt), { addSuffix: true })}
+                                                                {formatDistanceToNow(new Date(deployment.created_at), { addSuffix: true })}
                                                             </TableCell>
                                                             <TableCell className="text-right">
                                                                 <div className="flex justify-end space-x-1">
@@ -590,7 +591,7 @@ export default function ProjectPreviewPage() {
                                             <p className="font-medium mt-1">
                                                 {stableVersion.version}
                                                 <span className="text-xs text-muted-foreground ml-2">
-                                                    ({formatDate(stableVersion.createdAt)})
+                                                    ({formatDate(stableVersion.created_at)})
                                                 </span>
                                             </p>
                                         </div>
@@ -602,7 +603,7 @@ export default function ProjectPreviewPage() {
                                             <p className="font-medium mt-1">
                                                 {latestVersion.version}
                                                 <span className="text-xs text-muted-foreground ml-2">
-                                                    ({formatDate(latestVersion.createdAt)})
+                                                    ({formatDate(latestVersion.created_at)})
                                                 </span>
                                             </p>
                                         </div>

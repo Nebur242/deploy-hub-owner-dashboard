@@ -135,10 +135,10 @@ function GithubAccountFields({ index }: { index: number }) {
   const [assistantOpen, setAssistantOpen] = useState(false);
 
   // Watch for changes in username, token, and repository to reload workflows
-  const username = form.watch(`githubAccounts.${index}.username`);
-  const accessToken = form.watch(`githubAccounts.${index}.accessToken`);
-  const repository = form.watch(`githubAccounts.${index}.repository`);
-  const selectedWorkflow = form.watch(`githubAccounts.${index}.workflowFile`);
+  const username = form.watch(`github_accounts.${index}.username`);
+  const accessToken = form.watch(`github_accounts.${index}.access_token`);
+  const repository = form.watch(`github_accounts.${index}.repository`);
+  const selectedWorkflow = form.watch(`github_accounts.${index}.workflow_file`);
 
   // Determine Monaco Editor theme based on app theme
   const getEditorTheme = () => {
@@ -226,7 +226,7 @@ function GithubAccountFields({ index }: { index: number }) {
       <div className="space-y-4">
         <FormField
           control={form.control}
-          name={`githubAccounts.${index}.username`}
+          name={`github_accounts.${index}.username`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>GitHub Username</FormLabel>
@@ -240,7 +240,7 @@ function GithubAccountFields({ index }: { index: number }) {
 
         <FormField
           control={form.control}
-          name={`githubAccounts.${index}.accessToken`}
+          name={`github_accounts.${index}.access_token`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Access Token</FormLabel>
@@ -261,7 +261,7 @@ function GithubAccountFields({ index }: { index: number }) {
 
         <FormField
           control={form.control}
-          name={`githubAccounts.${index}.repository`}
+          name={`github_accounts.${index}.repository`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Repository</FormLabel>
@@ -283,7 +283,7 @@ function GithubAccountFields({ index }: { index: number }) {
         {username && accessToken && repository && (
           <FormField
             control={form.control}
-            name={`githubAccounts.${index}.workflowFile`}
+            name={`github_accounts.${index}.workflow_file`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
@@ -449,7 +449,7 @@ function ProviderFields() {
   const { control, setValue, watch } = form;
 
   // Setup provider field watching
-  const currentProvider = watch("deploymentOption.provider");
+  const currentProvider = watch("deployment_option.provider");
   const [previousProvider, setPreviousProvider] = useState(currentProvider);
 
   // State for confirmation dialog
@@ -460,79 +460,79 @@ function ProviderFields() {
   useEffect(() => {
     if (currentProvider !== previousProvider && previousProvider) {
       // Provider has changed, reset environment variables
-      setValue("deploymentOption.environmentVariables", []);
+      setValue("deployment_option.environment_variables", []);
       setPreviousProvider(currentProvider);
 
       // Set default environment variables based on provider
       if (currentProvider === DeploymentProvider.VERCEL) {
-        setValue("deploymentOption.environmentVariables", [
+        setValue("deployment_option.environment_variables", [
           {
             key: "VERCEL_TOKEN",
-            defaultValue: "",
+            default_value: "",
             description: "Vercel API token for deployment authentication",
-            isRequired: true,
-            isSecret: true,
+            is_required: true,
+            is_secret: true,
             video: null,
             type: "text",
           },
           {
             key: "VERCEL_ORG_ID",
-            defaultValue: "",
+            default_value: "",
             description: "Vercel organization ID",
-            isRequired: true,
-            isSecret: true,
+            is_required: true,
+            is_secret: true,
             video: null,
             type: "text",
           },
           {
             key: "VERCEL_PROJECT_ID",
-            defaultValue: "",
+            default_value: "",
             description: "Vercel project ID for deployment target",
-            isRequired: false,
-            isSecret: true,
+            is_required: false,
+            is_secret: true,
             video: null,
             type: "text",
           },
         ]);
       } else if (currentProvider === DeploymentProvider.NETLIFY) {
-        setValue("deploymentOption.environmentVariables", [
+        setValue("deployment_option.environment_variables", [
           {
             key: "NETLIFY_TOKEN",
-            defaultValue: "",
+            default_value: "",
             description: "Netlify authentication token for deployment",
-            isRequired: true,
-            isSecret: true,
+            is_required: true,
+            is_secret: true,
             video: null,
             type: "text",
           },
           {
             key: "NETLIFY_SITE_NAME",
-            defaultValue: "",
+            default_value: "",
             description: "Netlify site name for deployment target",
-            isRequired: false,
-            isSecret: false,
+            is_required: false,
+            is_secret: false,
             video: null,
             type: "text",
           },
           {
             key: "NETLIFY_SITE_ID",
-            defaultValue: "",
+            default_value: "",
             description: "Netlify site ID for deployment target",
-            isRequired: false,
-            isSecret: false,
+            is_required: false,
+            is_secret: false,
             video: null,
             type: "text",
           },
         ]);
       } else if (currentProvider === DeploymentProvider.CUSTOM) {
         // For custom provider, add an empty variable as an example
-        setValue("deploymentOption.environmentVariables", [
+        setValue("deployment_option.environment_variables", [
           {
             key: "",
-            defaultValue: "",
+            default_value: "",
             description: "Add your custom environment variables",
-            isRequired: false,
-            isSecret: false,
+            is_required: false,
+            is_secret: false,
             video: null,
             type: "text",
           },
@@ -540,34 +540,34 @@ function ProviderFields() {
       }
     } else if (currentProvider === DeploymentProvider.VERCEL && !previousProvider) {
       // Initial render with Vercel provider selected, set default variables
-      const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+      const currentVars = form.getValues("deployment_option.environment_variables") || [];
       if (currentVars.length === 0 ||
         (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
-        setValue("deploymentOption.environmentVariables", [
+        setValue("deployment_option.environment_variables", [
           {
             key: "VERCEL_TOKEN",
-            defaultValue: "",
+            default_value: "",
             description: "Vercel API token for deployment authentication",
-            isRequired: true,
-            isSecret: true,
+            is_required: true,
+            is_secret: true,
             video: null,
             type: "text",
           },
           {
             key: "VERCEL_ORG_ID",
-            defaultValue: "",
+            default_value: "",
             description: "Vercel organization ID",
-            isRequired: true,
-            isSecret: true,
+            is_required: true,
+            is_secret: true,
             video: null,
             type: "text",
           },
           {
             key: "VERCEL_PROJECT_ID",
-            defaultValue: "",
+            default_value: "",
             description: "Vercel project ID for deployment target",
-            isRequired: false,
-            isSecret: true,
+            is_required: false,
+            is_secret: true,
             video: null,
             type: "text",
           },
@@ -575,34 +575,34 @@ function ProviderFields() {
       }
     } else if (currentProvider === DeploymentProvider.NETLIFY && !previousProvider) {
       // Initial render with Netlify provider selected, set default variables
-      const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+      const currentVars = form.getValues("deployment_option.environment_variables") || [];
       if (currentVars.length === 0 ||
         (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
-        setValue("deploymentOption.environmentVariables", [
+        setValue("deployment_option.environment_variables", [
           {
             key: "NETLIFY_TOKEN",
-            defaultValue: "",
+            default_value: "",
             description: "Netlify authentication token for deployment",
-            isRequired: true,
-            isSecret: true,
+            is_required: true,
+            is_secret: true,
             video: null,
             type: "text",
           },
           {
             key: "NETLIFY_SITE_NAME",
-            defaultValue: "",
+            default_value: "",
             description: "Netlify site name for deployment target",
-            isRequired: false,
-            isSecret: false,
+            is_required: false,
+            is_secret: false,
             video: null,
             type: "text",
           },
           {
             key: "NETLIFY_SITE_ID",
-            defaultValue: "",
+            default_value: "",
             description: "Netlify site ID for deployment target",
-            isRequired: false,
-            isSecret: false,
+            is_required: false,
+            is_secret: false,
             video: null,
             type: "text",
           },
@@ -610,16 +610,16 @@ function ProviderFields() {
       }
     } else if (currentProvider === DeploymentProvider.CUSTOM && !previousProvider) {
       // Initial render with Custom provider selected, set an empty variable
-      const currentVars = form.getValues("deploymentOption.environmentVariables") || [];
+      const currentVars = form.getValues("deployment_option.environment_variables") || [];
       if (currentVars.length === 0 ||
         (currentVars.length === 1 && (!currentVars[0].key || currentVars[0].key === ""))) {
-        setValue("deploymentOption.environmentVariables", [
+        setValue("deployment_option.environment_variables", [
           {
             key: "",
-            defaultValue: "",
+            default_value: "",
             description: "Add your custom environment variables",
-            isRequired: false,
-            isSecret: false,
+            is_required: false,
+            is_secret: false,
             video: null,
             type: "text",
           },
@@ -636,7 +636,7 @@ function ProviderFields() {
   // Handler for when user confirms the provider change in the dialog
   const handleConfirmProviderChange = () => {
     if (pendingProviderChange) {
-      form.setValue("deploymentOption.provider", pendingProviderChange);
+      form.setValue("deployment_option.provider", pendingProviderChange);
       setPendingProviderChange(null);
       setConfirmDialogOpen(false);
     }
@@ -652,7 +652,7 @@ function ProviderFields() {
     <div className="space-y-4">
       <FormField
         control={control}
-        name="deploymentOption.provider"
+        name="deployment_option.provider"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Provider</FormLabel>
@@ -726,23 +726,23 @@ function EnvironmentVariablesSection() {
     remove: removeEnvVar,
   } = useFieldArray({
     control,
-    name: "deploymentOption.environmentVariables",
+    name: "deployment_option.environment_variables",
   });
 
   // Get the current provider to adjust UI behavior
-  const currentProvider = watch("deploymentOption.provider");
+  const currentProvider = watch("deployment_option.provider");
   const isCustomProvider = currentProvider === DeploymentProvider.CUSTOM;
 
   // Watch for isRequired changes to update defaultValue when needed
-  const watchedFields = watch("deploymentOption.environmentVariables");
+  const watchedFields = watch("deployment_option.environment_variables");
 
   // Effect to ensure defaultValue is provided when isRequired is false
   useEffect(() => {
     if (!watchedFields) return;
 
     watchedFields.forEach((field: EnvironmentVariableDto, index: number) => {
-      if (field && field.isRequired === false && (!field.defaultValue || field.defaultValue.trim() === "")) {
-        setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "", {
+      if (field && field.is_required === false && (!field.default_value || field.default_value.trim() === "")) {
+        setValue(`deployment_option.environment_variables.${index}.default_value`, "", {
           shouldValidate: true
         });
       }
@@ -750,11 +750,11 @@ function EnvironmentVariablesSection() {
   }, [watchedFields, setValue]);
 
   // Check for env var array level errors
-  const envVarErrors = (form.formState.errors?.deploymentOption)?.environmentVariables?.message;
+  const envVarErrors = (form.formState.errors?.deployment_option)?.environment_variables?.message;
 
   // Function to clear video field
   const clearVideoField = (index: number) => {
-    setValue(`deploymentOption.environmentVariables.${index}.video`, null);
+    setValue(`deployment_option.environment_variables.${index}.video`, null);
   };
 
   return (
@@ -777,7 +777,7 @@ function EnvironmentVariablesSection() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
         {envVarFields.map((field: EnvironmentVariableDto, index) => {
           // Check if this is a default environment variable
-          const provider = watch("deploymentOption.provider");
+          const provider = watch("deployment_option.provider");
           const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
             (field.key === "VERCEL_TOKEN" || field.key === "VERCEL_ORG_ID" || field.key === "VERCEL_PROJECT_ID");
           const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
@@ -817,10 +817,10 @@ function EnvironmentVariablesSection() {
 
               <FormField
                 control={control}
-                name={`deploymentOption.environmentVariables.${index}.key`}
+                name={`deployment_option.environment_variables.${index}.key`}
                 render={({ field }) => {
                   // Check if this is a default environment variable
-                  const provider = watch("deploymentOption.provider");
+                  const provider = watch("deployment_option.provider");
                   const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
                     (field.value === "VERCEL_TOKEN" || field.value === "VERCEL_ORG_ID" || field.value === "VERCEL_PROJECT_ID");
                   const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
@@ -856,10 +856,10 @@ function EnvironmentVariablesSection() {
 
               <FormField
                 control={control}
-                name={`deploymentOption.environmentVariables.${index}.defaultValue`}
+                name={`deployment_option.environment_variables.${index}.default_value`}
                 render={({ field }) => {
                   // Get isRequired value for this index
-                  const isRequired = watch(`deploymentOption.environmentVariables.${index}.isRequired`);
+                  const isRequired = watch(`deployment_option.environment_variables.${index}.is_required`);
                   const requiresDefaultValue = !isRequired && !isCustomProvider;
 
                   return (
@@ -886,7 +886,7 @@ function EnvironmentVariablesSection() {
 
               <FormField
                 control={control}
-                name={`deploymentOption.environmentVariables.${index}.description`}
+                name={`deployment_option.environment_variables.${index}.description`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm">Description</FormLabel>
@@ -904,7 +904,7 @@ function EnvironmentVariablesSection() {
 
               <FormField
                 control={control}
-                name={`deploymentOption.environmentVariables.${index}.video`}
+                name={`deployment_option.environment_variables.${index}.video`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Explanation video</FormLabel>
@@ -937,7 +937,7 @@ function EnvironmentVariablesSection() {
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <FormField
                   control={control}
-                  name={`deploymentOption.environmentVariables.${index}.isRequired`}
+                  name={`deployment_option.environment_variables.${index}.is_required`}
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center space-x-2">
                       <FormControl>
@@ -947,9 +947,9 @@ function EnvironmentVariablesSection() {
                             field.onChange(checked);
                             // Only enforce default value for non-custom providers
                             if (checked === false && !isCustomProvider) {
-                              const currentDefaultValue = watch(`deploymentOption.environmentVariables.${index}.defaultValue`);
+                              const currentDefaultValue = watch(`deployment_option.environment_variables.${index}.default_value`);
                               if (!currentDefaultValue || currentDefaultValue.trim() === "") {
-                                setValue(`deploymentOption.environmentVariables.${index}.defaultValue`, "");
+                                setValue(`deployment_option.environment_variables.${index}.default_value`, "");
                               }
                             }
                           }}
@@ -964,7 +964,7 @@ function EnvironmentVariablesSection() {
 
                 <FormField
                   control={control}
-                  name={`deploymentOption.environmentVariables.${index}.isSecret`}
+                  name={`deployment_option.environment_variables.${index}.is_secret`}
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center space-x-2">
                       <FormControl>
@@ -983,7 +983,7 @@ function EnvironmentVariablesSection() {
 
               <FormField
                 control={control}
-                name={`deploymentOption.environmentVariables.${index}.type`}
+                name={`deployment_option.environment_variables.${index}.type`}
                 render={({ field }) => {
                   // Ensure "text" is selected by default if no value is set
                   if (!field.value) {
@@ -1046,10 +1046,10 @@ function EnvironmentVariablesSection() {
           onClick={() =>
             appendEnvVar({
               key: "",
-              defaultValue: "",
+              default_value: "",
               description: isCustomProvider ? "Custom environment variable" : "",
-              isRequired: isCustomProvider ? false : true,
-              isSecret: false,
+              is_required: isCustomProvider ? false : true,
+              is_secret: false,
               video: null,
               type: "text",
             })
@@ -1089,10 +1089,10 @@ function LeftColumnWithTabs({
   const form = useFormContext();
 
   // Determine if there are errors in either section
-  const hasGithubErrors = !!form.formState.errors.githubAccounts;
-  const githubErrorMessage = (form.formState.errors.githubAccounts)?.message?.toString() || '';
-  const hasDeploymentErrors = !!form.formState.errors.deploymentOption;
-  const deploymentErrorMessage = (form.formState.errors.deploymentOption)?.message?.toString() || '';
+  const hasGithubErrors = !!form.formState.errors.github_accounts;
+  const githubErrorMessage = (form.formState.errors.github_accounts)?.message?.toString() || '';
+  const hasDeploymentErrors = !!form.formState.errors.deployment_option;
+  const deploymentErrorMessage = (form.formState.errors.deployment_option)?.message?.toString() || '';
 
   return (
     <div className="space-y-6">
@@ -1153,9 +1153,9 @@ function LeftColumnWithTabs({
                 onClick={() =>
                   appendGithub({
                     username: "",
-                    accessToken: "",
+                    access_token: "",
                     repository: "",
-                    workflowFile: "",
+                    workflow_file: "",
                   })
                 }
                 className="w-full"
@@ -1208,11 +1208,11 @@ function LeftColumnWithTabs({
         isOpen={assistantOpen}
         onClose={() => setAssistantOpen(false)}
         username={githubFields[0]?.username || ""}
-        accessToken={githubFields[0]?.accessToken || ""}
+        accessToken={githubFields[0]?.access_token || ""}
         repository={githubFields[0]?.repository || ""}
         onWorkflowCreated={() => {
           // Refresh workflow files for the first GitHub account if it exists
-          if (githubFields[0]?.username && githubFields[0]?.accessToken && githubFields[0]?.repository) {
+          if (githubFields[0]?.username && githubFields[0]?.access_token && githubFields[0]?.repository) {
             // This would trigger a refresh in the GithubAccountFields component
             // The actual refresh logic is handled within that component
           }
@@ -1239,28 +1239,28 @@ export default function ConfigurationForm({
   const defaultVercelVariables = [
     {
       key: "VERCEL_TOKEN",
-      defaultValue: "",
+      default_value: "",
       description: "Vercel API token for deployment authentication",
-      isRequired: true,
-      isSecret: true,
+      is_required: true,
+      is_secret: true,
       video: null,
       type: "text",
     },
     {
       key: "VERCEL_ORG_ID",
-      defaultValue: "",
+      default_value: "",
       description: "Vercel organization ID",
-      isRequired: true,
-      isSecret: true,
+      is_required: true,
+      is_secret: true,
       video: null,
       type: "text",
     },
     {
       key: "VERCEL_PROJECT_ID",
-      defaultValue: "",
+      default_value: "",
       description: "Vercel project ID for deployment target",
-      isRequired: false,
-      isSecret: true,
+      is_required: false,
+      is_secret: true,
       video: null,
       type: "text",
     }
@@ -1270,17 +1270,17 @@ export default function ConfigurationForm({
     resolver: zodResolver(createConfigurationDtoSchema),
     defaultValues: initialData || {
       name: "",
-      githubAccounts: [
+      github_accounts: [
         {
           username: "",
-          accessToken: "",
+          access_token: "",
           repository: "",
-          workflowFile: "",
+          workflow_file: "",
         },
       ],
-      deploymentOption: {
+      deployment_option: {
         provider: DeploymentProvider.VERCEL,
-        environmentVariables: defaultVercelVariables,
+        environment_variables: defaultVercelVariables,
       } as DeploymentOption,
     },
     mode: "onChange", // Validate on change for better UX
@@ -1292,7 +1292,7 @@ export default function ConfigurationForm({
     remove: removeGithub,
   } = useFieldArray({
     control: form.control,
-    name: "githubAccounts",
+    name: "github_accounts",
   });
 
   const handleSubmit = async (values: CreateConfigurationDto) => {
@@ -1304,12 +1304,12 @@ export default function ConfigurationForm({
 
     try {
       // Validate all GitHub configurations
-      const validationPromises = values.githubAccounts.map(async (account, index) => {
+      const validationPromises = values.github_accounts.map(async (account, index) => {
         const result = await validateGithubConfig(
           account.username,
-          account.accessToken,
+          account.access_token,
           account.repository,
-          account.workflowFile
+          account.workflow_file
         );
 
         if (!result.isValid) {

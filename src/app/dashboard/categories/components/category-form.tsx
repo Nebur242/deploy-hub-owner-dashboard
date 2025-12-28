@@ -45,7 +45,7 @@ export default function CategoryForm({
             icon: "code",
             status: "active",
             parentCategory: "root",
-            sortOrder: 1,
+            sort_order: 1,
             image: null,
         }
     });

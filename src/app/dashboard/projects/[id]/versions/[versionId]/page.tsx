@@ -51,8 +51,8 @@ export default function VersionPreviewPage() {
         error: fetchError,
         refetch
     } = useGetVersionQuery({
-        projectId: projectId,
-        versionId: versionId,
+        project_id: projectId,
+        version_id: versionId,
     });
 
     // Set version as stable mutation
@@ -65,8 +65,8 @@ export default function VersionPreviewPage() {
     const handleSetStable = async () => {
         try {
             await setVersionAsStable({
-                projectId: projectId as string,
-                versionId: versionId as string,
+                project_id: projectId as string,
+                version_id: versionId as string,
             }).unwrap();
 
             toast.success("Version set as stable", {
@@ -87,8 +87,8 @@ export default function VersionPreviewPage() {
     const handleDelete = async () => {
         try {
             await deleteVersion({
-                projectId: projectId as string,
-                versionId: versionId as string,
+                project_id: projectId as string,
+                version_id: versionId as string,
             }).unwrap();
 
             toast.success("Version deleted", {
@@ -131,7 +131,7 @@ export default function VersionPreviewPage() {
     // Action buttons for the header
     const actionButtons = version && (
         <>
-            {!version.isStable && (
+            {!version.is_stable && (
                 <Button
                     variant="outline"
                     onClick={handleSetStable}
@@ -154,7 +154,7 @@ export default function VersionPreviewPage() {
             <Button
                 variant="destructive"
                 onClick={() => setDeleteDialogOpen(true)}
-                disabled={isDeleting || version.isStable}
+                disabled={isDeleting || version.is_stable}
             >
                 {isDeleting ? (
                     <>
@@ -203,19 +203,19 @@ export default function VersionPreviewPage() {
                                     <div>
                                         <CardTitle className="text-2xl flex items-center">
                                             {version.version}
-                                            {version.isLatest && (
+                                            {version.is_latest && (
                                                 <Badge className="ml-2 bg-blue-500 text-white hover:bg-blue-600">
                                                     Latest
                                                 </Badge>
                                             )}
-                                            {version.isStable && (
+                                            {version.is_stable && (
                                                 <Badge className="ml-2 bg-green-500 hover:bg-green-600">
                                                     Stable
                                                 </Badge>
                                             )}
                                         </CardTitle>
                                         <CardDescription>
-                                            Created {version?.createdAt ? formatDate(version.createdAt) : 'Unknown date'}                                        </CardDescription>
+                                            Created {version?.created_at ? formatDate(version.created_at) : 'Unknown date'}                                        </CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -223,9 +223,9 @@ export default function VersionPreviewPage() {
                                 {/* Version Info */}
                                 <div>
                                     <h3 className="text-lg font-semibold mb-2">Release Notes</h3>
-                                    {version.releaseNotes ? (
+                                    {version.release_notes ? (
                                         <p className="whitespace-pre-line">
-                                            {version.releaseNotes}
+                                            {version.release_notes}
                                         </p>
                                     ) : (
                                         <p className="text-muted-foreground italic">
@@ -237,11 +237,11 @@ export default function VersionPreviewPage() {
                                 <Separator />
 
                                 {/* Commit Info */}
-                                {version.commitHash && (
+                                {version.commit_hash && (
                                     <div>
                                         <h3 className="text-lg font-semibold mb-2">Commit Information</h3>
                                         <div className="bg-muted p-3 rounded-md font-mono text-sm">
-                                            {version.commitHash}
+                                            {version.commit_hash}
                                         </div>
                                     </div>
                                 )}
@@ -258,7 +258,7 @@ export default function VersionPreviewPage() {
                                     <div className="space-y-2">
                                         <p className="text-sm font-medium">Stability</p>
                                         <p>
-                                            {version.isStable ? (
+                                            {version.is_stable ? (
                                                 <Badge className="bg-green-500 hover:bg-green-600">
                                                     Stable
                                                 </Badge>
@@ -273,7 +273,7 @@ export default function VersionPreviewPage() {
                                     <div className="space-y-2">
                                         <p className="text-sm font-medium">Latest Version</p>
                                         <p>
-                                            {version.isLatest ? (
+                                            {version.is_latest ? (
                                                 <Badge className="bg-blue-500 text-white hover:bg-blue-600">
                                                     Latest
                                                 </Badge>
@@ -293,14 +293,14 @@ export default function VersionPreviewPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-3">
 
-                                    {version.commitHash && (
+                                    {version.commit_hash && (
                                         <Button
                                             variant="outline"
                                             className="w-full"
                                             asChild
                                         >
                                             <a
-                                                href={`${project?.repository}/commit/${version.commitHash}`}
+                                                href={`${project?.repository}/commit/${version.commit_hash}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
@@ -324,7 +324,7 @@ export default function VersionPreviewPage() {
                         <AlertDialogDescription>
                             This will permanently delete the version &quot;
                             {version?.version}&quot;. This action cannot be undone.
-                            {version?.isStable && (
+                            {version?.is_stable && (
                                 <p className="mt-2 text-red-500 font-semibold">
                                     Stable versions cannot be deleted. Please mark another version as stable first.
                                 </p>
@@ -336,7 +336,7 @@ export default function VersionPreviewPage() {
                         <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
                             onClick={handleDelete}
-                            disabled={isDeleting || version?.isStable}
+                            disabled={isDeleting || version?.is_stable}
                         >
                             {isDeleting ? (
                                 <>

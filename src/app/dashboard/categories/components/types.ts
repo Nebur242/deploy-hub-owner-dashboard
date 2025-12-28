@@ -74,5 +74,5 @@ export interface Category {
   icon?: string;
   status: string;
   parentCategory?: string;
-  sortOrder: number;
+  sort_order: number;
 }

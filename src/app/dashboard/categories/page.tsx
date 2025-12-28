@@ -180,10 +180,10 @@ export default function CategoriesPage() {
       ),
     },
     {
-      accessorKey: "parentId",
+      accessorKey: "parent_id",
       header: "Parent",
       cell: ({ row }: { row: { original: Category } }) => (
-        <div>{row.original.parentId ? "Yes" : "No"}</div>
+        <div>{row.original.parent_id ? "Yes" : "No"}</div>
       ),
     },
     {
@@ -191,7 +191,7 @@ export default function CategoriesPage() {
       header: "Created",
       cell: ({ row }: { row: { original: Category } }) => (
         <div>
-          {formatDistanceToNow(new Date(row.original.createdAt), {
+          {formatDistanceToNow(new Date(row.original.created_at), {
             addSuffix: true,
           })}
         </div>

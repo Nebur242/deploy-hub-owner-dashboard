@@ -33,9 +33,9 @@ const formSchema = z.object({
             /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/,
             "Version must follow semantic versioning format (X.Y.Z)"
         ),
-    releaseNotes: z.string().optional(),
-    commitHash: z.string().optional(),
-    isStable: z.boolean().default(false),
+    release_notes: z.string().optional(),
+    commit_hash: z.string().optional(),
+    is_stable: z.boolean().default(false),
 });
 
 export type VersionFormValues = z.infer<typeof formSchema>;
@@ -78,15 +78,15 @@ export default function VersionForm({
         resolver: zodResolver(formSchema),
         defaultValues: initialData || {
             version: "",
-            releaseNotes: "",
-            commitHash: "",
-            isStable: false,
+            release_notes: "",
+            commit_hash: "",
+            is_stable: false,
         },
     });
 
     // Check for GitHub configurations
     const hasGithubConfigurations = configurations.some(
-        config => config.githubAccounts && config.githubAccounts.length > 0
+        config => config.github_accounts && config.github_accounts.length > 0
     );    // Watch version changes from the form input
     const versionValue = form.watch("version");
 
@@ -118,9 +118,9 @@ export default function VersionForm({
         if (isEditing && initialData) {
             form.reset({
                 version: initialData.version,
-                releaseNotes: initialData.releaseNotes || "",
-                commitHash: initialData.commitHash || "",
-                isStable: initialData.isStable,
+                release_notes: initialData.release_notes || "",
+                commit_hash: initialData.commit_hash || "",
+                is_stable: initialData.is_stable,
             });
         }
     }, [isEditing, initialData, form]);
@@ -249,7 +249,7 @@ export default function VersionForm({
 
                             <FormField
                                 control={form.control}
-                                name="commitHash"
+                                name="commit_hash"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Commit Hash</FormLabel>
@@ -271,7 +271,7 @@ export default function VersionForm({
 
                             <FormField
                                 control={form.control}
-                                name="releaseNotes"
+                                name="release_notes"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Release Notes</FormLabel>
@@ -302,7 +302,7 @@ export default function VersionForm({
                             <div className="space-y-4">
                                 <FormField
                                     control={form.control}
-                                    name="isStable"
+                                    name="is_stable"
                                     render={({ field }) => (
                                         <FormItem>
                                             <div className="space-y-2">

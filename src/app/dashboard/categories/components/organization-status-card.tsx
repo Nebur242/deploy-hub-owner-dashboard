@@ -63,7 +63,7 @@ export function OrganizationStatusCard({
                 {/* Sort order */}
                 <FormField
                     control={form.control}
-                    name="sortOrder"
+                    name="sort_order"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Sort Order</FormLabel>

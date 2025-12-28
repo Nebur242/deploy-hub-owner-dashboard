@@ -62,7 +62,7 @@ export default function ProjectsPage() {
   const { data, isLoading, isFetching, error, refetch } = useGetProjectsQuery({
     search: searchTerm || undefined,
     visibility: visibilityFilter !== "all" ? visibilityFilter : undefined,
-    techStack: techStackFilter !== "all" ? techStackFilter : undefined,
+    tech_stack: techStackFilter !== "all" ? techStackFilter : undefined,
     page: currentPage,
     limit: itemsPerPage,
   });
@@ -241,6 +241,7 @@ export default function ProjectsPage() {
                         <div className="flex items-center gap-3">
                           {project.image && (
                             <div className="relative w-12 h-12 rounded-md overflow-hidden border border-muted flex-shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={(() => {
                                   try {
@@ -270,7 +271,7 @@ export default function ProjectsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {project.techStack.map((tech: TechStack) => (
+                          {project.tech_stack.map((tech: TechStack) => (
                             <Badge key={tech} variant="outline">
                               {tech}
                             </Badge>
@@ -296,7 +297,7 @@ export default function ProjectsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(project.createdAt).toLocaleDateString()}
+                        {new Date(project.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-1">

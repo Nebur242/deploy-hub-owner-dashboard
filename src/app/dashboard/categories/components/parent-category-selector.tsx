@@ -347,7 +347,7 @@ export function CategorySelector({
         description: data.description,
         status: "active", // Default to active status
         icon: "code",
-        sortOrder: 1
+        sort_order: 1
       }).unwrap();
 
       // Close dialog

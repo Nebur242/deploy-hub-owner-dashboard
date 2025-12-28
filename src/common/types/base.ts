@@ -1,8 +1,8 @@
 // Base entity interface with common fields
 export interface BaseEntity {
   id: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export type PaginatedResponse<T> = {

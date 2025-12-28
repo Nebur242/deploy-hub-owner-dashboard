@@ -92,7 +92,7 @@ export function LicenseCard({ license }: LicenseCardProps) {
                 <CardContent className="flex-grow">
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                            <Badge variant="outline">{license.deploymentLimit} deployments</Badge>
+                            <Badge variant="outline">{license.deployment_limit} deployments</Badge>
                             <Badge variant="outline">
                                 {license.duration === 0
                                     ? "Unlimited duration"
@@ -152,7 +152,7 @@ export function LicenseCard({ license }: LicenseCardProps) {
                         <h4 className="font-medium">License Details:</h4>
                         <ul className="mt-2 space-y-1 text-sm">
                             <li>Price: {formatCurrency(license.price, license.currency)}</li>
-                            <li>Deployment Limit: {license.deploymentLimit}</li>
+                            <li>Deployment Limit: {license.deployment_limit}</li>
                             <li>Duration: {license.duration === 0 ? "Unlimited" : `${license.duration} days`}</li>
                         </ul>
                     </div>

@@ -1,7 +1,7 @@
 // components/media/MediaUploader.tsx
 import React, { useCallback, useState } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
-import { Upload, X, FileText, Image, Video, Music, File, Loader2 } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, Video, Music, File, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
@@ -131,18 +131,18 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             // Create media entry in the backend using RTK Query
             const mediaData = {
                 filename: file.name,
-                originalFilename: file.name,
-                mimeType: file.type,
+                original_filename: file.name,
+                mime_type: file.type,
                 type,
                 size: file.size,
                 url,
-                thumbnailUrl,
+                thumbnail_url: thumbnailUrl,
                 width,
                 height,
                 duration: duration || 0,
                 alt: file.name,
                 metadata: {},
-                isPublic: true,
+                is_public: true,
                 tags: [],
             };
 
@@ -193,7 +193,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     const getFileIcon = (type: MediaType) => {
         switch (type) {
             case MediaType.IMAGE:
-                return <Image className="h-8 w-8 text-blue-500" />;
+                return <ImageIcon className="h-8 w-8 text-blue-500" />;
             case MediaType.VIDEO:
                 return <Video className="h-8 w-8 text-red-500" />;
             case MediaType.AUDIO:

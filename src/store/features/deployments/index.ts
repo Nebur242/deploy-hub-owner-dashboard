@@ -23,9 +23,9 @@ export enum DeploymentEnvironment {
 
 export interface GitHubAccount {
   username: string;
-  accessToken: string;
+  access_token: string;
   repository: string;
-  workflowFile: string;
+  workflow_file: string;
   available: boolean;
   failureCount: number;
   lastUsed?: Date;
@@ -33,31 +33,31 @@ export interface GitHubAccount {
 
 export interface Deployment {
   id: string;
-  ownerId: string;
-  projectId: string;
-  configurationId: string;
+  owner_id: string;
+  project_id: string;
+  configuration_id: string;
   configuration: ProjectConfiguration;
   project: Project;
   environment: DeploymentEnvironment;
   branch: string;
-  workflowRunId?: string;
+  workflow_run_id?: string;
   status: DeploymentStatus;
-  deploymentUrl?: string;
-  environmentVariables: EnvironmentVariable[];
-  githubAccount?: GitHubAccount;
-  errorMessage?: string;
-  retryCount: number;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
+  deployment_url?: string;
+  environment_variables: EnvironmentVariable[];
+  github_account?: GitHubAccount;
+  error_message?: string;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
 }
 
 export interface CreateDeploymentRequest {
   environment: DeploymentEnvironment;
   branch: string;
-  projectId: string;
-  configurationId: string;
-  environmentVariables: EnvironmentVariable[];
+  project_id: string;
+  configuration_id: string;
+  environment_variables: EnvironmentVariable[];
 }
 
 export interface DeploymentLogs {
@@ -82,8 +82,8 @@ export interface PaginatedResponse<T> {
 }
 
 export interface DeploymentFilters {
-  projectId: string;
-  ownerId?: string;
+  project_id: string;
+  owner_id?: string;
   environment?: string;
   status?: DeploymentStatus;
   branch?: string;
@@ -117,8 +117,8 @@ export const deploymentApi = createApi({
     >({
       query: (filters) => {
         const {
-          projectId,
-          ownerId,
+          project_id,
+          owner_id,
           environment,
           status,
           branch,
@@ -131,9 +131,9 @@ export const deploymentApi = createApi({
         params.append("page", page.toString());
         params.append("limit", limit.toString());
 
-        if (projectId) params.append("projectId", projectId);
+        if (project_id) params.append("project_id", project_id);
 
-        if (ownerId) params.append("ownerId", ownerId);
+        if (owner_id) params.append("owner_id", owner_id);
         if (environment) params.append("environment", environment);
         if (status) params.append("status", status);
         if (branch) params.append("branch", branch);
@@ -146,7 +146,7 @@ export const deploymentApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              { type: "ProjectDeployments", id: result.items[0]?.projectId },
+              { type: "ProjectDeployments", id: result.items[0]?.project_id },
               ...result.items.map(({ id }) => ({
                 type: "Deployment" as const,
                 id,
@@ -174,7 +174,7 @@ export const deploymentApi = createApi({
         data: deployment,
       }),
       invalidatesTags: (result) => [
-        { type: "ProjectDeployments", id: result?.projectId },
+        { type: "ProjectDeployments", id: result?.project_id },
       ],
     }),
 
@@ -186,7 +186,7 @@ export const deploymentApi = createApi({
       }),
       invalidatesTags: (result, error, id) => [
         { type: "Deployment", id },
-        { type: "ProjectDeployments", id: result?.projectId },
+        { type: "ProjectDeployments", id: result?.project_id },
       ],
     }),
 

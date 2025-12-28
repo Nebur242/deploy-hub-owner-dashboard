@@ -5,18 +5,18 @@ import { Project } from "./project";
 // GitHub Account entity
 export interface GithubAccount {
   username: string;
-  accessToken: string;
+  access_token: string;
   repository: string;
-  workflowFile: string;
+  workflow_file: string;
 }
 
 // Environment Variable entity
 export interface EnvironmentVariable {
   key: string;
-  defaultValue: string;
+  default_value: string;
   description: string;
-  isRequired: boolean;
-  isSecret: boolean;
+  is_required: boolean;
+  is_secret: boolean;
   video: string | null;
   type: "text" | "json";
 }
@@ -24,14 +24,14 @@ export interface EnvironmentVariable {
 // Deployment Option entity
 export interface DeploymentOption {
   provider: DeploymentProvider;
-  environmentVariables: EnvironmentVariable[];
+  environment_variables: EnvironmentVariable[];
 }
 
 // Project Configuration entity
 export interface ProjectConfiguration extends BaseEntity {
-  projectId: string;
+  project_id: string;
   name: string;
-  githubAccounts: GithubAccount[];
-  deploymentOption: DeploymentOption;
+  github_accounts: GithubAccount[];
+  deployment_option: DeploymentOption;
   project: Project;
 }

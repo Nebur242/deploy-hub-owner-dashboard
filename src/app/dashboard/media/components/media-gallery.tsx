@@ -41,7 +41,7 @@ interface MediaGalleryProps {
 }
 
 const MediaGallery: React.FC<MediaGalleryProps> = ({
-    initialFilters = { page: 1, limit: 20, sortBy: 'createdAt', order: 'DESC' },
+    initialFilters = { page: 1, limit: 20, sortBy: 'created_at', order: 'DESC' },
     selectable = false,
     mode = 'single',
     selectedMedia = [],
@@ -110,7 +110,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                 data: {
                     filename: updatedMedia.filename,
                     alt: updatedMedia.alt,
-                    isPublic: updatedMedia.isPublic,
+                    is_public: updatedMedia.is_public,
                     tags: updatedMedia.tags,
                 }
             }).unwrap();
@@ -176,8 +176,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
             }
 
             // Thumbnail if exists
-            if (mediaToDelete.thumbnailUrl) {
-                const thumbnailPath = getFirebasePathFromUrl(mediaToDelete.thumbnailUrl);
+            if (mediaToDelete.thumbnail_url) {
+                const thumbnailPath = getFirebasePathFromUrl(mediaToDelete.thumbnail_url);
                 if (thumbnailPath) {
                     try {
                         await deleteFileFromFirebase(thumbnailPath);
@@ -411,8 +411,9 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                         {/* Media thumbnail with improved styling */}
                         <div className="h-20 w-20 mr-5 flex-shrink-0 bg-muted/50 rounded-md overflow-hidden border border-muted shadow-sm">
                             {item.type === MediaType.IMAGE ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                    src={item.thumbnailUrl || item.url}
+                                    src={item.thumbnail_url || item.url}
                                     alt={item.alt || item.filename}
                                     className="h-full w-full object-cover"
                                 />
@@ -469,9 +470,9 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
                                     </svg>
-                                    {new Intl.DateTimeFormat().format(new Date(item.createdAt))}
+                                    {new Intl.DateTimeFormat().format(new Date(item.created_at))}
                                 </span>
-                                {item.isPublic ? (
+                                {item.is_public ? (
                                     <span className="text-muted-foreground flex items-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-3 w-3">
                                             <circle cx="12" cy="12" r="10" />

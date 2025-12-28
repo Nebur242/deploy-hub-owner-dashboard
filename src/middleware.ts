@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const PROTECTED_ROUTES = ["/dashboard"];
-const AUTH_ROUTES = [
-  "/auth/login",
-  "/auth/register",
-  "/auth/reset-password",
-  "/",
-];
+const AUTH_ROUTES = ["/auth/login", "/auth/register", "/auth/reset-password"];
 
 export const config = {
   matcher: [

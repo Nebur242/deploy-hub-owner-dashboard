@@ -61,9 +61,9 @@ const SelectableMediaCard: React.FC<SelectableMediaCardProps> = ({
             return (
                 <div className="relative w-full aspect-square bg-muted rounded-t-md overflow-hidden group-hover:opacity-90 transition-opacity">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {media.thumbnailUrl ? (
+                    {media.thumbnail_url ? (
                         <Image
-                            src={media.thumbnailUrl}
+                            src={media.thumbnail_url}
                             alt={media.alt || media.filename}
                             fill
                             className="object-cover"
@@ -161,7 +161,7 @@ const SelectableMediaCard: React.FC<SelectableMediaCardProps> = ({
                         </div>
                         <div className="flex items-center gap-1" title="Upload date">
                             <Calendar className="h-3 w-3" />
-                            <span>{formatDate(media.createdAt)}</span>
+                            <span>{formatDate(media.created_at)}</span>
                         </div>
                     </div>
 

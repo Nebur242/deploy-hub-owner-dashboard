@@ -99,8 +99,8 @@ export default function ProjectForm({
       slug: "",
       description: "",
       repository: "",
-      previewUrl: "",
-      techStack: [],
+      preview_url: "",
+      tech_stack: [],
       visibility: Visibility.PRIVATE,
       categories: [], // Will store [{id: string}] objects
       image: null,
@@ -298,7 +298,7 @@ export default function ProjectForm({
 
                 <FormField
                   control={form.control}
-                  name="previewUrl"
+                  name="preview_url"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Preview URL</FormLabel>
@@ -396,7 +396,7 @@ export default function ProjectForm({
 
                   <FormField
                     control={form.control}
-                    name="techStack"
+                    name="tech_stack"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tech Stack</FormLabel>

@@ -49,7 +49,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
       setFormData({
         filename: media.filename,
         alt: media.alt,
-        isPublic: media.isPublic,
+        is_public: media.is_public,
         tags: [...media.tags],
       });
     }
@@ -65,7 +65,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
   };
 
   const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isPublic: checked }));
+    setFormData((prev) => ({ ...prev, is_public: checked }));
   };
 
   const handleTagAdd = () => {
@@ -130,9 +130,9 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
           <video
             controls
             className="max-h-full max-w-full rounded-md shadow-sm"
-            poster={media.thumbnailUrl}
+            poster={media.thumbnail_url}
           >
-            <source src={media.url} type={media.mimeType} />
+            <source src={media.url} type={media.mime_type} />
             Your browser does not support the video tag.
           </video>
         </div>
@@ -161,7 +161,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
             </svg>
           </div>
           <audio controls className="w-full max-w-md rounded-md shadow-sm">
-            <source src={media.url} type={media.mimeType} />
+            <source src={media.url} type={media.mime_type} />
             Your browser does not support the audio tag.
           </audio>
         </div>
@@ -251,14 +251,14 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                 <div className="flex items-center space-x-2 py-2">
                   <Switch
                     id="isPublic"
-                    checked={formData.isPublic}
+                    checked={formData.is_public}
                     onCheckedChange={handleSwitchChange}
                   />
                   <Label htmlFor="isPublic" className="font-medium">
                     Public
                   </Label>
                   <span className="text-xs text-muted-foreground ml-2">
-                    {formData.isPublic
+                    {formData.is_public
                       ? "Anyone can access this file"
                       : "Only authenticated users can access this file"}
                   </span>
@@ -321,7 +321,7 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Original Filename
                     </h3>
-                    <p className="text-foreground">{media.originalFilename}</p>
+                    <p className="text-foreground">{media.original_filename}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
@@ -344,15 +344,15 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                       MIME Type
                     </h3>
                     <p className="text-foreground font-mono text-sm">
-                      {media.mimeType}
+                      {media.mime_type}
                     </p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Visibility
                     </h3>
-                    <Badge variant={media.isPublic ? "default" : "secondary"}>
-                      {media.isPublic ? "Public" : "Private"}
+                    <Badge variant={media.is_public ? "default" : "secondary"}>
+                      {media.is_public ? "Public" : "Private"}
                     </Badge>
                   </div>
                   {media.width && media.height && (
@@ -381,16 +381,16 @@ const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                       Uploaded
                     </h3>
                     <p className="text-foreground">
-                      {formatDate(media.createdAt)}
+                      {formatDate(media.created_at)}
                     </p>
                   </div>
-                  {media.updatedAt !== media.createdAt && (
+                  {media.updated_at !== media.created_at && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">
                         Last Updated
                       </h3>
                       <p className="text-foreground">
-                        {formatDate(media.updatedAt)}
+                        {formatDate(media.updated_at)}
                       </p>
                     </div>
                   )}
