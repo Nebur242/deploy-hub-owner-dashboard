@@ -6,10 +6,10 @@ export const environmentVariableDtoSchema = z.object({
   key: z.string().min(1, "Key is required"),
   default_value: z.string().optional(),
   description: z.string().optional(),
-  is_required: z.boolean().default(false),
-  is_secret: z.boolean().default(false),
+  is_required: z.boolean(),
+  is_secret: z.boolean(),
   video: z.string().url().optional().nullable(),
-  type: z.enum(["text", "json"]).default("text"),
+  type: z.enum(["text", "json"]),
 });
 
 // GitHub account schema
@@ -27,7 +27,7 @@ export const githubAccountDtoSchema = z.object({
 // Deployment option schema
 export const deploymentOptionDtoSchema = z.object({
   provider: z.nativeEnum(DeploymentProvider),
-  environment_variables: z.array(environmentVariableDtoSchema).default([]),
+  environment_variables: z.array(environmentVariableDtoSchema),
 });
 
 // Schema for creating project configurations

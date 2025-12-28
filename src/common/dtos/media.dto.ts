@@ -23,7 +23,7 @@ export const createMediaDtoSchema = z.object({
   filename: z.string(),
   type: z.nativeEnum(MediaType),
   alt: z.string().optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
   is_public: z.boolean().default(true),
   tags: z.array(z.string()).default([]),
 });
@@ -33,7 +33,7 @@ export const updateMediaDtoSchema = z.object({
   id: z.string(),
   filename: z.string().optional(),
   alt: z.string().optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
   is_public: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
 });

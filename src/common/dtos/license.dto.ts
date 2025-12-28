@@ -7,12 +7,12 @@ const licenseBaseDtoSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().nonnegative("Price must be a non-negative number"),
-  currency: z.nativeEnum(Currency).default(Currency.USD),
-  deployment_limit: z.number().int().nonnegative().default(1),
-  duration: z.number().int().nonnegative().default(0), // 0 for unlimited
-  features: z.array(z.string()).default([]),
-  status: z.nativeEnum(LicenseStatus).default(LicenseStatus.DRAFT),
-  popular: z.boolean().default(false),
+  currency: z.nativeEnum(Currency),
+  deployment_limit: z.number().int().nonnegative(),
+  duration: z.number().int().nonnegative(), // 0 for unlimited
+  features: z.array(z.string()),
+  status: z.nativeEnum(LicenseStatus),
+  popular: z.boolean(),
 });
 
 // Schema for creating new licenses

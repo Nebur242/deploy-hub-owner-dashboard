@@ -35,7 +35,7 @@ const formSchema = z.object({
         ),
     release_notes: z.string().optional(),
     commit_hash: z.string().optional(),
-    is_stable: z.boolean().default(false),
+    is_stable: z.boolean(),
 });
 
 export type VersionFormValues = z.infer<typeof formSchema>;

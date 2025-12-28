@@ -22,7 +22,7 @@ export const createDeploymentDtoSchema = z.object({
   license_id: z.string(),
   provider: z.nativeEnum(DeploymentProvider),
   configuration: deploymentConfigurationDtoSchema,
-  environment_variables: z.record(z.string()).optional(),
+  environment_variables: z.record(z.string(), z.string()).optional(),
 });
 
 // Schema for canceling a deployment

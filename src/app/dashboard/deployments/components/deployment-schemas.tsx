@@ -11,7 +11,7 @@ export const deploymentSchema = z.object({
     DeploymentEnvironment.PREVIEW
   ]),
   branch: z.string().min(1, { message: "Branch is required" }),
-  environment_variables: z.array(environmentVariableDtoSchema).default([]),
+  environment_variables: z.array(environmentVariableDtoSchema),
 });
 
 // Schema for updating an existing deployment
