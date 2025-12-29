@@ -133,8 +133,10 @@ export const deploymentApi = createApi({
         params.append("page", page.toString());
         params.append("limit", limit.toString());
 
+        // API expects snake_case 'project_id'
         if (project_id) params.append("project_id", project_id);
 
+        // API expects snake_case 'owner_id'
         if (owner_id) params.append("owner_id", owner_id);
         if (environment) params.append("environment", environment);
         if (status) params.append("status", status);
