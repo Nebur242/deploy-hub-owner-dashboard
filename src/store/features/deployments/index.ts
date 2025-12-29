@@ -50,6 +50,7 @@ export interface Deployment {
   created_at: string;
   updated_at: string;
   completed_at?: string;
+  is_test?: boolean; // Flag indicating if this is a test deployment
 }
 
 export interface CreateDeploymentRequest {
@@ -58,6 +59,7 @@ export interface CreateDeploymentRequest {
   project_id: string;
   configuration_id: string;
   environment_variables: EnvironmentVariable[];
+  is_test?: boolean; // Allow specifying test mode
 }
 
 export interface DeploymentLogs {

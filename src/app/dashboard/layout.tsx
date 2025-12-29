@@ -9,12 +9,16 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { registerFCMServiceWorker } from "@/utils/firebase-sw-register";
 import { useNotifications } from "@/providers/NotificationProvider";
+import { usePendingPlanCheckout } from "@/hooks/usePendingPlanCheckout";
 import AuthGuard from "@/components/auth-guard";
 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const { requestPermission } = useNotifications();
+
+    // Handle pending plan selection from landing page
+    usePendingPlanCheckout();
 
     console.log("Dashboard layout loaded");
 

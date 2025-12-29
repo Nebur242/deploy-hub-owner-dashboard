@@ -48,7 +48,8 @@ import {
   IconRefresh,
   IconCode,
   IconTerminal,
-  IconListDetails
+  IconListDetails,
+  IconFlask,
 } from "@tabler/icons-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -226,6 +227,17 @@ export default function DeploymentDetailPage() {
       actions={actionButtons}
     >
       <div className="space-y-6">
+        {/* Test Mode Alert */}
+        {deployment.is_test && (
+          <Alert className="border-orange-300 bg-orange-50/50">
+            <IconInfoCircle className="h-4 w-4 text-orange-600" />
+            <AlertTitle className="text-orange-900">Test Deployment</AlertTitle>
+            <AlertDescription className="text-orange-800">
+              This is a <strong>test deployment</strong> used to verify your configuration. Test deployments don&apos;t count against your deployment limits and are useful for testing before making your project public.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Status Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -235,7 +247,14 @@ export default function DeploymentDetailPage() {
                 Created {formatDistanceToNow(new Date(deployment.created_at), { addSuffix: true })}
               </CardDescription>
             </div>
-            <DeploymentStatusBadge status={deployment.status} />
+            <div className="flex items-center gap-2">
+              {deployment.is_test && (
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-300">
+                  <IconFlask className="h-3 w-3 mr-1" /> Test Mode
+                </Badge>
+              )}
+              <DeploymentStatusBadge status={deployment.status} />
+            </div>
           </CardHeader>
           <Separator />
           <CardContent className="grid gap-6 pt-6">

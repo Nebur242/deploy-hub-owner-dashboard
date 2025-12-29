@@ -8,3 +8,4 @@ export * from "./license";
 export * from "./deployment";
 export * from "./user";
 export * from "./order";
+export * from "./statistics";

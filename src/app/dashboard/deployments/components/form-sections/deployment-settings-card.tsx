@@ -5,6 +5,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   FormControl,
@@ -21,6 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { IconFlask, IconInfoCircle } from "@tabler/icons-react";
 import { DeploymentEnvironment } from "@/store/features/deployments";
 import { FormSectionProps } from "../types";
 
@@ -30,6 +34,7 @@ const versionRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d
 export interface DeploymentSettingsCardProps extends FormSectionProps {
   projectVersions?: string[];
   isLoadingVersions?: boolean;
+  isProjectOwner?: boolean; // Add flag to check if user is project owner
 }
 
 export function DeploymentSettingsCard({
@@ -38,13 +43,57 @@ export function DeploymentSettingsCard({
   success,
   projectVersions = ['main'],
   isLoadingVersions,
+  isProjectOwner = false,
 }: DeploymentSettingsCardProps) {
+  const isTestMode = form.watch("is_test");
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Deployment Settings</CardTitle>
+        <CardDescription>
+          Configure your deployment environment and version
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {isProjectOwner && (
+          <>
+            <FormField
+              control={form.control}
+              name="is_test"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/50">
+                  <div className="space-y-0.5">
+                    <FormLabel className="flex items-center gap-2 text-base">
+                      <IconFlask className="h-5 w-5 text-orange-500" />
+                      Test Mode
+                    </FormLabel>
+                    <FormDescription>
+                      Test your deployment configuration before making your project public. Test deployments don&apos;t consume license limits.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading || success}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {isTestMode && (
+              <Alert>
+                <IconInfoCircle className="h-4 w-4" />
+                <AlertDescription>
+                  This is a <strong>test deployment</strong>. You can verify your configuration works correctly without affecting your production environment or consuming deployment limits.
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
+        )}
+
         <FormField
           control={form.control}
           name="environment"

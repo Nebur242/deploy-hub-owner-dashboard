@@ -28,6 +28,7 @@ export interface DeploymentFormProps {
   onEnvVarChange?: (key: string, value: string) => void;
   envVarValues?: Record<string, string>;
   isLoadingVersions?: boolean;
+  isProjectOwner?: boolean; // Add flag to show test mode option
 }
 
 // Common props for all form section components

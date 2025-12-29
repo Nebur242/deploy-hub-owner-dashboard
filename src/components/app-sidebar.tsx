@@ -13,7 +13,8 @@ import {
   IconSearch,
   IconSettings,
   IconChartBar,
-  // IconRocket,
+  IconRocket,
+  IconCreditCard,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -62,15 +63,20 @@ const data = {
       url: "/dashboard/projects",
       icon: IconFolder,
     },
-    // {
-    //   title: "Deployments",
-    //   url: "/dashboard/deployments",
-    //   icon: IconRocket,
-    // },
+    {
+      title: "Deployments",
+      url: "/dashboard/deployments",
+      icon: IconRocket,
+    },
     {
       title: "Licenses",
       url: "/dashboard/licenses",
       icon: IconChartBar,
+    },
+    {
+      title: "Billing",
+      url: "/dashboard/billing",
+      icon: IconCreditCard,
     },
   ],
   navSecondary: [

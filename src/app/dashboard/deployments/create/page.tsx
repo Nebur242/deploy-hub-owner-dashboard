@@ -114,6 +114,9 @@ export default function CreateDeploymentPage() {
   // Process projects data for form use
   const projects = projectsData?.items || [];
 
+  // In owner dashboard, the user is always the project owner
+  const isProjectOwner = true;
+
   // Process configurations data for form use
   const configurations = configurationsData?.map(config => ({
     ...config,
@@ -146,6 +149,7 @@ export default function CreateDeploymentPage() {
       environment: data.environment,
       branch: data.branch,
       environment_variables: formattedEnvVars,
+      is_test: data.is_test || false, // Include test mode flag
     });
 
     try {
@@ -205,6 +209,7 @@ export default function CreateDeploymentPage() {
           onProjectChange={handleProjectChange}
           onEnvVarChange={handleEnvVarChange}
           envVarValues={envVarValues}
+          isProjectOwner={isProjectOwner}
           isLoadingVersions={isLoadingVersions}
         />
       )}

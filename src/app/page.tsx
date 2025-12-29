@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { subscriptionService } from "@/services/subscription";
+import { BillingInterval, PlanConfig, SubscriptionPlan } from "@/common/types/subscription";
+import { useAppSelector } from "@/store/hooks";
+import { toast } from "sonner";
 import {
   IconRocket,
   IconCode,
@@ -25,6 +30,7 @@ import {
   IconBrandTwitter,
   IconBrandDiscord,
   IconMail,
+  IconLoader2,
 } from "@tabler/icons-react";
 
 // Feature data
@@ -85,57 +91,77 @@ const howItWorks = [
   },
 ];
 
-// Pricing plans
-const pricingPlans = [
+// Pricing plans - fallback static data
+const defaultPricingPlans = [
   {
-    name: "Starter",
+    name: "Free",
     price: "Free",
     period: "",
     description: "Perfect for getting started",
     features: [
       "Up to 3 projects",
-      "Basic analytics",
+      "100 deployments/month",
       "Community support",
-      "Standard payouts (14 days)",
-      "10% platform fee",
     ],
     cta: "Get Started Free",
     popular: false,
+    plan: "FREE",
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+  },
+  {
+    name: "Starter",
+    price: "$19",
+    period: "/month",
+    description: "For growing businesses",
+    features: [
+      "Up to 10 projects",
+      "500 deployments/month",
+      "Custom domains",
+      "Analytics",
+    ],
+    cta: "Start Starter",
+    popular: false,
+    plan: "STARTER",
+    monthlyPrice: 19,
+    yearlyPrice: 190,
   },
   {
     name: "Pro",
-    price: "$29",
+    price: "$49",
     period: "/month",
-    description: "For serious developers",
+    description: "For professional teams",
     features: [
-      "Unlimited projects",
-      "Advanced analytics",
+      "Up to 50 projects",
+      "2000 deployments/month",
+      "Custom domains",
       "Priority support",
-      "Fast payouts (7 days)",
-      "5% platform fee",
-      "Custom branding",
-      "API access",
+      "Advanced analytics",
     ],
-    cta: "Start Pro Trial",
+    cta: "Start Pro",
     popular: true,
+    plan: "PRO",
+    monthlyPrice: 49,
+    yearlyPrice: 490,
   },
   {
     name: "Enterprise",
-    price: "$99",
+    price: "$199",
     period: "/month",
-    description: "For teams and agencies",
+    description: "For large organizations",
     features: [
-      "Everything in Pro",
-      "Team collaboration",
-      "Instant payouts",
-      "3% platform fee",
-      "White-label options",
+      "Unlimited projects",
+      "Unlimited deployments",
+      "Custom domains",
+      "Priority support",
+      "Advanced analytics",
       "Dedicated account manager",
-      "Custom integrations",
-      "SLA guarantee",
     ],
     cta: "Contact Sales",
     popular: false,
+    plan: "ENTERPRISE",
+    monthlyPrice: 199,
+    yearlyPrice: 1990,
   },
 ];
 
@@ -170,7 +196,128 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { isLoggedIn } = useAppSelector((state) => state.auth);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [plans, setPlans] = useState(defaultPricingPlans);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loadingPlanAction, setLoadingPlanAction] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const apiPlans = await subscriptionService.getPublicPlans();
+        if (apiPlans && apiPlans.length > 0) {
+          const formattedPlans = apiPlans.map((plan: PlanConfig) => ({
+            name: plan.name,
+            price: plan.monthlyPrice === 0 ? "Free" : `$${plan.monthlyPrice}`,
+            period: plan.monthlyPrice === 0 ? "" : "/month",
+            description: plan.description,
+            features: buildFeatures(plan),
+            cta: plan.plan === SubscriptionPlan.FREE ? "Get Started Free" :
+              plan.plan === SubscriptionPlan.ENTERPRISE ? "Contact Sales" : `Start ${plan.name}`,
+            popular: plan.plan === SubscriptionPlan.PRO,
+            plan: plan.plan,
+            monthlyPrice: plan.monthlyPrice,
+            yearlyPrice: plan.yearlyPrice,
+          }));
+          setPlans(formattedPlans);
+        }
+      } catch (error) {
+        console.error("Failed to fetch plans:", error);
+        // Keep using default plans on error
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  // Handle plan selection
+  const handlePlanAction = async (plan: typeof plans[0]) => {
+    // For FREE plan, redirect to register/dashboard
+    if (plan.plan === "FREE") {
+      if (isLoggedIn) {
+        router.push("/dashboard");
+      } else {
+        router.push("/auth/register");
+      }
+      return;
+    }
+
+    // For ENTERPRISE plan, redirect to contact
+    if (plan.plan === "ENTERPRISE") {
+      // You can replace this with your contact page or email
+      window.location.href = "mailto:sales@deployhub.com?subject=Enterprise Plan Inquiry";
+      return;
+    }
+
+    // For paid plans, create checkout session
+    if (!isLoggedIn) {
+      // Store the selected plan in sessionStorage to use after login
+      sessionStorage.setItem("selectedPlan", JSON.stringify({
+        plan: plan.plan,
+        billingInterval: billingPeriod,
+      }));
+      toast.info("Please login or register to subscribe to a plan");
+      router.push("/auth/register");
+      return;
+    }
+
+    // Create checkout session
+    try {
+      setLoadingPlanAction(plan.plan);
+      const response = await subscriptionService.createCheckoutSession({
+        plan: plan.plan.toLowerCase() as SubscriptionPlan,
+        billing_interval: billingPeriod as BillingInterval,
+        success_url: `${window.location.origin}/dashboard/billing?success=true`,
+        cancel_url: `${window.location.origin}/#pricing`,
+      });
+
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        toast.error("Failed to create checkout session");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("Failed to start checkout. Please try again.");
+    } finally {
+      setLoadingPlanAction(null);
+    }
+  };
+
+  // Helper function to build feature list from plan config
+  const buildFeatures = (plan: PlanConfig): string[] => {
+    const features: string[] = [];
+
+    if (plan.maxProjects === -1) {
+      features.push("Unlimited projects");
+    } else {
+      features.push(`Up to ${plan.maxProjects} projects`);
+    }
+
+    if (plan.maxDeploymentsPerMonth === -1) {
+      features.push("Unlimited deployments");
+    } else {
+      features.push(`${plan.maxDeploymentsPerMonth} deployments/month`);
+    }
+
+    if (plan.customDomainEnabled) {
+      features.push("Custom domains");
+    }
+
+    if (plan.prioritySupport) {
+      features.push("Priority support");
+    }
+
+    if (plan.analyticsEnabled) {
+      features.push("Advanced analytics");
+    }
+
+    return features;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -511,49 +658,67 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`bg-background relative ${plan.popular ? "border-primary shadow-lg scale-105" : ""}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary">Most Popular</Badge>
-                  </div>
-                )}
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">
-                      {plan.price === "Free" ? plan.price : (
-                        billingPeriod === "yearly"
-                          ? `$${Math.round(parseInt(plan.price.slice(1)) * 0.8)}`
-                          : plan.price
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {loadingPlans ? (
+              <div className="col-span-full flex justify-center py-12">
+                <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              plans.map((plan, index) => (
+                <Card key={index} className={`bg-background relative ${plan.popular ? "border-primary shadow-lg scale-105" : ""}`}>
+                  {plan.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge className="bg-primary">Most Popular</Badge>
+                    </div>
+                  )}
+                  <CardHeader className="text-center pb-2">
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <div className="mb-6">
+                      <span className="text-4xl font-bold">
+                        {plan.price === "Free" ? plan.price : (
+                          billingPeriod === "yearly"
+                            ? `$${plan.yearlyPrice}`
+                            : `$${plan.monthlyPrice}`
+                        )}
+                      </span>
+                      {plan.period && (
+                        <span className="text-muted-foreground">
+                          {billingPeriod === "yearly" ? "/year" : plan.period}
+                        </span>
                       )}
-                    </span>
-                    {plan.period && (
-                      <span className="text-muted-foreground">{plan.period}</span>
-                    )}
-                  </div>
-                  <ul className="space-y-3 text-left mb-6">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center gap-2 text-sm">
-                        <IconCheck className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Link href="/auth/register" className="w-full">
-                    <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
-                      {plan.cta}
+                    </div>
+                    <ul className="space-y-3 text-left mb-6">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="flex items-center gap-2 text-sm">
+                          <IconCheck className="h-4 w-4 text-green-500 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      className="w-full"
+                      variant={plan.popular ? "default" : "outline"}
+                      onClick={() => handlePlanAction(plan)}
+                      disabled={loadingPlanAction === plan.plan}
+                    >
+                      {loadingPlanAction === plan.plan ? (
+                        <>
+                          <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        plan.cta
+                      )}
                     </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
+                  </CardFooter>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </section>

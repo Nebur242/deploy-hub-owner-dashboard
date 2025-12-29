@@ -12,6 +12,7 @@ export const deploymentSchema = z.object({
   ]),
   branch: z.string().min(1, { message: "Branch is required" }),
   environment_variables: z.array(environmentVariableDtoSchema),
+  is_test: z.boolean().optional(), // Add test mode flag
 });
 
 // Schema for updating an existing deployment

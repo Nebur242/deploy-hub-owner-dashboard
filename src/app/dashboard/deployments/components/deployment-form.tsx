@@ -41,6 +41,7 @@ export default function DeploymentForm({
   onProjectChange,
   onEnvVarChange,
   isLoadingVersions,
+  isProjectOwner = false,
 }: DeploymentFormProps) {
   const router = useRouter();
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
@@ -58,6 +59,7 @@ export default function DeploymentForm({
       environment_variables: [],
       project_id: initialProjectId || "",
       configuration_id: initialConfigurationId || "",
+      is_test: false, // Default to false
     },
   });
 
@@ -304,6 +306,7 @@ export default function DeploymentForm({
                 success={success}
                 projectVersions={projectVersions}
                 isLoadingVersions={isLoadingVersions}
+                isProjectOwner={isProjectOwner}
               />
               <ActionCard
                 handleDiscard={handleDiscard}

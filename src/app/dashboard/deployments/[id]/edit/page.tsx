@@ -150,6 +150,7 @@ export default function EditDeploymentPage() {
         isSuccess={false}
         error={null}
         onProjectChange={handleProjectChange}
+        isProjectOwner={true}
       />
     </DashboardLayout>
   );

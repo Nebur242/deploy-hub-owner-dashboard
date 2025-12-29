@@ -47,6 +47,7 @@ import {
   IconChevronRight,
   // IconFileText,
   IconTerminal,
+  IconFlask,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -289,6 +290,7 @@ export default function DeploymentsPage() {
                     <TableHead>Environment</TableHead>
                     <TableHead>Branch</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Mode</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Completed</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -308,6 +310,17 @@ export default function DeploymentsPage() {
                       <TableCell>{deployment.branch}</TableCell>
                       <TableCell>
                         <DeploymentStatusBadge status={deployment.status} />
+                      </TableCell>
+                      <TableCell>
+                        {deployment.is_test ? (
+                          <Badge variant="outline" className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-orange-300">
+                            <IconFlask className="h-3 w-3 mr-1" /> Test
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20">
+                            Production
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {formatDistanceToNow(new Date(deployment.created_at), {
@@ -386,7 +399,7 @@ export default function DeploymentsPage() {
                 </TableBody>
               </Table>
             </div>
-            <div className="flex items-center justify-between space-x-2 py-4 items-center">
+            <div className="flex items-center justify-between space-x-2 py-4">
               <div className="flex-1 text-sm text-muted-foreground">
                 Showing {deployments.length} of {totalDeployments} deployments
                 {selectedProjectId && selectedProjectId !== "all" && projects.find(p => p.id === selectedProjectId) && (
