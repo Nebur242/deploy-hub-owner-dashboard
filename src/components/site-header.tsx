@@ -1,9 +1,10 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
 import {
   Bell,
   Search,
@@ -12,6 +13,10 @@ import {
   X,
   Loader2,
   LogOut,
+  DollarSign,
+  ShoppingCart,
+  Rocket,
+  PartyPopper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,8 +42,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logoutUser } from "@/store/features/auth";
+import {
+  useGetNotificationsQuery,
+  useGetUnreadCountQuery,
+  useMarkAllAsReadMutation,
+  useUpdateNotificationMutation,
+} from "@/store/features/notifications";
+import {
+  UINotification,
+  transformNotifications,
+} from "@/app/dashboard/notifications/models/notification";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -52,13 +68,87 @@ export function SiteHeader() {
   const router = useRouter();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [hasNotifications, setHasNotifications] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [notificationCount] = useState(3);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileSearchQuery, setMobileSearchQuery] = useState("");
+
+  // Notification API hooks
+  const { data: notificationsData, isLoading: isLoadingNotifications } =
+    useGetNotificationsQuery({ page: 1, limit: 5 });
+  const { data: unreadCountData } = useGetUnreadCountQuery();
+  const [markAllAsRead, { isLoading: isMarkingAllRead }] = useMarkAllAsReadMutation();
+  const [updateNotification] = useUpdateNotificationMutation();
+
+  // Transform notifications for display
+  const notifications: UINotification[] = useMemo(() => {
+    if (!notificationsData?.items) return [];
+    return transformNotifications(notificationsData.items);
+  }, [notificationsData]);
+
+  const unreadCount = unreadCountData?.count ?? 0;
+  const hasNotifications = unreadCount > 0;
+
+  // Get icon for notification type
+  const getNotificationIcon = (type: UINotification["type"]) => {
+    switch (type) {
+      case "sale":
+        return (
+          <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center dark:bg-green-900/20">
+            <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+        );
+      case "order":
+        return (
+          <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center dark:bg-amber-900/20">
+            <ShoppingCart className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </div>
+        );
+      case "deployment":
+        return (
+          <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center dark:bg-purple-900/20">
+            <Rocket className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          </div>
+        );
+      case "welcome":
+        return (
+          <div className="h-8 w-8 rounded-full bg-pink-100 flex items-center justify-center dark:bg-pink-900/20">
+            <PartyPopper className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+          </div>
+        );
+      default:
+        return (
+          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <Bell className="h-4 w-4 text-primary" />
+          </div>
+        );
+    }
+  };
+
+  // Handle mark all as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead().unwrap();
+    } catch {
+      toast.error("Failed to mark notifications as read");
+    }
+  };
+
+  // Handle notification click
+  const handleNotificationClick = async (notification: UINotification) => {
+    if (!notification.read) {
+      try {
+        await updateNotification({ id: notification.id, data: { read: true } }).unwrap();
+      } catch {
+        // Silently fail - don't interrupt user flow
+      }
+    }
+    if (notification.actionLink) {
+      router.push(notification.actionLink);
+      setIsNotificationsOpen(false);
+    }
+  };
 
   // Track scroll position for shadow effect
   useEffect(() => {
@@ -68,15 +158,6 @@ export function SiteHeader() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Toggle notifications panel
-  const handleNotificationsClick = () => {
-    setIsNotificationsOpen(!isNotificationsOpen);
-    // Mark as read when opened
-    if (!isNotificationsOpen && hasNotifications) {
-      setHasNotifications(false);
-    }
-  };
 
   // Handle search submission
   const handleSearch = (e: React.FormEvent) => {
@@ -233,7 +314,6 @@ export function SiteHeader() {
                 variant="ghost"
                 size="icon"
                 className="relative"
-                onClick={handleNotificationsClick}
               >
                 <Bell className="h-5 w-5" />
                 {hasNotifications && (
@@ -241,7 +321,7 @@ export function SiteHeader() {
                     className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
                     variant="destructive"
                   >
-                    {notificationCount}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </Badge>
                 )}
               </Button>
@@ -249,111 +329,64 @@ export function SiteHeader() {
             <DropdownMenuContent align="end" className="w-[380px]">
               <div className="flex items-center justify-between p-2">
                 <p className="text-sm font-medium">Notifications</p>
-                {notificationCount > 0 && (
+                {unreadCount > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-auto px-2 py-1 text-xs"
-                    onClick={() => setHasNotifications(false)}
+                    onClick={handleMarkAllAsRead}
+                    disabled={isMarkingAllRead}
                   >
+                    {isMarkingAllRead ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : null}
                     Mark all as read
                   </Button>
                 )}
               </div>
               <DropdownMenuSeparator />
               <div className="max-h-[300px] overflow-y-auto">
-                {notificationCount > 0 ? (
+                {isLoadingNotifications ? (
+                  <div className="p-3 space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-3 w-3/4" />
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-2 w-1/4" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : notifications.length > 0 ? (
                   <>
-                    <div className="flex items-start gap-2 p-3 hover:bg-muted/50">
-                      <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-primary"
-                        >
-                          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
-                          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
-                        </svg>
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={cn(
+                          "flex items-start gap-2 p-3 hover:bg-muted/50 cursor-pointer transition-colors",
+                          !notification.read && "bg-muted/30"
+                        )}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        {getNotificationIcon(notification.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            "text-sm truncate",
+                            !notification.read ? "font-semibold" : "font-medium"
+                          )}>
+                            {notification.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          New project published
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Your project "Deploy Hub" has been published
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          2 minutes ago
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 p-3 hover:bg-muted/50">
-                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center dark:bg-blue-900/20">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-blue-600 dark:text-blue-400"
-                        >
-                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Document updated</p>
-                        <p className="text-xs text-muted-foreground">
-                          Your document "API Guidelines" has been updated
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          1 hour ago
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 p-3 hover:bg-muted/50">
-                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center dark:bg-green-900/20">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-green-600 dark:text-green-400"
-                        >
-                          <path d="M9 12h.01"></path>
-                          <path d="M15 12h.01"></path>
-                          <path d="M10 16.5c.5.31 1.624.813 2 .813 1.5 0 2.5-1.313 2.5-1.313"></path>
-                          <circle cx="12" cy="12" r="10"></circle>
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          New feedback received
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          You received feedback on "Deploy Hub&quot; project
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Yesterday
-                        </p>
-                      </div>
-                    </div>
+                    ))}
                   </>
                 ) : (
                   <div className="py-6 text-center">
@@ -361,7 +394,7 @@ export function SiteHeader() {
                       <Bell className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      No new notifications
+                      No notifications
                     </p>
                   </div>
                 )}

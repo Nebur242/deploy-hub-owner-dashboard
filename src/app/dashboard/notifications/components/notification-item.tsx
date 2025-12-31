@@ -7,17 +7,18 @@ import {
     Bell,
     Check,
     Clock,
-    Code,
-    Key,
+    DollarSign,
+    PartyPopper,
     Rocket,
+    ShoppingCart,
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { NotificationType } from "../models/notification"
+import { UINotification } from "../models/notification"
 
 type NotificationItemProps = {
-    notification: NotificationType
+    notification: UINotification
     onMarkAsRead: (id: string) => void
     onDelete: (id: string) => void
 }
@@ -34,12 +35,16 @@ export function NotificationItem({
         switch (notification.type) {
             case "system":
                 return <Bell className="shrink-0 h-5 w-5 text-blue-500" />
+            case "sale":
+                return <DollarSign className="shrink-0 h-5 w-5 text-green-500" />
+            case "order":
+                return <ShoppingCart className="shrink-0 h-5 w-5 text-amber-500" />
             case "deployment":
-                return <Rocket className="shrink-0 h-5 w-5 text-green-500" />
+                return <Rocket className="shrink-0 h-5 w-5 text-purple-500" />
+            case "welcome":
+                return <PartyPopper className="shrink-0 h-5 w-5 text-pink-500" />
             case "license":
-                return <Key className="shrink-0 h-5 w-5 text-amber-500" />
-            case "project":
-                return <Code className="shrink-0 h-5 w-5 text-purple-500" />
+                return <DollarSign className="shrink-0 h-5 w-5 text-emerald-500" />
             default:
                 return <Bell className="shrink-0 h-5 w-5 text-muted-foreground" />
         }

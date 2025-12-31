@@ -3,6 +3,7 @@ import auth from "./features/auth";
 import { categoriesApi } from "./features/categories";
 import { deploymentApi } from "./features/deployments";
 import { mediaApi } from "./features/media";
+import { notificationsApi } from "./features/notifications";
 import { projectsApi } from "./features/projects";
 import { licensesApi } from "./features/licenses";
 import { ordersApi } from "./features/orders";
@@ -14,6 +15,7 @@ export const makeStore = () => {
       auth,
       [categoriesApi.reducerPath]: categoriesApi.reducer,
       [mediaApi.reducerPath]: mediaApi.reducer,
+      [notificationsApi.reducerPath]: notificationsApi.reducer,
       [projectsApi.reducerPath]: projectsApi.reducer,
       [licensesApi.reducerPath]: licensesApi.reducer,
       [deploymentApi.reducerPath]: deploymentApi.reducer,
@@ -24,6 +26,7 @@ export const makeStore = () => {
       getDefaultMiddleware()
         .concat(categoriesApi.middleware)
         .concat(mediaApi.middleware)
+        .concat(notificationsApi.middleware)
         .concat(projectsApi.middleware)
         .concat(licensesApi.middleware)
         .concat(deploymentApi.middleware)
