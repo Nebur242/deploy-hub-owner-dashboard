@@ -15,6 +15,9 @@ import {
   IconChartBar,
   IconRocket,
   IconCreditCard,
+  IconChartLine,
+  IconReceipt,
+  IconWallet,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -72,6 +75,21 @@ const data = {
       title: "Licenses",
       url: "/dashboard/licenses",
       icon: IconChartBar,
+    },
+    {
+      title: "Analytics",
+      url: "/dashboard/analytics",
+      icon: IconChartLine,
+    },
+    {
+      title: "Sales",
+      url: "/dashboard/sales",
+      icon: IconReceipt,
+    },
+    {
+      title: "Earnings",
+      url: "/dashboard/earnings",
+      icon: IconWallet,
     },
     {
       title: "Billing",

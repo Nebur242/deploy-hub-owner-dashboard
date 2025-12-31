@@ -21,6 +21,12 @@ export enum BillingInterval {
   YEARLY = "yearly",
 }
 
+export interface DeploymentPool {
+  total: number;
+  allocated: number;
+  available: number;
+}
+
 export interface Subscription {
   id: string;
   user_id: string;
@@ -47,6 +53,8 @@ export interface Subscription {
   metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  // Deployment pool info from API
+  deployment_pool?: DeploymentPool;
 }
 
 export interface PlanConfig {

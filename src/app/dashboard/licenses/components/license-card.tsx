@@ -1,6 +1,6 @@
 "use client";
 
-import { LicenseOption, LicenseStatus } from "@/common/types";
+import { LicenseOption, LicenseStatus, LicensePeriod } from "@/common/types";
 import {
     Card,
     CardContent,
@@ -118,9 +118,9 @@ export function LicenseCard({ license, projectId }: LicenseCardProps) {
                         <div className="flex items-center gap-2">
                             <Badge variant="outline">{license.deployment_limit} deployments</Badge>
                             <Badge variant="outline">
-                                {license.duration === 0
-                                    ? "Unlimited duration"
-                                    : `${license.duration} days`}
+                                {license.period === LicensePeriod.FOREVER
+                                    ? "Lifetime"
+                                    : license.period.charAt(0).toUpperCase() + license.period.slice(1)}
                             </Badge>
                         </div>
                         <Separator className="my-4" />
@@ -161,7 +161,7 @@ export function LicenseCard({ license, projectId }: LicenseCardProps) {
                         <ul className="mt-2 space-y-1 text-sm">
                             <li>Price: {formatCurrency(license.price, license.currency)}</li>
                             <li>Deployment Limit: {license.deployment_limit}</li>
-                            <li>Duration: {license.duration === 0 ? "Unlimited" : `${license.duration} days`}</li>
+                            <li>Billing Period: {license.period === LicensePeriod.FOREVER ? "Lifetime" : license.period.charAt(0).toUpperCase() + license.period.slice(1)}</li>
                         </ul>
                     </div>
 

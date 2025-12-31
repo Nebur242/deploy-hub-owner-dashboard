@@ -99,8 +99,58 @@ export interface DashboardStats {
   deployments: DeploymentStats;
   projects: ProjectStats;
   licenses: LicenseStats;
+  sales?: SalesStats;
   deploymentTrends: DeploymentTrend[];
+  salesTrends?: SalesTrend[];
   recentActivity: RecentActivity[];
+  recentOrders?: RecentOrder[];
+}
+
+/**
+ * Sales statistics
+ */
+export interface SalesStats {
+  totalOrders: number;
+  completedOrders: number;
+  pendingOrders: number;
+  failedOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  conversionRate: number;
+}
+
+/**
+ * Sales trend data point
+ */
+export interface SalesTrend {
+  date: string;
+  orderCount: number;
+  revenue: number;
+}
+
+/**
+ * Top selling license
+ */
+export interface TopSellingLicense {
+  licenseId: string;
+  licenseName: string;
+  projectId: string;
+  projectName: string;
+  orderCount: number;
+  revenue: number;
+}
+
+/**
+ * Recent order for dashboard display
+ */
+export interface RecentOrder {
+  id: string;
+  buyerName: string;
+  licenseName: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
 }
 
 /**

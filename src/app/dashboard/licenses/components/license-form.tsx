@@ -1,11 +1,11 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Currency } from "@/common/enums/project";
-import { LicenseStatus } from "@/common/types/license";
+import { LicenseStatus, LicensePeriod } from "@/common/types/license";
 import {
     Form,
     FormControl,
@@ -26,13 +26,16 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { IconLoader, IconPlus, IconX } from "@tabler/icons-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { IconLoader, IconPlus, IconX, IconInfoCircle } from "@tabler/icons-react";
 import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { CreateLicenseDto, createLicenseDtoSchema } from "@/common/dtos";
 import { useGetProjectsQuery } from "@/store/features/projects";
 import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { subscriptionService } from "@/services/subscription";
+import { DeploymentPool } from "@/common/types/subscription";
 
 interface LicenseFormProps {
     isEditing: boolean;
@@ -41,6 +44,7 @@ interface LicenseFormProps {
     isLoading: boolean;
     isSuccess: boolean;
     error: { message: string } | null;
+    currentDeploymentLimit?: number; // For editing: current license's deployment limit
 }
 
 export default function LicenseForm({
@@ -50,10 +54,38 @@ export default function LicenseForm({
     isLoading,
     isSuccess,
     error,
+    currentDeploymentLimit = 0,
 }: LicenseFormProps) {
     const [submitAttempted, setSubmitAttempted] = useState(false);
     const [features, setFeatures] = useState<string[]>(initialData?.features || []);
     const [featureInput, setFeatureInput] = useState("");
+    const [deploymentPool, setDeploymentPool] = useState<DeploymentPool | null>(null);
+    const [poolLoading, setPoolLoading] = useState(true);
+
+    // Fetch deployment pool info
+    useEffect(() => {
+        const fetchPoolInfo = async () => {
+            try {
+                const subscription = await subscriptionService.getSubscription();
+                if (subscription.deployment_pool) {
+                    // When editing, add back the current license's allocation to available
+                    const adjustedAvailable = isEditing
+                        ? subscription.deployment_pool.available + currentDeploymentLimit
+                        : subscription.deployment_pool.available;
+
+                    setDeploymentPool({
+                        ...subscription.deployment_pool,
+                        available: adjustedAvailable,
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching deployment pool:", err);
+            } finally {
+                setPoolLoading(false);
+            }
+        };
+        fetchPoolInfo();
+    }, [isEditing, currentDeploymentLimit]);
 
     // Fetch projects for the multi-select
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
@@ -68,8 +100,8 @@ export default function LicenseForm({
             description: "",
             price: 0,
             currency: Currency.USD,
-            deployment_limit: 1,
-            duration: 0, // Default unlimited
+            deployment_limit: 5, // Minimum deployment limit
+            period: LicensePeriod.FOREVER, // Default one-time purchase
             features: [],
             project_ids: [], // Will store project IDs
             status: LicenseStatus.DRAFT, // Default status
@@ -113,6 +145,26 @@ export default function LicenseForm({
 
     return (
         <div className="space-y-6">
+            {/* Deployment Pool Warning */}
+            {!poolLoading && deploymentPool && deploymentPool.available !== -1 && deploymentPool.available < 10 && (
+                <Alert variant={deploymentPool.available < 5 ? "destructive" : "default"}>
+                    <IconInfoCircle className="h-4 w-4" />
+                    <AlertDescription>
+                        {deploymentPool.available < 5 ? (
+                            <>
+                                <strong>Insufficient deployment pool!</strong> You only have {deploymentPool.available} deployments
+                                available. Minimum per license is 5. <a href="/dashboard/billing" className="underline">Upgrade your plan</a> to get more.
+                            </>
+                        ) : (
+                            <>
+                                Your deployment pool is running low ({deploymentPool.available} available).
+                                Consider <a href="/dashboard/billing" className="underline">upgrading your plan</a>.
+                            </>
+                        )}
+                    </AlertDescription>
+                </Alert>
+            )}
+
             {/* Success Alert */}
             {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-6" />}
 
@@ -236,15 +288,29 @@ export default function LicenseForm({
                                                 <FormControl>
                                                     <Input
                                                         type="number"
-                                                        min="1"
-                                                        placeholder="1"
+                                                        min="5"
+                                                        max={deploymentPool?.available === -1 ? undefined : deploymentPool?.available}
+                                                        placeholder="5"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                                                        onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
                                                         value={field.value}
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
-                                                    Number of deployments allowed
+                                                    {poolLoading ? (
+                                                        "Loading pool info..."
+                                                    ) : deploymentPool?.available === -1 ? (
+                                                        "Unlimited deployments available (min 5)"
+                                                    ) : (
+                                                        <>
+                                                            Min 5, max {deploymentPool?.available} available from your pool
+                                                            {deploymentPool && (
+                                                                <span className="block text-xs mt-1">
+                                                                    Pool: {deploymentPool.allocated}/{deploymentPool.total} allocated
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
@@ -254,22 +320,32 @@ export default function LicenseForm({
 
                                 <FormField
                                     control={form.control}
-                                    name="duration"
+                                    name="period"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Duration (days)</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    placeholder="30"
-                                                    {...field}
-                                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                                    value={field.value}
-                                                />
-                                            </FormControl>
+                                            <FormLabel>Billing Period</FormLabel>
+                                            <Select
+                                                onValueChange={(value) => field.onChange(value as LicensePeriod)}
+                                                defaultValue={field.value}
+                                                value={field.value}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select period" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value={LicensePeriod.FOREVER}>One-time (Forever)</SelectItem>
+                                                    <SelectItem value={LicensePeriod.WEEKLY}>Weekly</SelectItem>
+                                                    <SelectItem value={LicensePeriod.BIWEEKLY}>Bi-weekly</SelectItem>
+                                                    <SelectItem value={LicensePeriod.MONTHLY}>Monthly</SelectItem>
+                                                    <SelectItem value={LicensePeriod.YEARLY}>Yearly</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                             <FormDescription>
-                                                License duration in days (0 for unlimited)
+                                                {field.value === LicensePeriod.FOREVER
+                                                    ? "Customer pays once and owns forever"
+                                                    : "Customer subscribes and pays recurring"}
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>

@@ -50,7 +50,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 import { LicenseOption } from "@/common/types";
-import { formatCurrency, formatDuration } from "@/utils/format";
+import { formatCurrency, formatPeriod } from "@/utils/format";
 import {
     Tooltip,
     TooltipContent,
@@ -263,7 +263,7 @@ export default function LicensesPage() {
                                         <TableHead>Description</TableHead>
                                         <TableHead>Price</TableHead>
                                         <TableHead>Deployments</TableHead>
-                                        <TableHead>Duration</TableHead>
+                                        <TableHead>Period</TableHead>
                                         <TableHead>Projects</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
@@ -286,7 +286,7 @@ export default function LicensesPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                {formatDuration(license.duration)}
+                                                {formatPeriod(license.period)}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary">

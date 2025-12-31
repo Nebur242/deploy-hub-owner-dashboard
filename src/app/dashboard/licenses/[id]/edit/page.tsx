@@ -75,7 +75,7 @@ export default function EditLicensePage() {
                 price: license.price,
                 currency: license.currency,
                 deployment_limit: license.deployment_limit,
-                duration: license.duration,
+                period: license.period,
                 features: license.features || [],
                 project_ids: license.projects?.map(project => project.id) || [],
                 status: license.status,
@@ -200,6 +200,7 @@ export default function EditLicensePage() {
                     error={updateError ? {
                         message: getErrorMessage(updateError) || "An error occurred",
                     } : null}
+                    currentDeploymentLimit={license?.deployment_limit || 0}
                 />
 
                 {/* Purchase History could go here, similar to Configuration section in Project edit */}

@@ -7,7 +7,8 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   path: "/",
-  sameSite: "strict" as const,
+  // Use "lax" to allow the cookie to be sent on top-level navigations (like redirects from Stripe)
+  sameSite: "lax" as const,
 };
 
 initFirebaseAdmin();

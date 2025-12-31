@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PurchaseStatus } from "@/common/enums/project";
 import Link from "next/link";
 import { IconEdit } from "@tabler/icons-react";
-import { formatCurrency, formatDate, formatDuration } from "@/utils/format";
+import { formatCurrency, formatDate, formatPeriod } from "@/utils/format";
 
 export default function ViewLicensePage() {
     const { id: licenseId } = useParams() as { id?: string };
@@ -180,10 +180,10 @@ export default function ViewLicensePage() {
                                     </div>
 
                                     <div>
-                                        <h3 className="text-sm font-medium text-muted-foreground">Duration</h3>
+                                        <h3 className="text-sm font-medium text-muted-foreground">Billing Period</h3>
                                         <p className="mt-1">
                                             <Badge variant="outline" className="text-lg font-semibold">
-                                                {license && formatDuration(license.duration)}
+                                                {license && formatPeriod(license.period)}
                                             </Badge>
                                         </p>
                                     </div>

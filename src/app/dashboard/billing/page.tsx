@@ -357,6 +357,55 @@ function BillingContent() {
                     {/* Plan Features */}
                     <Card>
                         <CardHeader>
+                            <CardTitle>Deployment Pool</CardTitle>
+                            <CardDescription>
+                                Your deployment allocation across all licenses
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {subscription?.deployment_pool ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="font-medium">
+                                            {subscription.deployment_pool.total === -1
+                                                ? "Unlimited deployments"
+                                                : `${subscription.deployment_pool.allocated} / ${subscription.deployment_pool.total} allocated`}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {subscription.deployment_pool.total === -1
+                                                ? ""
+                                                : `${subscription.deployment_pool.available} available`}
+                                        </span>
+                                    </div>
+                                    {subscription.deployment_pool.total !== -1 && (
+                                        <div className="w-full bg-muted rounded-full h-3">
+                                            <div
+                                                className="bg-primary h-3 rounded-full transition-all duration-300"
+                                                style={{
+                                                    width: `${Math.min(
+                                                        100,
+                                                        (subscription.deployment_pool.allocated / subscription.deployment_pool.total) * 100
+                                                    )}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-muted-foreground">
+                                        This pool is distributed across your licenses. Each license you create
+                                        allocates deployments from this pool that your customers can use.
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    Loading deployment pool information...
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Plan Features */}
+                    <Card>
+                        <CardHeader>
                             <CardTitle>Plan Features & Limits</CardTitle>
                             <CardDescription>
                                 What&apos;s included in your current plan
@@ -448,11 +497,10 @@ function BillingContent() {
                             }
                         >
                             <div
-                                className={`absolute top-1 h-4 w-4 rounded-full bg-primary transition-transform ${
-                                    billingInterval === BillingInterval.YEARLY
+                                className={`absolute top-1 h-4 w-4 rounded-full bg-primary transition-transform ${billingInterval === BillingInterval.YEARLY
                                         ? "translate-x-9"
                                         : "translate-x-1"
-                                }`}
+                                    }`}
                             />
                         </button>
                         <span
@@ -478,9 +526,8 @@ function BillingContent() {
                             return (
                                 <Card
                                     key={plan.plan}
-                                    className={`relative ${
-                                        isCurrentPlan ? "border-primary ring-2 ring-primary" : ""
-                                    }`}
+                                    className={`relative ${isCurrentPlan ? "border-primary ring-2 ring-primary" : ""
+                                        }`}
                                 >
                                     {isCurrentPlan && (
                                         <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
@@ -559,8 +606,8 @@ function BillingContent() {
                                             {isCurrentPlan
                                                 ? "Current Plan"
                                                 : plan.plan === SubscriptionPlan.FREE
-                                                ? "Free"
-                                                : "Upgrade"}
+                                                    ? "Free"
+                                                    : "Upgrade"}
                                         </Button>
                                     </CardFooter>
                                 </Card>

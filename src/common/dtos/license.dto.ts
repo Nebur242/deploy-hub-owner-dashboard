@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Currency } from "../enums/project";
-import { LicenseStatus } from "../types/license";
+import { LicenseStatus, LicensePeriod } from "../types/license";
 
 // Base schema for license data
 const licenseBaseDtoSchema = z.object({
@@ -9,7 +9,7 @@ const licenseBaseDtoSchema = z.object({
   price: z.number().nonnegative("Price must be a non-negative number"),
   currency: z.nativeEnum(Currency),
   deployment_limit: z.number().int().nonnegative(),
-  duration: z.number().int().nonnegative(), // 0 for unlimited
+  period: z.nativeEnum(LicensePeriod), // Billing period
   features: z.array(z.string()),
   status: z.nativeEnum(LicenseStatus),
   popular: z.boolean(),

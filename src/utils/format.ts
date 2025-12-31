@@ -1,3 +1,5 @@
+import { LicensePeriod } from "@/common/types/license";
+
 /**
  * Format currency display
  * @param currency Currency code (e.g., 'USD')
@@ -13,16 +15,25 @@ export const formatCurrency = (currency: string, amount: number) => {
 };
 
 /**
- * Format duration display
- * @param days Number of days
- * @returns Human-readable duration string
+ * Format period display for license billing period
+ * @param period LicensePeriod enum value
+ * @returns Human-readable period string
  */
-export const formatDuration = (days: number) => {
-  if (days === 0) return "Unlimited";
-  if (days === 1) return "1 day";
-  if (days < 30) return `${days} days`;
-  const months = Math.floor(days / 30);
-  return months === 1 ? "1 month" : `${months} months`;
+export const formatPeriod = (period: LicensePeriod) => {
+  switch (period) {
+    case LicensePeriod.WEEKLY:
+      return "Weekly";
+    case LicensePeriod.BIWEEKLY:
+      return "Bi-weekly";
+    case LicensePeriod.MONTHLY:
+      return "Monthly";
+    case LicensePeriod.YEARLY:
+      return "Yearly";
+    case LicensePeriod.FOREVER:
+      return "Lifetime";
+    default:
+      return period;
+  }
 };
 
 /**

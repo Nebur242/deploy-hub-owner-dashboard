@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLazyGetOrderByIdQuery, useProcessPaymentMutation } from "@/store/features/orders";
+import { LicensePeriod } from "@/common/types/license";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,7 +221,7 @@ export default function PaymentPage() {
                                 <p className="text-sm text-gray-600 mb-1">{order.license.description}</p>
                                 <div className="text-xs text-gray-500">
                                     {order.license.deployment_limit} deployments •
-                                    {order.license.duration === 0 ? " Unlimited duration" : ` ${order.license.duration} days`}
+                                    {order.license.period === LicensePeriod.FOREVER ? " Lifetime" : ` ${order.license.period.charAt(0).toUpperCase() + order.license.period.slice(1)}`}
                                 </div>
                             </div>
                             <div className="text-xl font-bold">

@@ -1,5 +1,6 @@
 import { Order, OrderStatus } from "@/common/types/order";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { LicensePeriod } from "@/common/types/license";
+import { formatCurrency, formatDate, formatPeriod } from "@/utils/format";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "jspdf-autotable"; // Import for TypeScript support
@@ -134,11 +135,7 @@ export const generateInvoice = async (order: Order): Promise<Blob> => {
         `Name: ${order.license.name}`,
         `Description: ${order.license.description}`,
         `Deployment Limit: ${order.license.deployment_limit} deployments`,
-        `Duration: ${
-          order.license.duration === 0
-            ? "Unlimited"
-            : `${order.license.duration} days`
-        }`,
+        `Billing Period: ${formatPeriod(order.license.period)}`,
       ],
       margin,
       currentY + 6

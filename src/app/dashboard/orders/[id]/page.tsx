@@ -2,6 +2,7 @@
 
 import { useGetOrderByIdQuery } from "@/store/features/orders";
 import { OrderStatus, PaymentStatus } from "@/common/types/order";
+import { LicensePeriod } from "@/common/types/license";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -249,9 +250,9 @@ export default function OrderDetails() {
                                             <div className="flex flex-wrap gap-2">
                                                 <Badge variant="secondary">{order.license.deployment_limit} deployments</Badge>
                                                 <Badge variant="secondary">
-                                                    {order.license.duration === 0
-                                                        ? "Unlimited duration"
-                                                        : `${order.license.duration} days`}
+                                                    {order.license.period === LicensePeriod.FOREVER
+                                                        ? "Lifetime"
+                                                        : order.license.period.charAt(0).toUpperCase() + order.license.period.slice(1)}
                                                 </Badge>
                                             </div>
                                         </div>

@@ -525,9 +525,11 @@ export const registerUser = createAsyncThunk(
     if (!response.ok) {
       const res = await response.json();
       console.log(res);
-      rejectWithValue("Session not set");
+      if (registerDto.onFailed) registerDto.onFailed();
+      return rejectWithValue("Session not set");
     }
 
+    if (registerDto.onSuccess) registerDto.onSuccess();
     return fulfillWithValue({
       ...user,
       firebase: firebaseUser.user.toJSON() as UserCredential["user"],
@@ -584,9 +586,11 @@ export const loginUser = createAsyncThunk(
     if (!response.ok) {
       const res = await response.json();
       console.log(res);
-      rejectWithValue("Session not set");
+      if (loginDto.onFailed) loginDto.onFailed();
+      return rejectWithValue("Session not set");
     }
 
+    if (loginDto.onSuccess) loginDto.onSuccess();
     return fulfillWithValue({
       ...user,
       firebase: firebaseUser.user.toJSON() as UserCredential["user"],
