@@ -18,6 +18,7 @@ import {
   IconChartLine,
   IconReceipt,
   IconWallet,
+  IconUsers,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -85,6 +86,11 @@ const data = {
       title: "Sales",
       url: "/dashboard/sales",
       icon: IconReceipt,
+    },
+    {
+      title: "Customers",
+      url: "/dashboard/customers",
+      icon: IconUsers,
     },
     {
       title: "Earnings",

@@ -21,10 +21,46 @@ interface SalesAnalyticsResponse {
   conversionRate: number;
 }
 
+// Customer types
+export interface CustomerStats {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  profilePicture: string | null;
+  userCreatedAt: string;
+  totalOrders: number;
+  completedOrders: number;
+  totalSpent: number;
+  firstPurchase: string | null;
+  lastPurchase: string | null;
+}
+
+export interface CustomerDetails extends CustomerStats {
+  company: string | null;
+  orders: Order[];
+  licensesOwned: {
+    licenseId: string;
+    licenseName: string;
+    purchaseCount: number;
+  }[];
+}
+
+interface CustomersResponse {
+  items: CustomerStats[];
+  meta: {
+    totalItems: number;
+    itemCount: number;
+    itemsPerPage: number;
+    totalPages: number;
+    currentPage: number;
+  };
+}
+
 export const ordersApi = createApi({
   reducerPath: "ordersApi",
   baseQuery: axiosBaseQuery(),
-  tagTypes: ["Orders", "Order", "OwnerSales", "SalesAnalytics"],
+  tagTypes: ["Orders", "Order", "OwnerSales", "SalesAnalytics", "Customers"],
   endpoints: (builder) => ({
     // ===== User/Buyer Order Endpoints =====
     getOrders: builder.query<
@@ -221,6 +257,50 @@ export const ordersApi = createApi({
       },
       providesTags: [{ type: "OwnerSales", id: "RECENT" }],
     }),
+
+    // ===== Customer Management Endpoints =====
+    getCustomers: builder.query<
+      CustomersResponse,
+      {
+        page?: number;
+        limit?: number;
+        search?: string;
+        sortBy?: string;
+        sortDirection?: "ASC" | "DESC";
+      }
+    >({
+      query: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        if (params.page) queryParams.append("page", params.page.toString());
+        if (params.limit) queryParams.append("limit", params.limit.toString());
+        if (params.search) queryParams.append("search", params.search);
+        if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+        if (params.sortDirection)
+          queryParams.append("sortDirection", params.sortDirection);
+        return {
+          url: `/orders/owner/customers?${queryParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ userId }) => ({
+                type: "Customers" as const,
+                id: userId,
+              })),
+              { type: "Customers", id: "LIST" },
+            ]
+          : [{ type: "Customers", id: "LIST" }],
+    }),
+
+    getCustomerById: builder.query<CustomerDetails, string>({
+      query: (customerId) => ({
+        url: `/orders/owner/customers/${customerId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: "Customers", id }],
+    }),
   }),
 });
 
@@ -238,4 +318,9 @@ export const {
   useGetSalesTrendsQuery,
   useGetTopSellingLicensesQuery,
   useGetRecentOwnerOrdersQuery,
+  // Customer endpoints
+  useGetCustomersQuery,
+  useLazyGetCustomersQuery,
+  useGetCustomerByIdQuery,
+  useLazyGetCustomerByIdQuery,
 } = ordersApi;
