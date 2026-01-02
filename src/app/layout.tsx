@@ -5,6 +5,7 @@ import StoreProvider from "@/providers/StoreProvider";
 import { ThemeProvider as NextThemeProvider } from "@/components/theme-provider";
 import { ThemeProvider } from "@/hooks/theme-context";
 import { NotificationProvider } from "@/providers/NotificationProvider";
+import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -45,10 +46,12 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ThemeProvider>
-              <NotificationProvider>
-                {children}
-                <Toaster />
-              </NotificationProvider>
+              <AnalyticsProvider>
+                <NotificationProvider>
+                  {children}
+                  <Toaster />
+                </NotificationProvider>
+              </AnalyticsProvider>
             </ThemeProvider>
           </NextThemeProvider>
         </StoreProvider>
