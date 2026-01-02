@@ -18,7 +18,7 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
         page_path: window.location.pathname,
       });
 
-      console.log("Firebase Analytics initialized");
+      console.log("Firebase Analytics initialized !");
     }
   }, []);
 
