@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Visibility, TechStack } from "@/common/enums/project";
+import { Visibility, TechStack, ModerationStatus } from "@/common/enums/project";
 import {
   IconPlus,
   IconSearch,
@@ -43,6 +43,10 @@ import {
   IconTrash,
   IconGitBranch,
   IconEye,
+  IconClock,
+  IconCircleCheck,
+  IconCircleX,
+  IconFileDescription,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -230,6 +234,7 @@ export default function ProjectsPage() {
                     <TableHead>Description</TableHead>
                     <TableHead>Tech Stack</TableHead>
                     <TableHead>Visibility</TableHead>
+                    <TableHead>Moderation</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -295,6 +300,32 @@ export default function ProjectsPage() {
                         >
                           {project.visibility}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {project.moderation_status === ModerationStatus.PENDING && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            <IconClock className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                        {project.moderation_status === ModerationStatus.APPROVED && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <IconCircleCheck className="h-3 w-3 mr-1" />
+                            Approved
+                          </Badge>
+                        )}
+                        {project.moderation_status === ModerationStatus.REJECTED && (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            <IconCircleX className="h-3 w-3 mr-1" />
+                            Rejected
+                          </Badge>
+                        )}
+                        {project.moderation_status === ModerationStatus.DRAFT && (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                            <IconFileDescription className="h-3 w-3 mr-1" />
+                            Draft
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {new Date(project.created_at).toLocaleDateString()}

@@ -42,7 +42,6 @@ import {
   IconChevronLeft,
   IconPlayCard,
   IconChevronRight,
-  // IconFileText,
   IconAlertCircle,
   IconInfoCircle,
   IconRefresh,
@@ -229,11 +228,11 @@ export default function DeploymentDetailPage() {
       <div className="space-y-6">
         {/* Test Mode Alert */}
         {deployment.is_test && (
-          <Alert className="border-orange-300 bg-orange-50/50">
-            <IconInfoCircle className="h-4 w-4 text-orange-600" />
-            <AlertTitle className="text-orange-900">Test Deployment</AlertTitle>
-            <AlertDescription className="text-orange-800">
-              This is a <strong>test deployment</strong> used to verify your configuration. Test deployments don&apos;t count against your deployment limits and are useful for testing before making your project public.
+          <Alert className="border-orange-500/50 bg-orange-500/10 dark:bg-orange-500/20">
+            <IconFlask className="h-4 w-4 text-orange-500" />
+            <AlertTitle className="text-orange-600 dark:text-orange-400">Test Deployment</AlertTitle>
+            <AlertDescription className="text-orange-700 dark:text-orange-300">
+              This is a <strong className="text-orange-800 dark:text-orange-200">test deployment</strong> used to verify your configuration. Test deployments don&apos;t count against your deployment limits and are useful for testing before making your project public.
             </AlertDescription>
           </Alert>
         )}
@@ -249,7 +248,7 @@ export default function DeploymentDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               {deployment.is_test && (
-                <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-300">
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/50">
                   <IconFlask className="h-3 w-3 mr-1" /> Test Mode
                 </Badge>
               )}

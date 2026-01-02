@@ -9,3 +9,5 @@ export * from "./deployment";
 export * from "./user";
 export * from "./order";
 export * from "./statistics";
+export * from "./coupon";
+export * from "./review";

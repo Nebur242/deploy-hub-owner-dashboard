@@ -100,6 +100,21 @@ export interface DeploymentsState {
   deployments: Deployment[];
 }
 
+export interface MonthlyDeploymentUsage {
+  monthly: {
+    used: number;
+    limit: number;
+    remaining: number;
+    unlimited: boolean;
+  };
+  credits: {
+    used: number;
+    total: number;
+    remaining: number;
+    unlimited: boolean;
+  };
+}
+
 const initialState: DeploymentsState = {
   loading: false,
   error: "",
@@ -203,6 +218,14 @@ export const deploymentApi = createApi({
         };
       },
     }),
+
+    // Get monthly deployment usage
+    getMonthlyUsage: builder.query<MonthlyDeploymentUsage, void>({
+      query: () => ({
+        method: "GET",
+        url: "/deployments/monthly-usage",
+      }),
+    }),
   }),
 });
 
@@ -212,6 +235,7 @@ export const {
   useCreateDeploymentMutation,
   useRetryDeploymentMutation,
   useGetDeploymentLogsQuery,
+  useGetMonthlyUsageQuery,
 } = deploymentApi;
 
 const deploymentsSlice = createSlice({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   useGetProjectQuery,
@@ -15,11 +15,26 @@ import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreateConfigurationDto } from "@/common/dtos";
 import { getErrorMessage } from "@/utils/functions";
+import { subscriptionService } from "@/services/subscription";
 
 export default function CreateConfigurationPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const projectId = params?.id || "";
+  const [maxGithubAccounts, setMaxGithubAccounts] = useState<number>(2);
+
+  // Fetch subscription to get max GitHub accounts limit
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const subscription = await subscriptionService.getSubscription();
+        setMaxGithubAccounts(subscription.max_github_accounts ?? 2);
+      } catch (err) {
+        console.error("Error fetching subscription:", err);
+      }
+    };
+    fetchSubscription();
+  }, []);
 
   // Get project details for breadcrumb
   const { data: project, isLoading: isLoadingProject } =
@@ -130,6 +145,7 @@ export default function CreateConfigurationPage() {
         onSubmit={handleSubmit}
         isLoading={isLoading}
         isSuccess={isSuccess}
+        maxGithubAccounts={maxGithubAccounts}
         error={
           error
             ? {

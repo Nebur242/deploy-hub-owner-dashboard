@@ -17,6 +17,14 @@ export enum Visibility {
   FEATURED = "featured",
 }
 
+export enum ModerationStatus {
+  DRAFT = "draft",
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+  CHANGES_PENDING = "changes_pending",
+}
+
 export enum DeploymentStatus {
   PENDING = "pending",
   RUNNING = "running",

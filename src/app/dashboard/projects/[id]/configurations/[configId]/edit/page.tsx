@@ -15,6 +15,7 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ConfigurationForm from "../../components/configuration-form";
 import { CreateConfigurationDto } from "@/common/dtos";
+import { subscriptionService } from "@/services/subscription";
 
 export default function EditConfigurationPage() {
   const params = useParams<{ id: string; configId: string }>();
@@ -25,6 +26,20 @@ export default function EditConfigurationPage() {
   const [initialValues, setInitialValues] = useState<
     CreateConfigurationDto | undefined
   >(undefined);
+  const [maxGithubAccounts, setMaxGithubAccounts] = useState<number>(2);
+
+  // Fetch subscription to get max GitHub accounts limit
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const subscription = await subscriptionService.getSubscription();
+        setMaxGithubAccounts(subscription.max_github_accounts ?? 2);
+      } catch (err) {
+        console.error("Error fetching subscription:", err);
+      }
+    };
+    fetchSubscription();
+  }, []);
 
   // RTK Query hooks
   const { data: project } = useGetProjectQuery(projectId);
@@ -190,6 +205,7 @@ export default function EditConfigurationPage() {
         onSubmit={handleSubmit}
         isLoading={isUpdating}
         isSuccess={isSuccess}
+        maxGithubAccounts={maxGithubAccounts}
         error={
           updateError
             ? {

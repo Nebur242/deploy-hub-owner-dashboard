@@ -1,6 +1,6 @@
 import { BaseEntity } from "./base";
 import { Category } from "./category";
-import { TechStack, Visibility } from "../enums/project";
+import { TechStack, Visibility, ModerationStatus } from "../enums/project";
 import { LicenseOption } from "./license";
 import { ProjectConfiguration } from "./configuration";
 
@@ -13,6 +13,17 @@ export interface Project extends BaseEntity {
   repository: string;
   tech_stack: TechStack[];
   visibility: Visibility;
+  // Moderation fields
+  moderation_status: ModerationStatus;
+  moderation_note?: string;
+  moderated_by?: string;
+  moderated_at?: string;
+  submitted_for_review_at?: string;
+  // Pending changes fields (for approved projects with edits awaiting review)
+  pending_changes?: Record<string, unknown> | null;
+  has_pending_changes?: boolean;
+  pending_changes_submitted_at?: string | null;
+  // Relations
   categories: Category[];
   versions?: ProjectVersion[];
   configurations?: ProjectConfiguration[];

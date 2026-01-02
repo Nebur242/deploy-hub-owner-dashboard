@@ -7,6 +7,7 @@ import { notificationsApi } from "./features/notifications";
 import { projectsApi } from "./features/projects";
 import { licensesApi } from "./features/licenses";
 import { ordersApi } from "./features/orders";
+import { supportApi } from "./features/support";
 import { userApi } from "./features/users";
 
 export const makeStore = () => {
@@ -20,6 +21,7 @@ export const makeStore = () => {
       [licensesApi.reducerPath]: licensesApi.reducer,
       [deploymentApi.reducerPath]: deploymentApi.reducer,
       [ordersApi.reducerPath]: ordersApi.reducer,
+      [supportApi.reducerPath]: supportApi.reducer,
       [userApi.reducerPath]: userApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
@@ -31,6 +33,7 @@ export const makeStore = () => {
         .concat(licensesApi.middleware)
         .concat(deploymentApi.middleware)
         .concat(ordersApi.middleware)
+        .concat(supportApi.middleware)
         .concat(userApi.middleware),
     devTools: process.env.NODE_ENV !== "production",
   });

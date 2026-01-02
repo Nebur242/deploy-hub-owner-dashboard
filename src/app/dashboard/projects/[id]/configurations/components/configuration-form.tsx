@@ -63,6 +63,7 @@ interface ConfigurationFormProps {
   isLoading: boolean;
   isSuccess: boolean;
   error: { message: string } | null;
+  maxGithubAccounts?: number; // Max GitHub accounts allowed per configuration (-1 = unlimited)
 }
 
 // Component to display array-level validation errors
@@ -1078,15 +1079,22 @@ function EnvironmentVariablesSection() {
 function LeftColumnWithTabs({
   githubFields,
   appendGithub,
-  removeGithub
+  removeGithub,
+  maxGithubAccounts,
+  isUnlimitedAccounts,
 }: {
   githubFields: GithubAccountDto[];
   appendGithub: (value: GithubAccountDto) => void;
   removeGithub: (index: number) => void;
+  maxGithubAccounts: number;
+  isUnlimitedAccounts: boolean;
 }) {
   const [activeTab, setActiveTab] = useState("github");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const form = useFormContext();
+
+  // Check if can add more accounts
+  const canAddMoreAccounts = isUnlimitedAccounts || githubFields.length < maxGithubAccounts;
 
   // Determine if there are errors in either section
   const hasGithubErrors = !!form.formState.errors.github_accounts;
@@ -1159,10 +1167,27 @@ function LeftColumnWithTabs({
                   })
                 }
                 className="w-full"
+                disabled={!canAddMoreAccounts}
               >
                 <IconPlus className="h-4 w-4 mr-2" />
                 Add GitHub Account
               </Button>
+              
+              {/* Show limit info */}
+              <p className="text-xs text-muted-foreground text-center">
+                {isUnlimitedAccounts ? (
+                  "Unlimited GitHub accounts (Enterprise plan)"
+                ) : (
+                  <>
+                    {githubFields.length} / {maxGithubAccounts} accounts used
+                    {!canAddMoreAccounts && (
+                      <span className="block text-amber-600 dark:text-amber-400 mt-1">
+                        Upgrade your plan to add more GitHub accounts
+                      </span>
+                    )}
+                  </>
+                )}
+              </p>
             </div>
           </Card>
         </TabsContent>
@@ -1230,10 +1255,14 @@ export default function ConfigurationForm({
   isLoading,
   isSuccess,
   error,
+  maxGithubAccounts = 2,
 }: ConfigurationFormProps) {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [validatingGithub, setValidatingGithub] = useState(false);
   const [githubValidationErrors, setGithubValidationErrors] = useState<{ index: number, message: string }[]>([]);
+
+  // Check if user can add more GitHub accounts
+  const isUnlimitedAccounts = maxGithubAccounts === -1;
 
   // Create default Vercel environment variables
   const defaultVercelVariables = [
@@ -1408,6 +1437,8 @@ export default function ConfigurationForm({
                   githubFields={githubFields}
                   appendGithub={appendGithub}
                   removeGithub={removeGithub}
+                  maxGithubAccounts={maxGithubAccounts}
+                  isUnlimitedAccounts={isUnlimitedAccounts}
                 />
               </div>
 

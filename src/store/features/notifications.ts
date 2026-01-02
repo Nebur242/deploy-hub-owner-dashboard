@@ -13,12 +13,12 @@ export enum NotificationScope {
   ACCOUNT = "ACCOUNT",
 }
 
-// Notification type enum matching API
+// Notification type enum matching API (lowercase to match database enum)
 export enum NotificationType {
-  SYSTEM = "SYSTEM",
-  EMAIL = "EMAIL",
-  SMS = "SMS",
-  PUSH = "PUSH",
+  SYSTEM = "system",
+  EMAIL = "email",
+  SMS = "sms",
+  PUSH = "push",
 }
 
 // Notification entity matching API response

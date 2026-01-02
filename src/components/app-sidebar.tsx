@@ -19,6 +19,9 @@ import {
   IconReceipt,
   IconWallet,
   IconUsers,
+  IconShieldCheck,
+  IconTicket,
+  IconStar,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -88,6 +91,16 @@ const data = {
       icon: IconReceipt,
     },
     {
+      title: "Coupons",
+      url: "/dashboard/coupons",
+      icon: IconTicket,
+    },
+    {
+      title: "Reviews",
+      url: "/dashboard/reviews",
+      icon: IconStar,
+    },
+    {
       title: "Customers",
       url: "/dashboard/customers",
       icon: IconUsers,
@@ -101,6 +114,13 @@ const data = {
       title: "Billing",
       url: "/dashboard/billing",
       icon: IconCreditCard,
+    },
+  ],
+  navAdmin: [
+    {
+      title: "Moderation",
+      url: "/dashboard/admin/moderation",
+      icon: IconShieldCheck,
     },
   ],
   navSecondary: [
@@ -167,6 +187,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
         <SidebarContent>
           <NavMain items={data.navMain} />
+          <NavMain items={data.navAdmin} showQuickCreate={false} />
           {/* <NavDocuments items={data.documents} /> */}
           <NavSecondary items={data.navSecondary} className="mt-auto" />
           <div className="px-2 py-2">

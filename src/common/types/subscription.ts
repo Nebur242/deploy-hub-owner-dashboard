@@ -47,6 +47,7 @@ export interface Subscription {
   trial_end: string | null;
   max_projects: number;
   max_deployments_per_month: number;
+  max_github_accounts: number; // Max GitHub accounts per configuration
   custom_domain_enabled: boolean;
   priority_support: boolean;
   analytics_enabled: boolean;

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   useGetDeploymentsQuery,
   useRetryDeploymentMutation,
+  useGetMonthlyUsageQuery,
   DeploymentStatus,
   DeploymentEnvironment,
 } from "@/store/features/deployments";
@@ -19,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +50,7 @@ import {
   // IconFileText,
   IconTerminal,
   IconFlask,
+  IconRocket,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -72,6 +75,9 @@ export default function DeploymentsPage() {
     data: projectsData,
     isLoading: isLoadingProjects
   } = useGetProjectsQuery({ limit: 50 });
+
+  // Fetch monthly deployment usage
+  const { data: monthlyUsage, isLoading: isLoadingUsage } = useGetMonthlyUsageQuery();
 
   // Update projects list when data is loaded
   useEffect(() => {
@@ -181,83 +187,150 @@ export default function DeploymentsPage() {
       actions={actionButtons}
     >
       <div className="flex flex-col gap-6">
-        <div className="flex gap-4 flex-col sm:flex-row mb-4">
-          <div className="relative w-full sm:w-1/4">
-            <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search deployments..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page on search
+        {/* Filters and Monthly Usage Row */}
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          <div className="flex gap-4 flex-col sm:flex-row flex-1">
+            <div className="relative w-full sm:w-1/4">
+              <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search deployments..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            {/* Project Filter */}
+            <Select
+              value={selectedProjectId || "all"}
+              onValueChange={(value) => {
+                setSelectedProjectId(value === "all" ? undefined : value);
+                setCurrentPage(1);
               }}
-            />
+              disabled={isLoadingProjects}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                {isLoadingProjects ? (
+                  <span className="flex items-center">
+                    <IconLoader className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  <SelectValue placeholder="Select Project" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value={DeploymentStatus.PENDING}>Pending</SelectItem>
+                <SelectItem value={DeploymentStatus.RUNNING}>Running</SelectItem>
+                <SelectItem value={DeploymentStatus.SUCCESS}>Success</SelectItem>
+                <SelectItem value={DeploymentStatus.FAILED}>Failed</SelectItem>
+                <SelectItem value={DeploymentStatus.CANCELED}>Canceled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={environmentFilter}
+              onValueChange={(value) => {
+                setEnvironmentFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Environment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Environments</SelectItem>
+                <SelectItem value={DeploymentEnvironment.PRODUCTION}>Production</SelectItem>
+                <SelectItem value={DeploymentEnvironment.PREVIEW}>Preview</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Project Filter */}
-          <Select
-            value={selectedProjectId || "all"}
-            onValueChange={(value) => {
-              setSelectedProjectId(value === "all" ? undefined : value);
-              setCurrentPage(1); // Reset to first page on filter change
-            }}
-            disabled={isLoadingProjects}
-          >
-            <SelectTrigger className="w-full sm:w-[220px]">
-              {isLoadingProjects ? (
-                <span className="flex items-center">
-                  <IconLoader className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
-                </span>
-              ) : (
-                <SelectValue placeholder="Select Project" />
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map(project => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Usage Badges */}
+          <div className="flex items-center gap-3">
+            {/* Monthly Rate Limit */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border">
+              <IconRocket className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Monthly:</span>
+              {isLoadingUsage ? (
+                <IconLoader className="h-4 w-4 animate-spin" />
+              ) : monthlyUsage?.monthly.unlimited ? (
+                <>
+                  <span className="text-sm font-medium">{monthlyUsage.monthly.used}</span>
+                  <Badge variant="secondary" className="text-xs">Unlimited</Badge>
+                </>
+              ) : monthlyUsage ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold">{monthlyUsage.monthly.used}</span>
+                    <span className="text-xs text-muted-foreground">/</span>
+                    <span className="text-sm text-muted-foreground">{monthlyUsage.monthly.limit}</span>
+                  </div>
+                  <Progress 
+                    value={Math.min((monthlyUsage.monthly.used / monthlyUsage.monthly.limit) * 100, 100)} 
+                    className="h-1.5 w-12"
+                  />
+                  {monthlyUsage.monthly.remaining <= 0 && (
+                    <Badge variant="destructive" className="text-xs">Limit</Badge>
+                  )}
+                </>
+              ) : null}
+            </div>
 
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              setCurrentPage(1); // Reset to first page on filter change
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value={DeploymentStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={DeploymentStatus.RUNNING}>Running</SelectItem>
-              <SelectItem value={DeploymentStatus.SUCCESS}>Success</SelectItem>
-              <SelectItem value={DeploymentStatus.FAILED}>Failed</SelectItem>
-              <SelectItem value={DeploymentStatus.CANCELED}>Canceled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={environmentFilter}
-            onValueChange={(value) => {
-              setEnvironmentFilter(value);
-              setCurrentPage(1); // Reset to first page on filter change
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Environment" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Environments</SelectItem>
-              <SelectItem value={DeploymentEnvironment.PRODUCTION}>Production</SelectItem>
-              <SelectItem value={DeploymentEnvironment.PREVIEW}>Preview</SelectItem>
-            </SelectContent>
-          </Select>
+            {/* Deployment Credits */}
+            {monthlyUsage && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border">
+                <span className="text-xs text-muted-foreground">Credits:</span>
+                {monthlyUsage.credits.unlimited ? (
+                  <>
+                    <span className="text-sm font-medium">{monthlyUsage.credits.used}</span>
+                    <Badge variant="secondary" className="text-xs">Unlimited</Badge>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-semibold">{monthlyUsage.credits.used}</span>
+                      <span className="text-xs text-muted-foreground">/</span>
+                      <span className="text-sm text-muted-foreground">{monthlyUsage.credits.total}</span>
+                    </div>
+                    <Progress 
+                      value={Math.min((monthlyUsage.credits.used / monthlyUsage.credits.total) * 100, 100)} 
+                      className="h-1.5 w-12"
+                    />
+                    {monthlyUsage.credits.remaining <= 5 && monthlyUsage.credits.remaining > 0 && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs">Low</Badge>
+                    )}
+                    {monthlyUsage.credits.remaining <= 0 && (
+                      <Badge variant="destructive" className="text-xs">Depleted</Badge>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {isLoading ? (
@@ -323,15 +396,17 @@ export default function DeploymentsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {formatDistanceToNow(new Date(deployment.created_at), {
-                          addSuffix: true,
-                        })}
+                        {deployment.created_at
+                          ? formatDistanceToNow(new Date(deployment.created_at), {
+                              addSuffix: true,
+                            })
+                          : "-"}
                       </TableCell>
                       <TableCell>
                         {deployment.completed_at
                           ? formatDistanceToNow(new Date(deployment.completed_at), {
-                            addSuffix: true,
-                          })
+                              addSuffix: true,
+                            })
                           : "-"}
                       </TableCell>
                       <TableCell className="text-right">

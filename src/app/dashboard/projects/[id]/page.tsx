@@ -7,6 +7,7 @@ import {
     useGetVersionsQuery,
     useGetConfigurationsQuery,
     useDeleteProjectMutation,
+    useSubmitForReviewMutation,
 } from "@/store/features/projects";
 import { useGetDeploymentsQuery } from "@/store/features/deployments";
 import { DeploymentStatusBadge } from "../../deployments/components";
@@ -22,6 +23,11 @@ import {
     IconChevronRight,
     IconArrowRight,
     IconTerminal,
+    IconSend,
+    IconClock,
+    IconCircleCheck,
+    IconCircleX,
+    IconFileDescription,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -56,7 +62,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Visibility } from "@/common/enums/project";
+import { Visibility, ModerationStatus } from "@/common/enums/project";
 import { formatDate } from "@/utils/functions";
 import { formatDistanceToNow } from "date-fns";
 
@@ -65,6 +71,7 @@ export default function ProjectPreviewPage() {
     const params = useParams<{ id: string }>();
     const projectId = params?.id || '';
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [submitForReviewDialogOpen, setSubmitForReviewDialogOpen] = useState(false);
 
     // Get project details
     const { data: project, isLoading: isLoadingProject, error: projectError } = useGetProjectQuery(projectId);
@@ -99,6 +106,9 @@ export default function ProjectPreviewPage() {
     // Delete project mutation
     const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
 
+    // Submit for review mutation
+    const [submitForReview, { isLoading: isSubmitting }] = useSubmitForReviewMutation();
+
     // Handle delete confirmation
     const handleConfirmDelete = async () => {
         try {
@@ -122,6 +132,81 @@ export default function ProjectPreviewPage() {
             setDeleteDialogOpen(false);
         }
     };
+
+    // Handle submit for review confirmation
+    const handleConfirmSubmitForReview = async () => {
+        try {
+            await submitForReview({ projectId }).unwrap();
+
+            toast.success("Submitted for review", {
+                description: `"${project?.name}" has been submitted for review. We'll notify you once it's reviewed.`,
+            });
+
+            setSubmitForReviewDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to submit for review:", error);
+            const err = error as { message?: string };
+            toast.error("Submission failed", {
+                description:
+                    err?.message ||
+                    "There was an error submitting for review. Please try again.",
+            });
+        }
+    };
+
+    // Get moderation status badge
+    const getModerationStatusBadge = (status: ModerationStatus) => {
+        switch (status) {
+            case ModerationStatus.PENDING:
+                return (
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <IconClock className="h-3 w-3 mr-1" />
+                        Pending Review
+                    </Badge>
+                );
+            case ModerationStatus.APPROVED:
+                return (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <IconCircleCheck className="h-3 w-3 mr-1" />
+                        Approved
+                    </Badge>
+                );
+            case ModerationStatus.REJECTED:
+                return (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        <IconCircleX className="h-3 w-3 mr-1" />
+                        Rejected
+                    </Badge>
+                );
+            case ModerationStatus.DRAFT:
+            default:
+                return (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                        <IconFileDescription className="h-3 w-3 mr-1" />
+                        Draft
+                    </Badge>
+                );
+        }
+    };
+
+    // Get moderation status description
+    const getModerationStatusDescription = (status: ModerationStatus) => {
+        switch (status) {
+            case ModerationStatus.PENDING:
+                return "Your project is under review. We'll notify you once it's approved.";
+            case ModerationStatus.APPROVED:
+                return "Your project is approved and visible to the public.";
+            case ModerationStatus.REJECTED:
+                return "Your project was not approved. Check the feedback and resubmit.";
+            case ModerationStatus.DRAFT:
+            default:
+                return "Submit your project for review to make it visible on the marketplace.";
+        }
+    };
+
+    // Check if project can be submitted for review
+    const canSubmitForReview = project?.moderation_status === ModerationStatus.DRAFT || 
+        project?.moderation_status === ModerationStatus.REJECTED;
 
     // Get the stable version if available
     const stableVersion = versions.find(v => v.is_stable);
@@ -541,6 +626,56 @@ export default function ProjectPreviewPage() {
 
                         {/* Project Status and Actions */}
                         <div className="space-y-6">
+                            {/* Moderation Status Card */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Moderation Status</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-medium">Status</p>
+                                            {getModerationStatusBadge(project.moderation_status)}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            {getModerationStatusDescription(project.moderation_status)}
+                                        </p>
+                                    </div>
+
+                                    {project.moderation_note && (
+                                        <div className="p-3 bg-muted rounded-md">
+                                            <p className="text-sm font-medium mb-1">Review Feedback</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {project.moderation_note}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {project.submitted_for_review_at && (
+                                        <div className="text-xs text-muted-foreground">
+                                            Submitted {formatDistanceToNow(new Date(project.submitted_for_review_at), { addSuffix: true })}
+                                        </div>
+                                    )}
+
+                                    {canSubmitForReview && (
+                                        <Button
+                                            className="w-full"
+                                            onClick={() => setSubmitForReviewDialogOpen(true)}
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSubmitting ? (
+                                                <IconLoader className="h-4 w-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <IconSend className="h-4 w-4 mr-2" />
+                                            )}
+                                            {project.moderation_status === ModerationStatus.REJECTED
+                                                ? "Resubmit for Review"
+                                                : "Submit for Review"}
+                                        </Button>
+                                    )}
+                                </CardContent>
+                            </Card>
+
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Project Status</CardTitle>
@@ -719,6 +854,38 @@ export default function ProjectPreviewPage() {
                                 </>
                             ) : (
                                 "Delete"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Submit for Review Dialog */}
+            <AlertDialog open={submitForReviewDialogOpen} onOpenChange={setSubmitForReviewDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Submit for Review</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to submit &quot;{project?.name}&quot; for review?
+                            Once submitted, our team will review your project before it can be displayed on the marketplace.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmSubmitForReview}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <IconLoader className="h-4 w-4 mr-1 animate-spin" />{" "}
+                                    Submitting...
+                                </>
+                            ) : (
+                                <>
+                                    <IconSend className="h-4 w-4 mr-1" />{" "}
+                                    Submit for Review
+                                </>
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>
