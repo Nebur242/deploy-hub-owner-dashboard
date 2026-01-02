@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { subscriptionService } from "@/services/subscription";
 import { BillingInterval, PlanConfig, SubscriptionPlan } from "@/common/types/subscription";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { authenticateUser } from "@/store/features/auth";
 import { toast } from "sonner";
 import {
   IconRocket,
@@ -37,33 +38,33 @@ import {
 const features = [
   {
     icon: IconCode,
-    title: "Sell Your Code",
-    description: "Turn your side projects, templates, and boilerplates into a steady income stream. Upload once, sell forever.",
+    title: "Sell Your Projects",
+    description: "Transform your templates, boilerplates, and SaaS starters into a recurring revenue stream. List once, earn forever.",
   },
   {
     icon: IconRocket,
-    title: "One-Click Deployments",
-    description: "Your customers can deploy your projects instantly to their own infrastructure with zero configuration hassle.",
+    title: "Instant Deployments",
+    description: "Buyers deploy your projects with one click to their own infrastructure. No manual setup required.",
   },
   {
     icon: IconLicense,
-    title: "Flexible Licensing",
-    description: "Create custom license tiers with different deployment limits, durations, and pricing to maximize revenue.",
+    title: "Flexible License Tiers",
+    description: "Create multiple license options with different deployment limits, pricing, and durations to maximize your earnings.",
   },
   {
     icon: IconShieldCheck,
-    title: "Code Protection",
-    description: "Your source code stays protected. Customers get deployment access without exposing your proprietary code.",
+    title: "Secure Licensing",
+    description: "Our license system protects your work. Buyers get deployment access while your code stays secure.",
   },
   {
     icon: IconChartBar,
-    title: "Analytics & Insights",
-    description: "Track sales, deployments, and customer engagement with detailed analytics dashboards.",
+    title: "Sales Analytics",
+    description: "Track sales, license usage, and customer activity with detailed dashboards and reports.",
   },
   {
     icon: IconCurrencyDollar,
-    title: "Instant Payouts",
-    description: "Get paid directly to your account. We handle all payment processing, taxes, and invoicing.",
+    title: "Easy Payouts",
+    description: "Receive payments directly to your account. We handle payment processing and invoicing for you.",
   },
 ];
 
@@ -71,23 +72,23 @@ const features = [
 const howItWorks = [
   {
     step: "01",
-    title: "Upload Your Project",
-    description: "Connect your GitHub repository and configure deployment settings. Add documentation and set up environment variables.",
+    title: "Create Your Project",
+    description: "Add your project details, connect your repository, and configure deployment settings and environment variables.",
   },
   {
     step: "02",
-    title: "Create License Tiers",
-    description: "Define pricing plans with different features, deployment limits, and durations. Set up one-time or subscription pricing.",
+    title: "Set Up Licenses",
+    description: "Create license tiers with different deployment limits and pricing. Offer monthly, yearly, or lifetime options.",
   },
   {
     step: "03",
-    title: "Start Selling",
-    description: "Your project goes live on our marketplace. Developers discover and purchase licenses to deploy your code.",
+    title: "Publish to Marketplace",
+    description: "Your project goes live on our marketplace where developers can discover, review, and purchase your licenses.",
   },
   {
     step: "04",
-    title: "Earn Passive Income",
-    description: "Get paid for every license sold. Track earnings, manage customers, and grow your developer business.",
+    title: "Earn Revenue",
+    description: "Get notified for every sale. Track your earnings, manage customers, and grow your developer business.",
   },
 ];
 
@@ -97,10 +98,11 @@ const defaultPricingPlans = [
     name: "Free",
     price: "Free",
     period: "",
-    description: "Perfect for getting started",
+    description: "Perfect for trying out the platform",
     features: [
-      "Up to 3 projects",
-      "100 deployments/month",
+      "Up to 1 project",
+      "10 deployments/month",
+      "Basic analytics",
       "Community support",
     ],
     cta: "Get Started Free",
@@ -113,12 +115,12 @@ const defaultPricingPlans = [
     name: "Starter",
     price: "$19",
     period: "/month",
-    description: "For growing businesses",
+    description: "For indie developers",
     features: [
       "Up to 10 projects",
       "500 deployments/month",
-      "Custom domains",
-      "Analytics",
+      "Sales analytics",
+      "Email support",
     ],
     cta: "Start Starter",
     popular: false,
@@ -130,13 +132,13 @@ const defaultPricingPlans = [
     name: "Pro",
     price: "$49",
     period: "/month",
-    description: "For professional teams",
+    description: "For professional sellers",
     features: [
       "Up to 50 projects",
       "2000 deployments/month",
-      "Custom domains",
-      "Priority support",
       "Advanced analytics",
+      "Priority support",
+      "Custom branding",
     ],
     cta: "Start Pro",
     popular: true,
@@ -148,14 +150,14 @@ const defaultPricingPlans = [
     name: "Enterprise",
     price: "$199",
     period: "/month",
-    description: "For large organizations",
+    description: "For agencies & teams",
     features: [
       "Unlimited projects",
       "Unlimited deployments",
-      "Custom domains",
-      "Priority support",
-      "Advanced analytics",
-      "Dedicated account manager",
+      "White-label options",
+      "Dedicated support",
+      "Custom integrations",
+      "SLA guarantee",
     ],
     cta: "Contact Sales",
     popular: false,
@@ -167,41 +169,50 @@ const defaultPricingPlans = [
 
 // Stats
 const stats = [
-  { value: "10K+", label: "Developers" },
-  { value: "$2M+", label: "Paid to Creators" },
-  { value: "50K+", label: "Deployments" },
+  { value: "5K+", label: "Active Sellers" },
+  { value: "$1M+", label: "Paid to Creators" },
+  { value: "25K+", label: "Licenses Sold" },
   { value: "99.9%", label: "Uptime" },
 ];
 
 // Testimonials
 const testimonials = [
   {
-    quote: "I turned my Next.js boilerplate into a $5K/month passive income. Deploy Hub handles everything from payments to deployments.",
+    quote: "I turned my Next.js starter kit into a steady $4K/month. Deploy Hub handles payments and licensing — I just focus on building.",
     author: "Sarah Chen",
     role: "Full-Stack Developer",
     avatar: "SC",
   },
   {
-    quote: "Finally, a platform that understands developers. My customers love the one-click deployment feature.",
+    quote: "The licensing system is perfect. I offer different tiers and my customers can choose what fits their needs best.",
     author: "Marcus Johnson",
-    role: "Indie Hacker",
+    role: "Indie Maker",
     avatar: "MJ",
   },
   {
-    quote: "The licensing system is incredibly flexible. I can create different tiers for different customer needs.",
+    quote: "Finally a marketplace that gets developers. My customers love the instant deployment, and I love the recurring revenue.",
     author: "Elena Rodriguez",
-    role: "SaaS Developer",
+    role: "SaaS Creator",
     avatar: "ER",
   },
 ];
 
 export default function LandingPage() {
   const router = useRouter();
-  const { isLoggedIn } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const { isLoggedIn, infos, authenticate } = useAppSelector((state) => state.auth);
+  const userIsLoggedIn = isLoggedIn || !!infos || authenticate.status === 'success';
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [plans, setPlans] = useState(defaultPricingPlans);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [loadingPlanAction, setLoadingPlanAction] = useState<string | null>(null);
+
+  // Trigger authentication check on mount
+  useEffect(() => {
+    if (authenticate.status === 'pending') {
+      dispatch(authenticateUser());
+    }
+  }, [dispatch, authenticate.status]);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -340,17 +351,32 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/auth/login">
-              <Button variant="ghost" size="sm">
-                Log In
+            {authenticate.loading ? (
+              <Button size="sm" variant="ghost" disabled className="gap-2">
+                <IconLoader2 className="h-4 w-4 animate-spin" />
               </Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button size="sm">
-                Get Started
-                <IconArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            ) : userIsLoggedIn ? (
+              <Link href="/dashboard">
+                <Button size="sm" className="gap-2">
+                  Dashboard
+                  <IconArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost" size="sm">
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/auth/register">
+                  <Button size="sm">
+                    Get Started
+                    <IconArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -360,15 +386,16 @@ export default function LandingPage() {
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="secondary" className="mb-6">
             <IconBolt className="h-3 w-3 mr-1" />
-            Now in Public Beta
+            Software License Marketplace
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-            Turn Your Code Into{" "}
-            <span className="text-primary">Passive Income</span>
+            {/* Sell Your Projects,{" "}
+            <span className="text-primary">Earn Revenue</span> */}
+            Turn Your Code Into Passive Income
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Sell your projects, templates, and boilerplates to developers worldwide.
-            We handle deployments, licensing, and payments — you focus on building.
+            List your software projects on our marketplace and sell licenses to developers worldwide.
+            We handle licensing, payments, and deployments — you focus on building.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link href="/auth/register">
@@ -379,7 +406,6 @@ export default function LandingPage() {
             </Link>
             <Link href="#how-it-works">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                <IconBrandGithub className="mr-2 h-5 w-5" />
                 See How It Works
               </Button>
             </Link>
@@ -403,10 +429,10 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Features</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Everything You Need to Monetize Your Code
+              Everything You Need to Sell Your Software
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From project hosting to payment processing, we provide all the tools developers need to build a sustainable business.
+              From project listing to payment processing, we provide all the tools you need to build a successful software business.
             </p>
           </div>
 
@@ -434,10 +460,10 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">How It Works</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              From Code to Cash in 4 Simple Steps
+              From Project to Sales in 4 Steps
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Get your projects selling in minutes, not months. Our streamlined process makes it easy to start earning.
+              Get your projects listed and start selling in minutes. Our streamlined process makes it easy to reach customers.
             </p>
           </div>
 
@@ -464,10 +490,10 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Why Deploy Hub</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Built by Developers, for Developers
+              Built for Software Sellers
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We understand the challenges of monetizing code. That&apos;s why we built the platform we wished existed.
+              We understand the challenges of selling software. That&apos;s why we built the marketplace we wished existed.
             </p>
           </div>
 
@@ -593,7 +619,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Testimonials</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Loved by Developers Worldwide
+              Trusted by Sellers Worldwide
             </h2>
           </div>
 
@@ -730,22 +756,22 @@ export default function LandingPage() {
             <CardContent className="text-center py-12">
               <IconWorld className="h-16 w-16 mx-auto mb-6 opacity-80" />
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Ready to Monetize Your Code?
+                Ready to Start Selling?
               </h2>
               <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-                Join thousands of developers already earning passive income from their projects.
-                Get started in minutes, completely free.
+                Join our marketplace and reach developers looking for software solutions.
+                Create your seller account today — it&apos;s free to get started.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/auth/register">
                   <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                    Create Free Account
+                    Create Seller Account
                     <IconArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
                 <Link href="#pricing">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent border-primary-foreground/30 hover:bg-primary-foreground/10">
-                    View Pricing
+                    View Plans
                   </Button>
                 </Link>
               </div>
@@ -764,7 +790,7 @@ export default function LandingPage() {
                 <span className="font-bold text-lg">Deploy Hub</span>
               </Link>
               <p className="text-sm text-muted-foreground mb-4">
-                The platform for developers to sell and deploy their code.
+                The marketplace for selling software licenses and deployable projects.
               </p>
               <div className="flex items-center gap-3">
                 <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useGetModerationStatsQuery,
   useGetPendingModerationQuery,
+  useGetPendingChangesQuery,
   useModerateProjectMutation,
+  useModeratePendingChangesMutation,
 } from "@/store/features/projects";
 import {
   Table,
@@ -44,6 +46,7 @@ import {
   IconCircleCheck,
   IconCircleX,
   IconFileDescription,
+  IconEdit,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -68,25 +71,53 @@ export default function ModerationPage() {
   const { data: stats, isLoading: isLoadingStats } =
     useGetModerationStatsQuery();
 
-  // Fetch pending projects
+  // Fetch pending projects (new submissions)
   const {
     data: pendingData,
     isLoading: isLoadingPending,
-    isFetching,
-    refetch,
+    isFetching: isFetchingPending,
+    refetch: refetchPending,
   } = useGetPendingModerationQuery({
     search: searchTerm || undefined,
     page: currentPage,
     limit: itemsPerPage,
   });
 
-  // Moderate project mutation
+  // Fetch pending changes projects (edits to approved projects)
+  const {
+    data: pendingChangesData,
+    isLoading: isLoadingPendingChanges,
+    isFetching: isFetchingPendingChanges,
+    refetch: refetchPendingChanges,
+  } = useGetPendingChangesQuery({
+    search: searchTerm || undefined,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+
+  // Moderate project mutation (for new submissions)
   const [moderateProject, { isLoading: isModerating }] =
     useModerateProjectMutation();
 
-  const projects = pendingData?.items || [];
-  const totalProjects = pendingData?.meta?.totalItems || 0;
-  const totalPages = pendingData?.meta?.totalPages || 1;
+  // Moderate pending changes mutation (for edits to approved projects)
+  const [moderatePendingChanges, { isLoading: isModeratingChanges }] =
+    useModeratePendingChangesMutation();
+
+  // Combine both lists
+  const projects = useMemo(() => {
+    const pending = pendingData?.items || [];
+    const pendingChanges = pendingChangesData?.items || [];
+    return [...pending, ...pendingChanges];
+  }, [pendingData?.items, pendingChangesData?.items]);
+
+  const totalProjects = (pendingData?.meta?.totalItems || 0) + (pendingChangesData?.meta?.totalItems || 0);
+  const totalPages = Math.max(pendingData?.meta?.totalPages || 1, pendingChangesData?.meta?.totalPages || 1);
+  const isFetching = isFetchingPending || isFetchingPendingChanges;
+
+  const refetch = () => {
+    refetchPending();
+    refetchPendingChanges();
+  };
 
   const handleModerationClick = (
     project: Project,
@@ -102,13 +133,24 @@ export default function ModerationPage() {
     if (!selectedProject || !moderationAction) return;
 
     try {
-      await moderateProject({
-        projectId: selectedProject.id,
-        body: {
-          status: moderationAction,
-          note: moderationNote || undefined,
-        },
-      }).unwrap();
+      // Use different mutation based on whether it's pending changes or new submission
+      if (selectedProject.moderation_status === ModerationStatus.CHANGES_PENDING) {
+        await moderatePendingChanges({
+          projectId: selectedProject.id,
+          body: {
+            status: moderationAction,
+            note: moderationNote || undefined,
+          },
+        }).unwrap();
+      } else {
+        await moderateProject({
+          projectId: selectedProject.id,
+          body: {
+            status: moderationAction,
+            note: moderationNote || undefined,
+          },
+        }).unwrap();
+      }
 
       toast.success(
         `Project ${moderationAction === "approved" ? "approved" : "rejected"}`,
@@ -201,7 +243,7 @@ export default function ModerationPage() {
     </Button>
   );
 
-  const isLoading = isLoadingStats || isLoadingPending;
+  const isLoading = isLoadingStats || isLoadingPending || isLoadingPendingChanges;
 
   return (
     <DashboardLayout
@@ -351,14 +393,30 @@ export default function ModerationPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                projects.map((project) => (
+                projects.map((project) => {
+                  // For CHANGES_PENDING, show pending changes data; otherwise show current data
+                  const isPendingChanges = project.moderation_status === ModerationStatus.CHANGES_PENDING;
+                  const pendingData = project.pending_changes as Record<string, unknown> | null | undefined;
+                  const displayName = isPendingChanges && pendingData?.name 
+                    ? String(pendingData.name) 
+                    : project.name;
+                  const displayDescription = isPendingChanges && pendingData?.description 
+                    ? String(pendingData.description) 
+                    : project.description;
+                  
+                  return (
                   <TableRow key={project.id}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">{project.name}</span>
+                        <span className="font-medium">{displayName}</span>
                         <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {project.description}
+                          {displayDescription}
                         </span>
+                        {isPendingChanges && (
+                          <span className="text-xs text-blue-600 mt-1">
+                            Original: {project.name}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -371,16 +429,34 @@ export default function ModerationPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {project.submitted_for_review_at
-                          ? formatDistanceToNow(
-                              new Date(project.submitted_for_review_at),
-                              { addSuffix: true }
-                            )
-                          : "N/A"}
+                        {project.moderation_status === ModerationStatus.CHANGES_PENDING
+                          ? project.pending_changes_submitted_at
+                            ? formatDistanceToNow(
+                                new Date(project.pending_changes_submitted_at),
+                                { addSuffix: true }
+                              )
+                            : "N/A"
+                          : project.submitted_for_review_at
+                            ? formatDistanceToNow(
+                                new Date(project.submitted_for_review_at),
+                                { addSuffix: true }
+                              )
+                            : "N/A"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {isPendingChanges && (
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link
+                              href={`/dashboard/admin/moderation/${project.id}/changes`}
+                              title="View pending changes"
+                            >
+                              <IconEdit className="h-4 w-4 text-blue-500" />
+                              <span className="sr-only">View Changes</span>
+                            </Link>
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" asChild>
                           <Link href={`/dashboard/projects/${project.id}`}>
                             <IconEye className="h-4 w-4" />
@@ -412,7 +488,8 @@ export default function ModerationPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                );
+                })
               )}
             </TableBody>
           </Table>
@@ -455,13 +532,23 @@ export default function ModerationPage() {
           <DialogHeader>
             <DialogTitle>
               {moderationAction === "approved"
-                ? "Approve Project"
-                : "Reject Project"}
+                ? selectedProject?.moderation_status === ModerationStatus.CHANGES_PENDING
+                  ? "Approve Changes"
+                  : "Approve Project"
+                : selectedProject?.moderation_status === ModerationStatus.CHANGES_PENDING
+                  ? "Reject Changes"
+                  : "Reject Project"}
             </DialogTitle>
             <DialogDescription>
-              {moderationAction === "approved"
-                ? `Are you sure you want to approve "${selectedProject?.name}"? This will make the project visible to the public.`
-                : `Are you sure you want to reject "${selectedProject?.name}"? The owner will be notified and can resubmit after making changes.`}
+              {selectedProject?.moderation_status === ModerationStatus.CHANGES_PENDING ? (
+                moderationAction === "approved"
+                  ? `Are you sure you want to approve the changes for "${selectedProject?.name}"? This will apply the pending changes to the project.`
+                  : `Are you sure you want to reject the changes for "${selectedProject?.name}"? The pending changes will be discarded and the original approved version will remain.`
+              ) : (
+                moderationAction === "approved"
+                  ? `Are you sure you want to approve "${selectedProject?.name}"? This will make the project visible to the public.`
+                  : `Are you sure you want to reject "${selectedProject?.name}"? The owner will be notified and can resubmit after making changes.`
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -489,9 +576,9 @@ export default function ModerationPage() {
             <Button
               variant={moderationAction === "approved" ? "default" : "destructive"}
               onClick={handleConfirmModeration}
-              disabled={isModerating}
+              disabled={isModerating || isModeratingChanges}
             >
-              {isModerating ? (
+              {(isModerating || isModeratingChanges) ? (
                 <IconLoader className="h-4 w-4 animate-spin mr-2" />
               ) : moderationAction === "approved" ? (
                 <IconCheck className="h-4 w-4 mr-2" />

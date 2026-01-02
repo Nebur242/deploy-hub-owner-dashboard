@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -36,11 +36,10 @@ import {
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { formatDate } from "@/utils/format";
-import { Review, ProjectReviewStats } from "@/common/types/review";
+import { Review } from "@/common/types/review";
 import { Project } from "@/common/types/project";
-import reviewService from "@/services/review";
-import { toast } from "sonner";
 import { useGetProjectsQuery } from "@/store/features/projects";
+import { useGetProjectReviewsQuery } from "@/store/features/reviews";
 
 const breadcrumbItems: BreadcrumbItem[] = [
   { label: "Dashboard", href: "/dashboard" },
@@ -67,92 +66,50 @@ const RatingStars = ({ rating }: { rating: number }) => {
 };
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [projectStats, setProjectStats] = useState<ProjectReviewStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage] = useState(10);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
 
   // Fetch user's projects
-  const { data: projectsData } = useGetProjectsQuery({ page: 1, limit: 100 });
+  const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery({ page: 1, limit: 100 });
   const projects: Project[] = projectsData?.items || [];
 
-  const fetchReviews = async () => {
-    if (selectedProjectId === "all" && projects.length === 0) {
-      setIsLoading(false);
-      return;
+  // Set default project when projects load
+  const effectiveProjectId = selectedProjectId || (projects.length > 0 ? projects[0].id : "");
+
+  // Fetch reviews for the selected project using RTK Query
+  const { 
+    data: reviewsData, 
+    isLoading: reviewsLoading, 
+    refetch 
+  } = useGetProjectReviewsQuery(
+    { projectId: effectiveProjectId, page: 1, limit: 100 },
+    { skip: !effectiveProjectId }
+  );
+
+  const reviews = useMemo(() => {
+    const items = reviewsData?.items || [];
+    // Filter by rating if needed
+    if (ratingFilter !== "all") {
+      return items.filter(r => r.rating === Number(ratingFilter));
     }
+    return items;
+  }, [reviewsData?.items, ratingFilter]);
 
-    try {
-      setIsLoading(true);
-      
-      // If "all" is selected, fetch from all projects
-      const projectIds = selectedProjectId === "all" 
-        ? projects.map((p: Project) => p.id) 
-        : [selectedProjectId];
-      
-      const allReviews: Review[] = [];
-      
-      for (const projectId of projectIds) {
-        try {
-          const response = await reviewService.getProjectReviews(
-            projectId,
-            currentPage,
-            itemsPerPage
-          );
-          allReviews.push(...response.reviews);
-          
-          // Get stats for single selected project
-          if (selectedProjectId !== "all") {
-            const stats = await reviewService.getProjectStats(projectId);
-            setProjectStats(stats);
-          }
-        } catch {
-          // Continue if project has no reviews
-        }
-      }
-
-      // Filter by rating if needed
-      const filteredReviews = ratingFilter !== "all"
-        ? allReviews.filter(r => r.rating === Number(ratingFilter))
-        : allReviews;
-
-      setReviews(filteredReviews);
-      setTotalItems(filteredReviews.length);
-      
-      if (selectedProjectId === "all") {
-        setProjectStats(null);
-      }
-    } catch (error) {
-      toast.error("Failed to fetch reviews");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (projects.length > 0) {
-      fetchReviews();
-    }
-  }, [currentPage, selectedProjectId, ratingFilter, projects.length]);
-
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const reviewStats = reviewsData?.stats;
+  const isLoading = projectsLoading || reviewsLoading;
 
   // Calculate overall stats
-  const overallStats = {
+  const overallStats = useMemo(() => ({
     totalReviews: reviews.length,
-    averageRating: reviews.length > 0 
+    averageRating: reviewStats?.average_rating || (reviews.length > 0 
       ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length 
-      : 0,
-    fiveStarCount: reviews.filter(r => r.rating === 5).length,
-    fourStarCount: reviews.filter(r => r.rating === 4).length,
-    threeStarCount: reviews.filter(r => r.rating === 3).length,
-    twoStarCount: reviews.filter(r => r.rating === 2).length,
-    oneStarCount: reviews.filter(r => r.rating === 1).length,
-  };
+      : 0),
+    fiveStarCount: reviewStats?.rating_distribution?.[5] || reviews.filter(r => r.rating === 5).length,
+    fourStarCount: reviewStats?.rating_distribution?.[4] || reviews.filter(r => r.rating === 4).length,
+    threeStarCount: reviewStats?.rating_distribution?.[3] || reviews.filter(r => r.rating === 3).length,
+    twoStarCount: reviewStats?.rating_distribution?.[2] || reviews.filter(r => r.rating === 2).length,
+    oneStarCount: reviewStats?.rating_distribution?.[1] || reviews.filter(r => r.rating === 1).length,
+  }), [reviews, reviewStats]);
 
   return (
     <DashboardLayout breadcrumbItems={breadcrumbItems}>
@@ -166,7 +123,7 @@ export default function ReviewsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={fetchReviews} disabled={isLoading}>
+            <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
               <IconRefresh className="mr-2 h-4 w-4" />
               Refresh
             </Button>
@@ -176,12 +133,11 @@ export default function ReviewsPage() {
         {/* Filters */}
         <div className="flex items-center gap-4">
           <div className="w-64">
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <Select value={selectedProjectId || effectiveProjectId} onValueChange={setSelectedProjectId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Projects</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
@@ -262,7 +218,7 @@ export default function ReviewsPage() {
         </div>
 
         {/* Rating Distribution (shown for single project) */}
-        {projectStats && (
+        {reviewStats && (
           <Card>
             <CardHeader>
               <CardTitle>Rating Distribution</CardTitle>
@@ -271,9 +227,9 @@ export default function ReviewsPage() {
             <CardContent>
               <div className="space-y-2">
                 {[5, 4, 3, 2, 1].map((star) => {
-                  const count = projectStats.rating_distribution[star] || 0;
-                  const percentage = projectStats.total_reviews > 0 
-                    ? (count / projectStats.total_reviews) * 100 
+                  const count = reviewStats.rating_distribution[star] || 0;
+                  const percentage = reviews.length > 0 
+                    ? (count / reviews.length) * 100 
                     : 0;
                   return (
                     <div key={star} className="flex items-center gap-2">
@@ -343,7 +299,7 @@ export default function ReviewsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {review.project?.name || "Unknown Project"}
+                            {projects.find(p => p.id === review.project_id)?.name || "Unknown Project"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -369,34 +325,6 @@ export default function ReviewsPage() {
                     ))}
                   </TableBody>
                 </Table>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                      {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} reviews
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((p) => p - 1)}
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((p) => p + 1)}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </>
             )}
           </CardContent>

@@ -29,6 +29,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -38,6 +48,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   IconPlus,
   IconRefresh,
@@ -47,12 +58,14 @@ import {
   IconPercentage,
   IconCurrencyDollar,
   IconCopy,
+  IconLicense,
 } from "@tabler/icons-react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { formatDate } from "@/utils/format";
 import { Coupon, CreateCouponDto } from "@/common/types/coupon";
 import couponService from "@/services/coupon";
+import { useGetLicensesQuery } from "@/store/features/licenses";
 import { toast } from "sonner";
 
 const breadcrumbItems: BreadcrumbItem[] = [
@@ -70,6 +83,13 @@ export default function CouponsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fetch licenses for selection
+  const { data: licensesData } = useGetLicensesQuery({ limit: 100 });
+  const licenses = licensesData?.items || [];
 
   // Form state
   const [formData, setFormData] = useState<CreateCouponDto>({
@@ -79,6 +99,7 @@ export default function CouponsPage() {
     max_uses: undefined,
     description: "",
     expires_at: undefined,
+    license_ids: [],
   });
 
   const fetchCoupons = async () => {
@@ -136,15 +157,25 @@ export default function CouponsPage() {
     }
   };
 
-  const handleDeleteCoupon = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this coupon?")) return;
+  const handleDeleteClick = (coupon: Coupon) => {
+    setCouponToDelete(coupon);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!couponToDelete) return;
 
     try {
-      await couponService.deleteCoupon(id);
+      setIsDeleting(true);
+      await couponService.deleteCoupon(couponToDelete.id);
       toast.success("Coupon deleted successfully");
+      setDeleteDialogOpen(false);
+      setCouponToDelete(null);
       fetchCoupons();
     } catch (error) {
       toast.error("Failed to delete coupon");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -168,6 +199,7 @@ export default function CouponsPage() {
       max_uses: undefined,
       description: "",
       expires_at: undefined,
+      license_ids: [],
     });
   };
 
@@ -180,6 +212,7 @@ export default function CouponsPage() {
       max_uses: coupon.max_uses || undefined,
       description: coupon.description || "",
       expires_at: coupon.expires_at || undefined,
+      license_ids: coupon.license_ids || [],
     });
     setIsEditDialogOpen(true);
   };
@@ -309,6 +342,57 @@ export default function CouponsPage() {
                         setFormData({ ...formData, description: e.target.value })
                       }
                     />
+                  </div>
+                  {/* License Selection */}
+                  <div className="grid gap-2">
+                    <Label className="flex items-center gap-2">
+                      <IconLicense className="h-4 w-4" />
+                      Apply to Licenses (optional)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Leave empty to apply coupon to all your licenses
+                    </p>
+                    <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
+                      {licenses.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          No licenses found
+                        </p>
+                      ) : (
+                        licenses.map((license) => (
+                          <div key={license.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`license-${license.id}`}
+                              checked={formData.license_ids?.includes(license.id) || false}
+                              onCheckedChange={(checked) => {
+                                const currentIds = formData.license_ids || [];
+                                if (checked) {
+                                  setFormData({
+                                    ...formData,
+                                    license_ids: [...currentIds, license.id],
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    license_ids: currentIds.filter((id) => id !== license.id),
+                                  });
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`license-${license.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {license.name} - ${license.price} {license.currency}
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {(formData.license_ids?.length || 0) > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formData.license_ids?.length} license(s) selected
+                      </p>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
@@ -474,7 +558,7 @@ export default function CouponsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDeleteCoupon(coupon.id)}
+                              onClick={() => handleDeleteClick(coupon)}
                             >
                               <IconTrash className="h-4 w-4 text-red-500" />
                             </Button>
@@ -598,6 +682,29 @@ export default function CouponsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the coupon &quot;{couponToDelete?.code}&quot;.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

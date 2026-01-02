@@ -37,3 +37,18 @@ export interface ProjectReviewStats {
   rating_distribution: Record<number, number>;
   reviews: Review[];
 }
+
+export interface PaginatedReviewsResponse {
+  items: Review[];
+  meta: {
+    totalItems: number;
+    itemCount: number;
+    itemsPerPage: number;
+    totalPages: number;
+    currentPage: number;
+  };
+  stats: {
+    average_rating: number;
+    rating_distribution: Record<number, number>;
+  };
+}

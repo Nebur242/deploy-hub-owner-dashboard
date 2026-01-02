@@ -162,12 +162,11 @@ export default function DeploymentDetailPage() {
       )}
 
       {deployment.deployment_url && (
-        <Button asChild>
+        <Button asChild className="bg-green-500 hover:bg-green-600 text-white">
           <a
             href={deployment.deployment_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-green-500 hover:bg-green-600 text-white"
           >
             <IconChevronRight className="h-4 w-4 mr-2" /> Visit Site
           </a>

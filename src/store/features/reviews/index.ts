@@ -1,0 +1,49 @@
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { axiosBaseQuery } from "@/config/api";
+import { Review } from "@/common/types/review";
+
+// Response types matching the API
+interface PaginatedReviewsResponse {
+  items: Review[];
+  meta: {
+    totalItems?: number;
+    itemCount: number;
+    itemsPerPage: number;
+    totalPages?: number;
+    currentPage: number;
+  };
+  stats: {
+    average_rating: number;
+    rating_distribution: Record<number, number>;
+  };
+}
+
+// Define the Reviews API with RTK Query
+export const reviewsApi = createApi({
+  reducerPath: "reviewsApi",
+  baseQuery: axiosBaseQuery(),
+  tagTypes: ["Review", "ProjectReviews"],
+  endpoints: (builder) => ({
+    // Get reviews for a project with pagination (for owner to view reviews on their projects)
+    getProjectReviews: builder.query<
+      PaginatedReviewsResponse,
+      { projectId: string; page?: number; limit?: number }
+    >({
+      query: ({ projectId, page = 1, limit = 10 }) => ({
+        url: `/reviews/project/${projectId}`,
+        method: "GET",
+        params: { page, limit },
+      }),
+      providesTags: (result, error, { projectId }) => [
+        { type: "ProjectReviews", id: projectId },
+        ...(result?.items?.map((review) => ({
+          type: "Review" as const,
+          id: review.id,
+        })) || []),
+      ],
+    }),
+  }),
+});
+
+// Export hooks for usage in components
+export const { useGetProjectReviewsQuery } = reviewsApi;

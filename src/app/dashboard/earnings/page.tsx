@@ -84,9 +84,16 @@ const PIE_COLORS = [
 
 function getDateRange(period: Period): { startDate: string; endDate: string } {
   const endDate = new Date();
+  // Add 1 day to end date to account for timezone differences
+  // This ensures orders created "today" in any timezone are included
+  endDate.setDate(endDate.getDate() + 1);
+  endDate.setHours(23, 59, 59, 999);
+  
   const startDate = new Date();
   const days = periodOptions.find((p) => p.value === period)?.days || 30;
   startDate.setDate(startDate.getDate() - days);
+  // Set start date to beginning of day
+  startDate.setHours(0, 0, 0, 0);
 
   return {
     startDate: startDate.toISOString(),
@@ -99,7 +106,9 @@ function getPreviousDateRange(period: Period): { startDate: string; endDate: str
   const startDate = new Date();
   const days = periodOptions.find((p) => p.value === period)?.days || 30;
   endDate.setDate(endDate.getDate() - days);
+  endDate.setHours(23, 59, 59, 999);
   startDate.setDate(startDate.getDate() - days * 2);
+  startDate.setHours(0, 0, 0, 0);
 
   return {
     startDate: startDate.toISOString(),

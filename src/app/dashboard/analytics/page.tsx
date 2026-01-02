@@ -99,6 +99,11 @@ function getDateRange(period: Period): { startDate: string; endDate: string } {
   const startDate = new Date();
   const days = periodOptions.find((p) => p.value === period)?.days || 30;
   startDate.setDate(startDate.getDate() - days);
+  // Set start of day for startDate
+  startDate.setHours(0, 0, 0, 0);
+  // Add 1 day to endDate for timezone tolerance (server might be in different timezone)
+  endDate.setDate(endDate.getDate() + 1);
+  endDate.setHours(23, 59, 59, 999);
 
   return {
     startDate: startDate.toISOString(),

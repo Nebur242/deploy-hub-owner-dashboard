@@ -10,6 +10,7 @@ import {
     useSubmitForReviewMutation,
 } from "@/store/features/projects";
 import { useGetDeploymentsQuery } from "@/store/features/deployments";
+import { useGetProjectReviewsQuery } from "@/store/features/reviews";
 import { DeploymentStatusBadge } from "../../deployments/components";
 import {
     IconArrowBack,
@@ -28,6 +29,9 @@ import {
     IconCircleCheck,
     IconCircleX,
     IconFileDescription,
+    IconStar,
+    IconMessage,
+    IconAlertCircle,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -99,6 +103,19 @@ export default function ProjectPreviewPage() {
 
     // Access the deployments items array
     const deployments = deploymentsData?.items || [];
+
+    // Get project reviews
+    const { data: reviewsData, isLoading: isLoadingReviews, error: reviewsError } = useGetProjectReviewsQuery({
+        projectId,
+        page: 1,
+        limit: 5,
+    });
+
+    const reviews = reviewsData?.items || [];
+    const totalReviews = reviewsData?.meta?.totalItems || reviewsData?.meta?.itemCount || reviews.length;
+    const averageRating = reviewsData?.stats?.average_rating || (totalReviews > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0);
 
     // Check if project has any configurations
     const hasConfigurations = configurations && configurations.length > 0;
@@ -178,6 +195,13 @@ export default function ProjectPreviewPage() {
                         Rejected
                     </Badge>
                 );
+            case ModerationStatus.CHANGES_PENDING:
+                return (
+                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                        <IconAlertCircle className="h-3 w-3 mr-1" />
+                        Changes Pending Review
+                    </Badge>
+                );
             case ModerationStatus.DRAFT:
             default:
                 return (
@@ -198,6 +222,8 @@ export default function ProjectPreviewPage() {
                 return "Your project is approved and visible to the public.";
             case ModerationStatus.REJECTED:
                 return "Your project was not approved. Check the feedback and resubmit.";
+            case ModerationStatus.CHANGES_PENDING:
+                return "Your changes are pending review. The original approved version is still visible.";
             case ModerationStatus.DRAFT:
             default:
                 return "Submit your project for review to make it visible on the marketplace.";
@@ -259,7 +285,7 @@ export default function ProjectPreviewPage() {
             actions={actionButtons}
         >
             <div className="flex flex-col gap-6">
-                <Button
+                {/* <Button
                     variant="outline"
                     asChild
                     className="w-fit"
@@ -267,7 +293,7 @@ export default function ProjectPreviewPage() {
                     <Link href="/dashboard/projects">
                         <IconArrowBack className="h-4 w-4 mr-2" /> Back to Projects
                     </Link>
-                </Button>
+                </Button> */}
 
                 {isLoadingProject ? (
                     <div className="flex items-center justify-center py-12">
@@ -796,6 +822,62 @@ export default function ProjectPreviewPage() {
                                                 View Source Code
                                             </a>
                                         </Button>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* Customer Reviews Card */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <IconMessage className="h-5 w-5" />
+                                        Customer Reviews
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {isLoadingReviews ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <IconLoader className="h-6 w-6 animate-spin text-primary" />
+                                        </div>
+                                    ) : totalReviews === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                            No customer reviews yet
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-3xl font-bold">
+                                                    {averageRating.toFixed(1)}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <IconStar
+                                                                key={star}
+                                                                className={`h-4 w-4 ${
+                                                                    averageRating >= star
+                                                                        ? "fill-yellow-400 text-yellow-400"
+                                                                        : "text-gray-300"
+                                                                }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {totalReviews} review{totalReviews !== 1 ? "s" : ""}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                className="w-full"
+                                                variant="outline"
+                                                asChild
+                                            >
+                                                <Link href={`/dashboard/projects/${projectId}/reviews`}>
+                                                    <IconChevronRight className="h-4 w-4 mr-2" />
+                                                    View All Reviews
+                                                </Link>
+                                            </Button>
+                                        </>
                                     )}
                                 </CardContent>
                             </Card>

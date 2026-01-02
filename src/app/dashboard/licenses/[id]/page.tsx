@@ -312,8 +312,10 @@ export default function ViewLicensePage() {
                                                         <Link href={`/dashboard/projects/${purchase.project_id}`} className="text-primary hover:underline">
                                                             {purchase.project.name}
                                                         </Link>
-                                                    ) : (
+                                                    ) : purchase.project_id ? (
                                                         purchase.project_id.substring(0, 8) + '...'
+                                                    ) : (
+                                                        <span className="text-muted-foreground">No project</span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
