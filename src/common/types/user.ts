@@ -29,8 +29,8 @@ export type User = {
   roles: Role[];
   preferences: UserPreferences;
   notifications: NotificationSettings;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 };
 
 export type AppUser = User & { firebase: UserCredential["user"] };

@@ -125,7 +125,7 @@ export default function ProfilePage() {
                                             <IconUser size={16} className="text-muted-foreground" />
                                             <span className="text-sm font-medium">Account Created</span>
                                         </div>
-                                        <p>{new Date(user.createdAt).toLocaleDateString()} at {new Date(user.createdAt).toLocaleTimeString()}</p>
+                                        <p>{user.created_at ? `${new Date(user.created_at).toLocaleDateString()} at ${new Date(user.created_at).toLocaleTimeString()}` : 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import DashboardLayout from "@/components/dashboard-layout";
 import {
   Card,
@@ -13,7 +16,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -22,6 +24,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   IconSearch,
   IconMessageQuestion,
@@ -46,6 +57,24 @@ import {
 } from "@/store/features/support";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
+import { MultipleMediaSelector } from "@/app/dashboard/media/components/media-selector";
+import { Media } from "@/common/types";
+
+// Zod schema for support form validation
+const supportFormSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  category: z.nativeEnum(TicketCategory, {
+    message: "Please select a category",
+  }),
+  priority: z.nativeEnum(TicketPriority, {
+    message: "Please select a priority",
+  }),
+  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  message: z.string().min(20, "Message must be at least 20 characters"),
+});
+
+type SupportFormValues = z.infer<typeof supportFormSchema>;
 
 interface HelpItem {
   question: string;
@@ -167,33 +196,38 @@ export default function HelpPage() {
   const urlSearchQuery = searchParams.get("search") || "";
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
   const [activeTab, setActiveTab] = useState("getting-started");
-
-  // Form state
-  const user = useSelector((state: RootState) => state.auth.infos);
-  const [name, setName] = useState(
-    user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : ""
-  );
-  const [email, setEmail] = useState(user?.email || "");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [category, setCategory] = useState<TicketCategory>(
-    TicketCategory.GENERAL
-  );
-  const [priority, setPriority] = useState<TicketPriority>(
-    TicketPriority.MEDIUM
-  );
   const [submitted, setSubmitted] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<Media[]>([]);
+
+  // User data from Redux
+  const user = useSelector((state: RootState) => state.auth.infos);
 
   // RTK Query mutation
   const [createTicket, { isLoading }] = useCreateSupportTicketMutation();
 
+  // React Hook Form with Zod validation
+  const form = useForm<SupportFormValues>({
+    resolver: zodResolver(supportFormSchema),
+    defaultValues: {
+      name: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "",
+      email: user?.firebase?.email || "",
+      category: TicketCategory.GENERAL,
+      priority: TicketPriority.MEDIUM,
+      subject: "",
+      message: "",
+    },
+  });
+
   // Update form when user data loads
   useEffect(() => {
     if (user) {
-      setName(`${user.firstName || ""} ${user.lastName || ""}`.trim());
-      setEmail(user.email || "");
+      form.setValue(
+        "name",
+        `${user.firstName || ""} ${user.lastName || ""}`.trim()
+      );
+      form.setValue("email", user.firebase?.email || "");
     }
-  }, [user]);
+  }, [user, form]);
 
   // Search from URL parameter on component mount
   useEffect(() => {
@@ -231,27 +265,18 @@ export default function HelpPage() {
   const searchResults = getFilteredFAQs();
 
   // Handle contact support form submission
-  const handleContactSupport = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (message.length < 20) {
-      toast.error("Message too short", {
-        description: "Please provide more details (at least 20 characters).",
-      });
-      return;
-    }
+  const onSubmit = async (data: SupportFormValues) => {
+    // Get image URLs from selected media
+    const attachments = selectedMedia.map(media => media.url);
 
     try {
       await createTicket({
-        name,
-        email,
-        subject,
-        message,
-        category,
-        priority,
+        ...data,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }).unwrap();
 
       setSubmitted(true);
+      setSelectedMedia([]);
       toast.success("Support request submitted!", {
         description:
           "Our team will review your request and get back to you soon.",
@@ -259,10 +284,16 @@ export default function HelpPage() {
 
       // Reset form after a delay
       setTimeout(() => {
-        setSubject("");
-        setMessage("");
-        setCategory(TicketCategory.GENERAL);
-        setPriority(TicketPriority.MEDIUM);
+        form.reset({
+          name: user
+            ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+            : "",
+          email: user?.firebase?.email || "",
+          category: TicketCategory.GENERAL,
+          priority: TicketPriority.MEDIUM,
+          subject: "",
+          message: "",
+        });
         setSubmitted(false);
       }, 3000);
     } catch (error) {
@@ -528,141 +559,193 @@ export default function HelpPage() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleContactSupport} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Your Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="John Doe"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      placeholder="john@example.com"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={category}
-                      onValueChange={(val) =>
-                        setCategory(val as TicketCategory)
-                      }
-                    >
-                      <SelectTrigger id="category">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={TicketCategory.GENERAL}>
-                          General Question
-                        </SelectItem>
-                        <SelectItem value={TicketCategory.TECHNICAL}>
-                          Technical Issue
-                        </SelectItem>
-                        <SelectItem value={TicketCategory.DEPLOYMENT}>
-                          Deployment Help
-                        </SelectItem>
-                        <SelectItem value={TicketCategory.LICENSE}>
-                          License Question
-                        </SelectItem>
-                        <SelectItem value={TicketCategory.BILLING}>
-                          Billing & Payments
-                        </SelectItem>
-                        <SelectItem value={TicketCategory.ACCOUNT}>
-                          Account Issue
-                        </SelectItem>
-                        <SelectItem value={TicketCategory.OTHER}>
-                          Other
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select
-                      value={priority}
-                      onValueChange={(val) =>
-                        setPriority(val as TicketPriority)
-                      }
-                    >
-                      <SelectTrigger id="priority">
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={TicketPriority.LOW}>
-                          Low - General question
-                        </SelectItem>
-                        <SelectItem value={TicketPriority.MEDIUM}>
-                          Medium - Need help soon
-                        </SelectItem>
-                        <SelectItem value={TicketPriority.HIGH}>
-                          High - Blocking my work
-                        </SelectItem>
-                        <SelectItem value={TicketPriority.URGENT}>
-                          Urgent - Critical issue
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject</Label>
-                  <Input
-                    id="subject"
-                    placeholder="Brief description of your issue"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    required
-                    minLength={5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    placeholder="Please describe your issue in detail. Include any relevant information such as project names, error messages, or steps to reproduce the problem..."
-                    className="min-h-[150px]"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    required
-                    minLength={20}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Minimum 20 characters. The more details you provide, the
-                    faster we can help.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-4"
                 >
-                  {isLoading ? (
-                    <>
-                      <IconLoader className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Submit Support Request"
-                  )}
-                </Button>
-              </form>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Your Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="john@example.com"
+                              type="email"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value={TicketCategory.GENERAL}>
+                                General Question
+                              </SelectItem>
+                              <SelectItem value={TicketCategory.TECHNICAL}>
+                                Technical Issue
+                              </SelectItem>
+                              <SelectItem value={TicketCategory.DEPLOYMENT}>
+                                Deployment Help
+                              </SelectItem>
+                              <SelectItem value={TicketCategory.LICENSE}>
+                                License Question
+                              </SelectItem>
+                              <SelectItem value={TicketCategory.BILLING}>
+                                Billing & Payments
+                              </SelectItem>
+                              <SelectItem value={TicketCategory.ACCOUNT}>
+                                Account Issue
+                              </SelectItem>
+                              <SelectItem value={TicketCategory.OTHER}>
+                                Other
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value={TicketPriority.LOW}>
+                                Low - General question
+                              </SelectItem>
+                              <SelectItem value={TicketPriority.MEDIUM}>
+                                Medium - Need help soon
+                              </SelectItem>
+                              <SelectItem value={TicketPriority.HIGH}>
+                                High - Blocking my work
+                              </SelectItem>
+                              <SelectItem value={TicketPriority.URGENT}>
+                                Urgent - Critical issue
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Brief description of your issue"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Please describe your issue in detail. Include any relevant information such as project names, error messages, or steps to reproduce the problem..."
+                            className="min-h-[150px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Minimum 20 characters. The more details you provide,
+                          the faster we can help.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Attachments Section */}
+                  <div className="space-y-2">
+                    <MultipleMediaSelector
+                      label="Attachments (Optional)"
+                      value={selectedMedia}
+                      onChange={setSelectedMedia}
+                    />
+                    <p className="text-[0.8rem] text-muted-foreground">
+                      Add screenshots or files that help explain your issue.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <IconLoader className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Support Request"
+                    )}
+                  </Button>
+                </form>
+              </Form>
             )}
           </CardContent>
         </Card>

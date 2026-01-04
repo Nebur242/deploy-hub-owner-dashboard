@@ -6,6 +6,7 @@ import { mediaApi } from "./features/media";
 import { notificationsApi } from "./features/notifications";
 import { projectsApi } from "./features/projects";
 import { licensesApi } from "./features/licenses";
+import { licenseTicketsApi } from "./features/license-tickets";
 import { ordersApi } from "./features/orders";
 import { supportApi } from "./features/support";
 import { userApi } from "./features/users";
@@ -20,6 +21,7 @@ export const makeStore = () => {
       [notificationsApi.reducerPath]: notificationsApi.reducer,
       [projectsApi.reducerPath]: projectsApi.reducer,
       [licensesApi.reducerPath]: licensesApi.reducer,
+      [licenseTicketsApi.reducerPath]: licenseTicketsApi.reducer,
       [deploymentApi.reducerPath]: deploymentApi.reducer,
       [ordersApi.reducerPath]: ordersApi.reducer,
       [supportApi.reducerPath]: supportApi.reducer,
@@ -33,6 +35,7 @@ export const makeStore = () => {
         .concat(notificationsApi.middleware)
         .concat(projectsApi.middleware)
         .concat(licensesApi.middleware)
+        .concat(licenseTicketsApi.middleware)
         .concat(deploymentApi.middleware)
         .concat(ordersApi.middleware)
         .concat(supportApi.middleware)

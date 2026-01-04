@@ -427,7 +427,7 @@ export default function SettingsPage() {
                                             <Label>Created</Label>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
-                                            {new Date(user.createdAt).toLocaleDateString()}
+                                            {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                                         </p>
                                     </div>
                                     <div className="space-y-1">
@@ -436,7 +436,7 @@ export default function SettingsPage() {
                                             <Label>Last Updated</Label>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
-                                            {new Date(user.updatedAt).toLocaleDateString()}
+                                            {user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'N/A'}
                                         </p>
                                     </div>
                                 </div>

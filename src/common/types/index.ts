@@ -11,3 +11,4 @@ export * from "./order";
 export * from "./statistics";
 export * from "./coupon";
 export * from "./review";
+export * from "./license-ticket";

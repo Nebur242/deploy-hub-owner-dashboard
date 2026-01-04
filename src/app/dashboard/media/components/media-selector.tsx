@@ -240,8 +240,8 @@ export const MultipleMediaSelector: React.FC<MultipleMediaSelectorProps> = ({
                   </div>
                 ) : (
                   <div className="h-32 flex items-center justify-center bg-muted/30">
-                    <div className="text-center">
-                      <div className="mb-1">
+                    <div className="text-center px-2">
+                      <div className="mb-2 flex justify-center">
                         {media.type === "video" && (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -280,7 +280,7 @@ export const MultipleMediaSelector: React.FC<MultipleMediaSelectorProps> = ({
                             <circle cx="18" cy="16" r="3" />
                           </svg>
                         )}
-                        {media.type === "document" && (
+                        {(media.type === "document" || media.mime_type?.includes("pdf") || media.mime_type?.includes("document")) && (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -295,7 +295,7 @@ export const MultipleMediaSelector: React.FC<MultipleMediaSelectorProps> = ({
                             <polyline points="14 2 14 8 20 8" />
                           </svg>
                         )}
-                        {media.type === "other" && (
+                        {(media.type === "other" || (!["video", "audio", "document", "image"].includes(media.type) && !media.mime_type?.includes("pdf"))) && (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -306,14 +306,13 @@ export const MultipleMediaSelector: React.FC<MultipleMediaSelectorProps> = ({
                             strokeLinejoin="round"
                             className="text-slate-500 dark:text-slate-400 h-10 w-10"
                           >
-                            <path d="M18 3v4c0 2-2 4-4 4H2" />
-                            <path d="M18 3a2 2 0 1 1 4 0v14a2 2 0 1 1-4 0V3z" />
-                            <path d="M2 7v10c0 2 2 4 4 4h8" />
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                            <polyline points="14 2 14 8 20 8" />
                           </svg>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground font-medium truncate px-2">
-                        {media.filename}
+                      <div className="text-xs text-muted-foreground font-medium truncate max-w-full" title={media.filename || media.original_filename}>
+                        {media.filename || media.original_filename || "File"}
                       </div>
                     </div>
                   </div>
@@ -349,7 +348,7 @@ export const MultipleMediaSelector: React.FC<MultipleMediaSelectorProps> = ({
         </div>
 
         <DialogContent
-          className="max-w-5xl p-0"
+          className="max-w-5xl p-6"
           style={{ maxWidth: "80vw", maxHeight: "90vh" }}
         >
           <MediaGallery

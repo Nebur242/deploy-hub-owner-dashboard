@@ -54,6 +54,7 @@ export interface CreateSupportTicketDto {
   message: string;
   category?: TicketCategory;
   priority?: TicketPriority;
+  attachments?: string[];
 }
 
 // Query params

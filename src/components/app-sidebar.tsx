@@ -22,6 +22,7 @@ import {
   IconShieldCheck,
   IconTicket,
   IconStar,
+  IconMessageCircle,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -99,6 +100,11 @@ const data = {
       title: "Reviews",
       url: "/dashboard/reviews",
       icon: IconStar,
+    },
+    {
+      title: "Support Tickets",
+      url: "/dashboard/support-tickets",
+      icon: IconMessageCircle,
     },
     {
       title: "Customers",
