@@ -80,6 +80,10 @@ export default function EditLicensePage() {
                 project_ids: license.projects?.map(project => project.id) || [],
                 status: license.status,
                 popular: license.popular || false,
+                can_submit_support_ticket: license.can_submit_support_ticket || false,
+                can_redeploy: license.can_redeploy || false,
+                can_update: license.can_update || false,
+                has_priority_support: license.has_priority_support || false,
             });
         }
     }, [license]);
@@ -200,7 +204,6 @@ export default function EditLicensePage() {
                     error={updateError ? {
                         message: getErrorMessage(updateError) || "An error occurred",
                     } : null}
-                    currentDeploymentLimit={license?.deployment_limit || 0}
                 />
 
                 {/* Purchase History could go here, similar to Configuration section in Project edit */}

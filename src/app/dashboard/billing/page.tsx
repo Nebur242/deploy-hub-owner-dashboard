@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     CreditCard,
     AlertCircle,
@@ -14,7 +15,6 @@ import {
     Zap,
     Crown,
     Rocket,
-    Building2,
     Loader2,
     ExternalLink,
     X,
@@ -34,7 +34,6 @@ const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
     [SubscriptionPlan.FREE]: <Zap className="h-5 w-5" />,
     [SubscriptionPlan.STARTER]: <Rocket className="h-5 w-5" />,
     [SubscriptionPlan.PRO]: <Crown className="h-5 w-5" />,
-    [SubscriptionPlan.ENTERPRISE]: <Building2 className="h-5 w-5" />,
 };
 
 const statusColors: Record<SubscriptionStatus, string> = {
@@ -208,8 +207,92 @@ function BillingContent() {
 
     if (loading) {
         return (
-            <div className="container max-w-5xl mx-auto py-10 flex items-center justify-center min-h-[400px]">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="container max-w-5xl mx-auto py-10">
+                {/* Header Skeleton */}
+                <div className="mb-8">
+                    <Skeleton className="h-9 w-64 mb-2" />
+                    <Skeleton className="h-5 w-96" />
+                </div>
+
+                {/* Tabs Skeleton */}
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg w-full mb-4">
+                        <Skeleton className="h-9 rounded-md" />
+                        <Skeleton className="h-9 rounded-md" />
+                    </div>
+
+                    {/* Current Plan Card Skeleton */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="h-5 w-5 rounded" />
+                                <Skeleton className="h-6 w-32" />
+                            </div>
+                            <Skeleton className="h-4 w-64 mt-1" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col md:flex-row justify-between gap-4">
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className="h-5 w-5 rounded" />
+                                        <Skeleton className="h-7 w-32" />
+                                        <Skeleton className="h-6 w-16 rounded-full" />
+                                    </div>
+                                    <Skeleton className="h-4 w-24" />
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <Skeleton className="h-4 w-4 rounded" />
+                                        <Skeleton className="h-4 w-48" />
+                                    </div>
+                                </div>
+                                <div className="text-right space-y-4">
+                                    <Skeleton className="h-8 w-24 ml-auto" />
+                                    <div className="flex gap-2 justify-end">
+                                        <Skeleton className="h-10 w-32 rounded-md" />
+                                        <Skeleton className="h-10 w-20 rounded-md" />
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Plan Features Card Skeleton */}
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-40" />
+                            <Skeleton className="h-4 w-56 mt-1" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {[...Array(6)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <Skeleton className="h-5 w-5 rounded-full" />
+                                        <Skeleton className="h-4 w-40" />
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Usage Card Skeleton */}
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-4 w-48 mt-1" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="space-y-2">
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-8 w-16" />
+                                        <Skeleton className="h-2 w-full rounded-full" />
+                                        <Skeleton className="h-3 w-32" />
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         );
     }
@@ -357,55 +440,6 @@ function BillingContent() {
                     {/* Plan Features */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Deployment Pool</CardTitle>
-                            <CardDescription>
-                                Your deployment allocation across all licenses
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {subscription?.deployment_pool ? (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium">
-                                            {subscription.deployment_pool.total === -1
-                                                ? "Unlimited deployments"
-                                                : `${subscription.deployment_pool.allocated} / ${subscription.deployment_pool.total} allocated`}
-                                        </span>
-                                        <span className="text-muted-foreground">
-                                            {subscription.deployment_pool.total === -1
-                                                ? ""
-                                                : `${subscription.deployment_pool.available} available`}
-                                        </span>
-                                    </div>
-                                    {subscription.deployment_pool.total !== -1 && (
-                                        <div className="w-full bg-muted rounded-full h-3">
-                                            <div
-                                                className="bg-primary h-3 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${Math.min(
-                                                        100,
-                                                        (subscription.deployment_pool.allocated / subscription.deployment_pool.total) * 100
-                                                    )}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                    <p className="text-xs text-muted-foreground">
-                                        This pool is distributed across your licenses. Each license you create
-                                        allocates deployments from this pool that your customers can use.
-                                    </p>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                    Loading deployment pool information...
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Plan Features */}
-                    <Card>
-                        <CardHeader>
                             <CardTitle>Plan Features & Limits</CardTitle>
                             <CardDescription>
                                 What&apos;s included in your current plan
@@ -423,15 +457,39 @@ function BillingContent() {
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Deployments/Month</span>
+                                        <span className="text-sm font-medium">Licenses per Project</span>
                                         <span className="text-sm text-muted-foreground">
-                                            {subscription?.max_deployments_per_month === -1
+                                            {subscription?.max_licenses_per_project === -1
                                                 ? "Unlimited"
-                                                : subscription?.max_deployments_per_month}
+                                                : subscription?.max_licenses_per_project}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium">Deployments</span>
+                                        <span className="text-sm text-muted-foreground">
+                                            Unlimited
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium">GitHub Accounts</span>
+                                        <span className="text-sm text-muted-foreground">
+                                            {subscription?.max_github_accounts === -1
+                                                ? "Unlimited"
+                                                : `${subscription?.max_github_accounts}/project`}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium">Platform Fee</span>
+                                        <Badge variant={
+                                            (subscription?.platform_fee_percent ?? 50) <= 15 ? "default" 
+                                            : (subscription?.platform_fee_percent ?? 50) <= 25 ? "secondary" 
+                                            : "outline"
+                                        }>
+                                            {subscription?.platform_fee_percent ?? 50}%
+                                        </Badge>
+                                    </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium">Custom Domains</span>
                                         <span className="text-sm">
@@ -452,23 +510,13 @@ function BillingContent() {
                                             )}
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Analytics</span>
-                                        <span className="text-sm">
-                                            {subscription?.analytics_enabled ? (
-                                                <Check className="h-4 w-4 text-green-600" />
-                                            ) : (
-                                                <X className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         </CardContent>
                         <CardFooter className="bg-muted/50 flex flex-row items-center">
                             <AlertCircle className="h-4 w-4 text-muted-foreground mr-2" />
                             <p className="text-sm text-muted-foreground">
-                                Need more? Upgrade your plan to unlock additional features.
+                                Need more? Upgrade your plan to unlock additional features and lower platform fees.
                             </p>
                         </CardFooter>
                     </Card>
@@ -518,7 +566,7 @@ function BillingContent() {
                     </div>
 
                     {/* Plans Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {plans.map((plan) => {
                             const isCurrentPlan = subscription?.plan === plan.plan;
                             const price = getPlanPrice(plan);
@@ -555,13 +603,28 @@ function BillingContent() {
                                                 <Check className="h-4 w-4 text-green-600" />
                                                 {plan.maxProjects === -1
                                                     ? "Unlimited projects"
-                                                    : `${plan.maxProjects} projects`}
+                                                    : `${plan.maxProjects} project${plan.maxProjects > 1 ? 's' : ''}`}
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <Check className="h-4 w-4 text-green-600" />
-                                                {plan.maxDeploymentsPerMonth === -1
-                                                    ? "Unlimited deployments"
-                                                    : `${plan.maxDeploymentsPerMonth} deployments/mo`}
+                                                {plan.maxLicensesPerProject === -1
+                                                    ? "Unlimited licenses/project"
+                                                    : `${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}/project`}
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <Check className="h-4 w-4 text-green-600" />
+                                                Unlimited deployments
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <Check className="h-4 w-4 text-green-600" />
+                                                {plan.maxGithubAccounts === -1
+                                                    ? "Unlimited GitHub accounts"
+                                                    : `${plan.maxGithubAccounts} GitHub account${plan.maxGithubAccounts > 1 ? 's' : ''}/project`}
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <Badge variant={plan.platformFeePercent <= 15 ? "default" : plan.platformFeePercent <= 25 ? "secondary" : "outline"}>
+                                                    {plan.platformFeePercent}% platform fee
+                                                </Badge>
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 {plan.customDomainEnabled ? (
@@ -578,14 +641,6 @@ function BillingContent() {
                                                     <X className="h-4 w-4 text-muted-foreground" />
                                                 )}
                                                 Priority support
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                {plan.analyticsEnabled ? (
-                                                    <Check className="h-4 w-4 text-green-600" />
-                                                ) : (
-                                                    <X className="h-4 w-4 text-muted-foreground" />
-                                                )}
-                                                Analytics
                                             </li>
                                         </ul>
                                     </CardContent>

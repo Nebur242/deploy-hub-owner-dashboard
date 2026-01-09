@@ -320,8 +320,18 @@ export default function ViewLicensePage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge
-                                                        variant={purchase.status === PurchaseStatus.PAID ? "default" :
-                                                            purchase.status === PurchaseStatus.PENDING ? "outline" : "destructive"}
+                                                        variant="outline"
+                                                        className={
+                                                            purchase.status === PurchaseStatus.COMPLETED || purchase.status === PurchaseStatus.ACTIVE || purchase.status === PurchaseStatus.PAID
+                                                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                                                                : purchase.status === PurchaseStatus.PENDING
+                                                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                                                                    : purchase.status === PurchaseStatus.CANCELLED
+                                                                        ? "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100"
+                                                                        : purchase.status === PurchaseStatus.EXPIRED || purchase.status === PurchaseStatus.PAST_DUE
+                                                                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                                                                            : ""
+                                                        }
                                                     >
                                                         {purchase.status}
                                                     </Badge>

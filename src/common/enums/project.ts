@@ -50,8 +50,13 @@ export enum Currency {
 
 export enum PurchaseStatus {
   PENDING = "pending",
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  CANCELLED = "cancelled",
+  EXPIRED = "expired",
+  PAST_DUE = "past_due",
+  PAUSED = "paused",
   PAID = "paid",
   FAILED = "failed",
   REFUNDED = "refunded",
-  EXPIRED = "expired",
 }

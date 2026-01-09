@@ -31,13 +31,49 @@ export interface GitHubAccount {
   lastUsed?: Date;
 }
 
-export interface Deployment {
+export interface UserLicense {
   id: string;
   owner_id: string;
+  owner?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  license_id: string;
+  license?: {
+    id: string;
+    name: string;
+  };
+  active: boolean;
+  status: string;
+  count: number;
+  max_deployments: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Deployment {
+  id: string;
+  title?: string;
+  owner_id: string;
+  owner?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
   project_id: string;
   configuration_id: string;
   configuration: ProjectConfiguration;
   project: Project;
+  license_id?: string;
+  license?: {
+    id: string;
+    name: string;
+  };
+  user_license_id?: string;
+  user_license?: UserLicense;
   environment: DeploymentEnvironment;
   branch: string;
   workflow_run_id?: string;
@@ -54,12 +90,21 @@ export interface Deployment {
 }
 
 export interface CreateDeploymentRequest {
+  title?: string;
   environment: DeploymentEnvironment;
   branch: string;
   project_id: string;
   configuration_id: string;
   environment_variables: EnvironmentVariable[];
   is_test?: boolean; // Allow specifying test mode
+}
+
+export interface CreateDeploymentOnBehalfRequest {
+  title?: string;
+  environment: DeploymentEnvironment;
+  branch: string;
+  configuration_id: string;
+  environment_variables?: EnvironmentVariable[];
 }
 
 export interface DeploymentLogs {
@@ -89,6 +134,16 @@ export interface DeploymentFilters {
   environment?: string;
   status?: DeploymentStatus;
   branch?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface LicenseBuyerDeploymentFilters {
+  project_id?: string;
+  license_id?: string;
+  user_license_id?: string;
+  environment?: string;
+  status?: DeploymentStatus;
   page?: number;
   limit?: number;
 }
@@ -125,7 +180,7 @@ const initialState: DeploymentsState = {
 export const deploymentApi = createApi({
   reducerPath: "deploymentApi",
   baseQuery: axiosBaseQuery(),
-  tagTypes: ["Deployment", "ProjectDeployments"],
+  tagTypes: ["Deployment", "ProjectDeployments", "LicenseBuyerDeployments"],
   endpoints: (builder) => ({
     // Get deployments with pagination and filters
     getDeployments: builder.query<
@@ -226,6 +281,53 @@ export const deploymentApi = createApi({
         url: "/deployments/monthly-usage",
       }),
     }),
+
+    // Get deployments by license buyers (users who purchased licenses)
+    getLicenseBuyerDeployments: builder.query<
+      PaginatedResponse<Deployment>,
+      LicenseBuyerDeploymentFilters
+    >({
+      query: (filters) => {
+        const {
+          project_id,
+          license_id,
+          user_license_id,
+          environment,
+          status,
+          page = 1,
+          limit = 10,
+        } = filters;
+
+        const params = new URLSearchParams();
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
+
+        if (project_id) params.append("project_id", project_id);
+        if (license_id) params.append("license_id", license_id);
+        if (user_license_id) params.append("user_license_id", user_license_id);
+        if (environment) params.append("environment", environment);
+        if (status) params.append("status", status);
+
+        return {
+          url: `/deployments/license-buyers?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["LicenseBuyerDeployments"],
+    }),
+
+    // Create a deployment on behalf of a license buyer
+    createDeploymentOnBehalf: builder.mutation<
+      Deployment,
+      { userLicenseId: string; data: CreateDeploymentOnBehalfRequest }
+    >({
+      query: ({ userLicenseId, data }) => ({
+        url: `/deployments/on-behalf/${userLicenseId}`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: ["LicenseBuyerDeployments"],
+    }),
   }),
 });
 
@@ -236,6 +338,8 @@ export const {
   useRetryDeploymentMutation,
   useGetDeploymentLogsQuery,
   useGetMonthlyUsageQuery,
+  useGetLicenseBuyerDeploymentsQuery,
+  useCreateDeploymentOnBehalfMutation,
 } = deploymentApi;
 
 const deploymentsSlice = createSlice({

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { subscriptionService } from "@/services/subscription";
+import { useGetPublicPlansQuery, useCreateCheckoutSessionMutation } from "@/store/features/subscription";
 import { BillingInterval, PlanConfig, SubscriptionPlan } from "@/common/types/subscription";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { authenticateUser } from "@/store/features/auth";
@@ -101,9 +101,9 @@ const defaultPricingPlans = [
     description: "Perfect for trying out the platform",
     features: [
       "Up to 1 project",
-      "10 deployments/month",
-      "Basic analytics",
-      "Community support",
+      "1 license per project",
+      "2 GitHub accounts per project",
+      "Unlimited deployments",
     ],
     cta: "Get Started Free",
     popular: false,
@@ -115,15 +115,16 @@ const defaultPricingPlans = [
     name: "Starter",
     price: "$19",
     period: "/month",
-    description: "For indie developers",
+    description: "For growing businesses",
     features: [
       "Up to 10 projects",
-      "500 deployments/month",
-      "Sales analytics",
-      "Email support",
+      "3 licenses per project",
+      "Unlimited GitHub accounts",
+      "Unlimited deployments",
+      "Advanced analytics",
     ],
     cta: "Start Starter",
-    popular: false,
+    popular: true,
     plan: "STARTER",
     monthlyPrice: 19,
     yearlyPrice: 190,
@@ -132,38 +133,20 @@ const defaultPricingPlans = [
     name: "Pro",
     price: "$49",
     period: "/month",
-    description: "For professional sellers",
+    description: "For professional teams",
     features: [
       "Up to 50 projects",
-      "2000 deployments/month",
-      "Advanced analytics",
+      "Unlimited licenses per project",
+      "Unlimited GitHub accounts",
+      "Unlimited deployments",
       "Priority support",
-      "Custom branding",
+      "Advanced analytics",
     ],
     cta: "Start Pro",
-    popular: true,
+    popular: false,
     plan: "PRO",
     monthlyPrice: 49,
     yearlyPrice: 490,
-  },
-  {
-    name: "Enterprise",
-    price: "$199",
-    period: "/month",
-    description: "For agencies & teams",
-    features: [
-      "Unlimited projects",
-      "Unlimited deployments",
-      "White-label options",
-      "Dedicated support",
-      "Custom integrations",
-      "SLA guarantee",
-    ],
-    cta: "Contact Sales",
-    popular: false,
-    plan: "ENTERPRISE",
-    monthlyPrice: 199,
-    yearlyPrice: 1990,
   },
 ];
 
@@ -197,15 +180,51 @@ const testimonials = [
   },
 ];
 
+// Helper function to build feature list from plan config
+const buildFeatures = (plan: PlanConfig): string[] => {
+  const features: string[] = [];
+
+  if (plan.maxProjects === -1) {
+    features.push("Unlimited projects");
+  } else {
+    features.push(`Up to ${plan.maxProjects} project${plan.maxProjects > 1 ? 's' : ''}`);
+  }
+
+  if (plan.maxLicensesPerProject === -1) {
+    features.push("Unlimited licenses per project");
+  } else {
+    features.push(`${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''} per project`);
+  }
+
+  if (plan.maxGithubAccounts === -1) {
+    features.push("Unlimited GitHub accounts");
+  } else {
+    features.push(`${plan.maxGithubAccounts} GitHub account${plan.maxGithubAccounts > 1 ? 's' : ''} per project`);
+  }
+
+  features.push("Unlimited deployments");
+
+  if (plan.prioritySupport) {
+    features.push("Priority support");
+  }
+
+  if (plan.analyticsEnabled) {
+    features.push("Advanced analytics");
+  }
+
+  return features;
+};
+
 export default function LandingPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isLoggedIn, infos, authenticate } = useAppSelector((state) => state.auth);
   const userIsLoggedIn = isLoggedIn || !!infos || authenticate.status === 'success';
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
-  const [plans, setPlans] = useState(defaultPricingPlans);
-  const [loadingPlans, setLoadingPlans] = useState(true);
-  const [loadingPlanAction, setLoadingPlanAction] = useState<string | null>(null);
+
+  // RTK Query hooks
+  const { data: apiPlans, isLoading: loadingPlans } = useGetPublicPlansQuery();
+  const [createCheckoutSession, { isLoading: isCreatingCheckout }] = useCreateCheckoutSessionMutation();
 
   // Trigger authentication check on mount
   useEffect(() => {
@@ -214,36 +233,21 @@ export default function LandingPage() {
     }
   }, [dispatch, authenticate.status]);
 
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const apiPlans = await subscriptionService.getPublicPlans();
-        if (apiPlans && apiPlans.length > 0) {
-          const formattedPlans = apiPlans.map((plan: PlanConfig) => ({
-            name: plan.name,
-            price: plan.monthlyPrice === 0 ? "Free" : `$${plan.monthlyPrice}`,
-            period: plan.monthlyPrice === 0 ? "" : "/month",
-            description: plan.description,
-            features: buildFeatures(plan),
-            cta: plan.plan === SubscriptionPlan.FREE ? "Get Started Free" :
-              plan.plan === SubscriptionPlan.ENTERPRISE ? "Contact Sales" : `Start ${plan.name}`,
-            popular: plan.plan === SubscriptionPlan.PRO,
-            plan: plan.plan,
-            monthlyPrice: plan.monthlyPrice,
-            yearlyPrice: plan.yearlyPrice,
-          }));
-          setPlans(formattedPlans);
-        }
-      } catch (error) {
-        console.error("Failed to fetch plans:", error);
-        // Keep using default plans on error
-      } finally {
-        setLoadingPlans(false);
-      }
-    };
-
-    fetchPlans();
-  }, []);
+  // Format plans from API or use defaults
+  const plans = apiPlans && apiPlans.length > 0
+    ? apiPlans.map((plan: PlanConfig) => ({
+      name: plan.name,
+      price: plan.monthlyPrice === 0 ? "Free" : `$${plan.monthlyPrice}`,
+      period: plan.monthlyPrice === 0 ? "" : "/month",
+      description: plan.description,
+      features: buildFeatures(plan),
+      cta: plan.plan === SubscriptionPlan.FREE ? "Get Started Free" : `Start ${plan.name}`,
+      popular: plan.plan === SubscriptionPlan.STARTER,
+      plan: plan.plan,
+      monthlyPrice: plan.monthlyPrice,
+      yearlyPrice: plan.yearlyPrice,
+    }))
+    : defaultPricingPlans;
 
   // Handle plan selection
   const handlePlanAction = async (plan: typeof plans[0]) => {
@@ -254,13 +258,6 @@ export default function LandingPage() {
       } else {
         router.push("/auth/register");
       }
-      return;
-    }
-
-    // For ENTERPRISE plan, redirect to contact
-    if (plan.plan === "ENTERPRISE") {
-      // You can replace this with your contact page or email
-      window.location.href = "mailto:sales@deployhub.com?subject=Enterprise Plan Inquiry";
       return;
     }
 
@@ -278,13 +275,12 @@ export default function LandingPage() {
 
     // Create checkout session
     try {
-      setLoadingPlanAction(plan.plan);
-      const response = await subscriptionService.createCheckoutSession({
+      const response = await createCheckoutSession({
         plan: plan.plan.toLowerCase() as SubscriptionPlan,
         billing_interval: billingPeriod as BillingInterval,
         success_url: `${window.location.origin}/dashboard/billing?success=true`,
         cancel_url: `${window.location.origin}/#pricing`,
-      });
+      }).unwrap();
 
       if (response.url) {
         window.location.href = response.url;
@@ -294,40 +290,7 @@ export default function LandingPage() {
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Failed to start checkout. Please try again.");
-    } finally {
-      setLoadingPlanAction(null);
     }
-  };
-
-  // Helper function to build feature list from plan config
-  const buildFeatures = (plan: PlanConfig): string[] => {
-    const features: string[] = [];
-
-    if (plan.maxProjects === -1) {
-      features.push("Unlimited projects");
-    } else {
-      features.push(`Up to ${plan.maxProjects} projects`);
-    }
-
-    if (plan.maxDeploymentsPerMonth === -1) {
-      features.push("Unlimited deployments");
-    } else {
-      features.push(`${plan.maxDeploymentsPerMonth} deployments/month`);
-    }
-
-    if (plan.customDomainEnabled) {
-      features.push("Custom domains");
-    }
-
-    if (plan.prioritySupport) {
-      features.push("Priority support");
-    }
-
-    if (plan.analyticsEnabled) {
-      features.push("Advanced analytics");
-    }
-
-    return features;
   };
 
   return (
@@ -684,7 +647,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {loadingPlans ? (
               <div className="col-span-full flex justify-center py-12">
                 <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
@@ -730,9 +693,9 @@ export default function LandingPage() {
                       className="w-full"
                       variant={plan.popular ? "default" : "outline"}
                       onClick={() => handlePlanAction(plan)}
-                      disabled={loadingPlanAction === plan.plan}
+                      disabled={isCreatingCheckout}
                     >
-                      {loadingPlanAction === plan.plan ? (
+                      {isCreatingCheckout ? (
                         <>
                           <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
                           Processing...

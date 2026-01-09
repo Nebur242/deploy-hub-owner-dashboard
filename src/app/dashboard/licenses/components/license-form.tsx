@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Currency } from "@/common/enums/project";
@@ -26,16 +26,13 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { IconLoader, IconPlus, IconX, IconInfoCircle } from "@tabler/icons-react";
+import { IconLoader, IconPlus, IconX } from "@tabler/icons-react";
 import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { CreateLicenseDto, createLicenseDtoSchema } from "@/common/dtos";
 import { useGetProjectsQuery } from "@/store/features/projects";
 import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { subscriptionService } from "@/services/subscription";
-import { DeploymentPool } from "@/common/types/subscription";
 
 interface LicenseFormProps {
     isEditing: boolean;
@@ -44,7 +41,6 @@ interface LicenseFormProps {
     isLoading: boolean;
     isSuccess: boolean;
     error: { message: string } | null;
-    currentDeploymentLimit?: number; // For editing: current license's deployment limit
 }
 
 export default function LicenseForm({
@@ -54,38 +50,10 @@ export default function LicenseForm({
     isLoading,
     isSuccess,
     error,
-    currentDeploymentLimit = 0,
 }: LicenseFormProps) {
     const [submitAttempted, setSubmitAttempted] = useState(false);
     const [features, setFeatures] = useState<string[]>(initialData?.features || []);
     const [featureInput, setFeatureInput] = useState("");
-    const [deploymentPool, setDeploymentPool] = useState<DeploymentPool | null>(null);
-    const [poolLoading, setPoolLoading] = useState(true);
-
-    // Fetch deployment pool info
-    useEffect(() => {
-        const fetchPoolInfo = async () => {
-            try {
-                const subscription = await subscriptionService.getSubscription();
-                if (subscription.deployment_pool) {
-                    // When editing, add back the current license's allocation to available
-                    const adjustedAvailable = isEditing
-                        ? subscription.deployment_pool.available + currentDeploymentLimit
-                        : subscription.deployment_pool.available;
-
-                    setDeploymentPool({
-                        ...subscription.deployment_pool,
-                        available: adjustedAvailable,
-                    });
-                }
-            } catch (err) {
-                console.error("Error fetching deployment pool:", err);
-            } finally {
-                setPoolLoading(false);
-            }
-        };
-        fetchPoolInfo();
-    }, [isEditing, currentDeploymentLimit]);
 
     // Fetch projects for the multi-select
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
@@ -106,6 +74,10 @@ export default function LicenseForm({
             project_ids: [], // Will store project IDs
             status: LicenseStatus.DRAFT, // Default status
             popular: false, // Default popular
+            can_submit_support_ticket: true, // Default: can submit support tickets
+            can_redeploy: true, // Default: can redeploy (same branch)
+            can_update: false, // Default: cannot update (branch switch)
+            has_priority_support: false, // Default: no priority support
         },
     });
 
@@ -145,26 +117,6 @@ export default function LicenseForm({
 
     return (
         <div className="space-y-6">
-            {/* Deployment Pool Warning */}
-            {!poolLoading && deploymentPool && deploymentPool.available !== -1 && deploymentPool.available < 10 && (
-                <Alert variant={deploymentPool.available < 5 ? "destructive" : "default"}>
-                    <IconInfoCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        {deploymentPool.available < 5 ? (
-                            <>
-                                <strong>Insufficient deployment pool!</strong> You only have {deploymentPool.available} deployments
-                                available. Minimum per license is 5. <a href="/dashboard/billing" className="underline">Upgrade your plan</a> to get more.
-                            </>
-                        ) : (
-                            <>
-                                Your deployment pool is running low ({deploymentPool.available} available).
-                                Consider <a href="/dashboard/billing" className="underline">upgrading your plan</a>.
-                            </>
-                        )}
-                    </AlertDescription>
-                </Alert>
-            )}
-
             {/* Success Alert */}
             {isSuccess && <SuccessAlert isEditing={isEditing} className="mb-6" />}
 
@@ -289,7 +241,6 @@ export default function LicenseForm({
                                                     <Input
                                                         type="number"
                                                         min="5"
-                                                        max={deploymentPool?.available === -1 ? undefined : deploymentPool?.available}
                                                         placeholder="5"
                                                         {...field}
                                                         onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
@@ -297,20 +248,7 @@ export default function LicenseForm({
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
-                                                    {poolLoading ? (
-                                                        "Loading pool info..."
-                                                    ) : deploymentPool?.available === -1 ? (
-                                                        "Unlimited deployments available (min 5)"
-                                                    ) : (
-                                                        <>
-                                                            Min 5, max {deploymentPool?.available} available from your pool
-                                                            {deploymentPool && (
-                                                                <span className="block text-xs mt-1">
-                                                                    Pool: {deploymentPool.allocated}/{deploymentPool.total} allocated
-                                                                </span>
-                                                            )}
-                                                        </>
-                                                    )}
+                                                    Minimum 5 deployments per license
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
@@ -482,6 +420,104 @@ export default function LicenseForm({
                                                     </FormLabel>
                                                     <FormDescription>
                                                         Mark this license as popular/recommended
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </Card>
+
+                            {/* License Permissions Card */}
+                            <Card className="p-6">
+                                <h3 className="text-lg font-semibold mb-4">User Permissions</h3>
+                                <div className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="can_submit_support_ticket"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">
+                                                        Support Tickets
+                                                    </FormLabel>
+                                                    <FormDescription>
+                                                        User can submit support tickets
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="can_redeploy"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">
+                                                        Redeploy
+                                                    </FormLabel>
+                                                    <FormDescription>
+                                                        User can redeploy (same branch)
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="can_update"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">
+                                                        Update (Branch Switch)
+                                                    </FormLabel>
+                                                    <FormDescription>
+                                                        User can redeploy with different branch
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="has_priority_support"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">
+                                                        Priority Support
+                                                    </FormLabel>
+                                                    <FormDescription>
+                                                        User gets priority support
                                                     </FormDescription>
                                                 </div>
                                                 <FormControl>

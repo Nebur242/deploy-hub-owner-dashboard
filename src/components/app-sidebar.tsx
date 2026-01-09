@@ -23,6 +23,7 @@ import {
   IconTicket,
   IconStar,
   IconMessageCircle,
+  IconUserCheck,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -75,6 +76,11 @@ const data = {
       title: "Deployments",
       url: "/dashboard/deployments",
       icon: IconRocket,
+    },
+    {
+      title: "Buyer Deployments",
+      url: "/dashboard/license-buyer-deployments",
+      icon: IconUserCheck,
     },
     {
       title: "Licenses",

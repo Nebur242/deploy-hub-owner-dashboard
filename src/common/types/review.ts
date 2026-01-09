@@ -1,5 +1,12 @@
 import { Project } from "./project";
 
+// Review status enum - reviews must be approved by owner before appearing
+export enum ReviewStatus {
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+}
+
 export interface Review {
   id: string;
   project_id: string;
@@ -10,11 +17,16 @@ export interface Review {
     last_name?: string;
     email: string;
   };
-  project?: Project;
+  project?: {
+    id: string;
+    name: string;
+  };
   rating: number;
   title?: string;
   comment?: string;
   is_verified_purchase: boolean;
+  status: ReviewStatus;
+  rejection_reason?: string;
   helpful_count: number;
   created_at: string;
   updated_at: string;
@@ -29,6 +41,11 @@ export interface CreateReviewDto {
 export interface UpdateReviewDto {
   rating?: number;
   comment?: string;
+}
+
+export interface ApproveReviewDto {
+  status: ReviewStatus.APPROVED | ReviewStatus.REJECTED;
+  rejection_reason?: string;
 }
 
 export interface ProjectReviewStats {

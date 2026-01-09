@@ -11,12 +11,46 @@ import {
   LicensePurchaseSearchParams,
 } from "@/common/dtos";
 
+// UserLicense type for fetching user license with owner details
+export interface UserLicenseUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface UserLicense {
+  id: string;
+  owner_id: string;
+  owner?: UserLicenseUser;
+  license_id: string;
+  license?: {
+    id: string;
+    name: string;
+  };
+  active: boolean;
+  status: string;
+  count: number;
+  max_deployments: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Define base API with auth header
 export const licensesApi = createApi({
   reducerPath: "licensesApi",
   baseQuery: axiosBaseQuery(),
-  tagTypes: ["License", "LicensePurchase"],
+  tagTypes: ["License", "LicensePurchase", "UserLicense"],
   endpoints: (builder) => ({
+    // USER LICENSES
+    getUserLicense: builder.query<UserLicense, string>({
+      query: (id) => ({
+        url: `user-licenses/${id}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: "UserLicense", id }],
+    }),
+
     // LICENSES
     getLicenses: builder.query<
       PaginatedResponse<LicenseOption>,
@@ -186,6 +220,9 @@ export const licensesApi = createApi({
 
 // Export hooks for usage in components
 export const {
+  // User Licenses
+  useGetUserLicenseQuery,
+
   // Licenses
   useGetLicensesQuery,
   useGetLicenseQuery,

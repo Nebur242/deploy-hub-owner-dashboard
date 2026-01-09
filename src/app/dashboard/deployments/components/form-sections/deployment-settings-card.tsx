@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { IconFlask, IconInfoCircle } from "@tabler/icons-react";
 import { DeploymentEnvironment } from "@/store/features/deployments";
 import { FormSectionProps } from "../types";
@@ -56,6 +57,27 @@ export function DeploymentSettingsCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="My Production Deployment"
+                  disabled={isLoading || success}
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                A friendly name to identify this deployment
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {isProjectOwner && (
           <>
             <FormField

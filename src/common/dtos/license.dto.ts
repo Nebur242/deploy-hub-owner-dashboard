@@ -8,11 +8,18 @@ const licenseBaseDtoSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().nonnegative("Price must be a non-negative number"),
   currency: z.nativeEnum(Currency),
-  deployment_limit: z.number().int().nonnegative(),
+  deployment_limit: z
+    .number()
+    .int()
+    .min(5, "Deployment limit must be at least 5"),
   period: z.nativeEnum(LicensePeriod), // Billing period
   features: z.array(z.string()),
   status: z.nativeEnum(LicenseStatus),
   popular: z.boolean(),
+  can_submit_support_ticket: z.boolean(), // User can submit support tickets
+  can_redeploy: z.boolean(), // User can redeploy (same branch)
+  can_update: z.boolean(), // User can update (redeploy with branch switch)
+  has_priority_support: z.boolean(), // User has priority support
 });
 
 // Schema for creating new licenses

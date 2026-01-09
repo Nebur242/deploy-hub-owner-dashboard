@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   useGetDeploymentsQuery,
   useRetryDeploymentMutation,
-  useGetMonthlyUsageQuery,
   DeploymentStatus,
   DeploymentEnvironment,
 } from "@/store/features/deployments";
@@ -20,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,12 +48,12 @@ import {
   // IconFileText,
   IconTerminal,
   IconFlask,
-  IconRocket,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import DeploymentStatusBadge from "./components/deployment-status-badge";
 
@@ -75,9 +73,6 @@ export default function DeploymentsPage() {
     data: projectsData,
     isLoading: isLoadingProjects
   } = useGetProjectsQuery({ limit: 50 });
-
-  // Fetch monthly deployment usage
-  const { data: monthlyUsage, isLoading: isLoadingUsage } = useGetMonthlyUsageQuery();
 
   // Update projects list when data is loaded
   useEffect(() => {
@@ -268,74 +263,44 @@ export default function DeploymentsPage() {
               </SelectContent>
             </Select>
           </div>
-
-          {/* Usage Badges */}
-          <div className="flex items-center gap-3">
-            {/* Monthly Rate Limit */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border">
-              <IconRocket className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Monthly:</span>
-              {isLoadingUsage ? (
-                <IconLoader className="h-4 w-4 animate-spin" />
-              ) : monthlyUsage?.monthly.unlimited ? (
-                <>
-                  <span className="text-sm font-medium">{monthlyUsage.monthly.used}</span>
-                  <Badge variant="secondary" className="text-xs">Unlimited</Badge>
-                </>
-              ) : monthlyUsage ? (
-                <>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold">{monthlyUsage.monthly.used}</span>
-                    <span className="text-xs text-muted-foreground">/</span>
-                    <span className="text-sm text-muted-foreground">{monthlyUsage.monthly.limit}</span>
-                  </div>
-                  <Progress 
-                    value={Math.min((monthlyUsage.monthly.used / monthlyUsage.monthly.limit) * 100, 100)} 
-                    className="h-1.5 w-12"
-                  />
-                  {monthlyUsage.monthly.remaining <= 0 && (
-                    <Badge variant="destructive" className="text-xs">Limit</Badge>
-                  )}
-                </>
-              ) : null}
-            </div>
-
-            {/* Deployment Credits */}
-            {monthlyUsage && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border">
-                <span className="text-xs text-muted-foreground">Credits:</span>
-                {monthlyUsage.credits.unlimited ? (
-                  <>
-                    <span className="text-sm font-medium">{monthlyUsage.credits.used}</span>
-                    <Badge variant="secondary" className="text-xs">Unlimited</Badge>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-semibold">{monthlyUsage.credits.used}</span>
-                      <span className="text-xs text-muted-foreground">/</span>
-                      <span className="text-sm text-muted-foreground">{monthlyUsage.credits.total}</span>
-                    </div>
-                    <Progress 
-                      value={Math.min((monthlyUsage.credits.used / monthlyUsage.credits.total) * 100, 100)} 
-                      className="h-1.5 w-12"
-                    />
-                    {monthlyUsage.credits.remaining <= 5 && monthlyUsage.credits.remaining > 0 && (
-                      <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs">Low</Badge>
-                    )}
-                    {monthlyUsage.credits.remaining <= 0 && (
-                      <Badge variant="destructive" className="text-xs">Depleted</Badge>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <IconLoader className="h-8 w-8 animate-spin text-primary" />
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Environment</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Mode</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Completed</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center py-12">

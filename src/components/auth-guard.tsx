@@ -4,7 +4,52 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { authenticateUser } from "@/store/features/auth";
-import { Loader2 } from "lucide-react";
+
+// Animated loading component
+function AppLoadingScreen({ message = "Loading your dashboard..." }: { message?: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center h-screen bg-background">
+            {/* Logo and spinner container */}
+            <div className="relative">
+                {/* Outer spinning ring */}
+                <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+                <div className="w-16 h-16 rounded-full border-4 border-transparent border-t-primary animate-spin"></div>
+                
+                {/* Center icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                        className="w-6 h-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 12h14M12 5l7 7-7 7"
+                        />
+                    </svg>
+                </div>
+            </div>
+            
+            {/* Loading text with animation */}
+            <div className="mt-6 space-y-2 text-center">
+                <h2 className="text-lg font-semibold text-foreground">
+                    Deploy Hub
+                </h2>
+                <p className="text-sm text-muted-foreground animate-pulse">
+                    {message}
+                </p>
+            </div>
+
+            {/* Loading progress bar */}
+            <div className="mt-6 w-48 h-1 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full animate-loading-bar"></div>
+            </div>
+        </div>
+    );
+}
 
 interface AuthGuardProps {
     children: React.ReactNode;
@@ -20,7 +65,7 @@ export default function AuthGuard({
     const [isInitialized, setIsInitialized] = useState(false);
 
     const {
-        authenticate: { loading, error, status },
+        authenticate: { loading, status },
         infos,
         isLoggedIn
     } = useAppSelector((state) => state.auth);
@@ -52,22 +97,12 @@ export default function AuthGuard({
 
     // Show loading while authenticating
     if (!isInitialized || loading) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-lg">Loading...</span>
-            </div>
-        );
+        return <AppLoadingScreen />;
     }
 
     // Loading during email verification redirect
     if (requireEmailVerification && status === "success" && infos && !infos.firebase?.emailVerified) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-lg">Redirecting...</span>
-            </div>
-        );
+        return <AppLoadingScreen message="Redirecting to verification..." />;
     }
 
     // Render children when authentication is successful and all checks pass

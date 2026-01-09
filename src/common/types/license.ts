@@ -37,6 +37,10 @@ export interface LicenseOption extends BaseEntity {
   owner?: User; // Owner object (populated in responses)
   status: LicenseStatus; // Default: DRAFT
   popular: boolean; // Default: false
+  can_submit_support_ticket: boolean; // User can submit support tickets
+  can_redeploy: boolean; // User can redeploy (same branch)
+  can_update: boolean; // User can update (redeploy with branch switch)
+  has_priority_support: boolean; // User has priority support
   stripe_product_id?: string;
   stripe_price_id?: string;
 }

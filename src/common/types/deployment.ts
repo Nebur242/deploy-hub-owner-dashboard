@@ -58,6 +58,11 @@ export interface Deployment extends BaseEntity {
   retry_count: number;
   webhook_info?: DeploymentWebhookInfo;
   completed_at?: string;
+  // Permission flags (inherited from license or all true for owner)
+  can_submit_support_ticket: boolean;
+  can_redeploy: boolean;
+  can_update: boolean;
+  has_priority_support: boolean;
   // Computed fields from API responses
   version?: ProjectVersion;
 }
