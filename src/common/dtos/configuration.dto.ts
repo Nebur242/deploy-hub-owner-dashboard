@@ -5,7 +5,7 @@ import { DeploymentProvider } from "../enums/project";
 export const environmentVariableDtoSchema = z.object({
   key: z.string().min(1, "Key is required"),
   default_value: z.string().optional(),
-  description: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
   is_required: z.boolean(),
   is_secret: z.boolean(),
   video: z.string().url().optional().nullable(),

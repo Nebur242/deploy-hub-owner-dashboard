@@ -21,6 +21,7 @@ export interface UserLicenseUser {
 
 export interface UserLicense {
   id: string;
+  title?: string;
   owner_id: string;
   owner?: UserLicenseUser;
   license_id: string;
@@ -31,7 +32,10 @@ export interface UserLicense {
   active: boolean;
   status: string;
   count: number;
+  redeployment_count: number;
   max_deployments: number;
+  deployments: string[];
+  redeployments: string[];
   created_at: string;
   updated_at: string;
 }

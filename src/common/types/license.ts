@@ -63,15 +63,18 @@ export interface LicensePurchase extends BaseEntity {
 
 // UserLicense entity - represents actual license ownership with deployment tracking
 export interface UserLicense extends BaseEntity {
+  title?: string; // Custom title to differentiate between multiple licenses
   owner_id: string; // UUID - User ID who owns the license
   owner?: User; // User object (populated in responses)
   license_id: string; // UUID - Reference to the license option
   license?: LicenseOption; // License option object (populated in some responses)
   expires_at?: Date | string; // Date when license expires (null for lifetime licenses)
   active: boolean; // Whether the license is currently active
-  count: number; // Current number of deployments used
+  count: number; // Total deployments used (deployments + redeployments)
+  redeployment_count: number; // Number of redeployments used
   max_deployments: number; // Maximum deployments allowed
   deployments: string[]; // Array of deployment IDs
+  redeployments: string[]; // Array of redeployment IDs
   trial: boolean; // Whether this is a trial license
   metadata?: Record<string, unknown>; // Additional metadata (order info, payment details)
 }

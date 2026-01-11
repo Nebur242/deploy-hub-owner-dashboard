@@ -7,6 +7,7 @@ import { validateGithubConfig, getWorkflowFiles, getWorkflowFileContent } from "
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/hooks/theme-context";
 import { WorkflowAssistant } from "@/components/workflow-assistant";
+import { JsonSchemaBuilder } from "@/components/json-schema-builder";
 
 import {
   Form,
@@ -861,22 +862,38 @@ function EnvironmentVariablesSection() {
                 render={({ field }) => {
                   // Get isRequired value for this index
                   const isRequired = watch(`deployment_option.environment_variables.${index}.is_required`);
+                  const varType = watch(`deployment_option.environment_variables.${index}.type`);
                   const requiresDefaultValue = !isRequired && !isCustomProvider;
 
                   return (
                     <FormItem>
-                      <FormLabel className="text-sm">Default Value{requiresDefaultValue ? " (Required)" : ""}</FormLabel>
+                      <FormLabel className="text-sm">
+                        {varType === "json" ? "JSON Schema" : "Default Value"}
+                        {requiresDefaultValue ? " (Required)" : ""}
+                      </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
-                          className="text-sm"
-                          {...field}
-                          value={field.value || ""}
-                        />
+                        {varType === "json" ? (
+                          <JsonSchemaBuilder
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                          />
+                        ) : (
+                          <Input
+                            placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
+                            className="text-sm"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        )}
                       </FormControl>
-                      {requiresDefaultValue && (
+                      {requiresDefaultValue && varType !== "json" && (
                         <FormDescription className="text-amber-500 text-xs">
                           A default value is required when variable is not required
+                        </FormDescription>
+                      )}
+                      {varType === "json" && (
+                        <FormDescription className="text-xs">
+                          Define the JSON structure. Users will fill in values for each field.
                         </FormDescription>
                       )}
                       <FormMessage />
@@ -888,13 +905,13 @@ function EnvironmentVariablesSection() {
               <FormField
                 control={control}
                 name={`deployment_option.environment_variables.${index}.description`}
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
-                    <FormLabel className="text-sm">Description</FormLabel>
+                    <FormLabel className="text-sm">Description *</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Variable description"
-                        className="text-sm min-h-[80px] resize-none"
+                        placeholder="Variable description (required)"
+                        className={`text-sm min-h-[80px] resize-none ${fieldState.error ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                         {...field}
                       />
                     </FormControl>

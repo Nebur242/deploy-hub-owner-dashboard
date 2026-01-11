@@ -48,6 +48,7 @@ import {
   // IconFileText,
   IconTerminal,
   IconFlask,
+  IconArrowUp,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -405,6 +406,31 @@ export default function DeploymentsPage() {
                                 </>
                               )}
                             </Button>
+                          )}
+                          {(deployment.status === DeploymentStatus.SUCCESS ||
+                            deployment.status === DeploymentStatus.FAILED) && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-green-500 hover:text-green-700 hover:bg-green-50"
+                                asChild
+                              >
+                                <Link href={`/dashboard/deployments/${deployment.id}/redeploy?mode=update`}>
+                                  <IconArrowUp className="h-4 w-4 mr-1" /> Update
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                asChild
+                              >
+                                <Link href={`/dashboard/deployments/${deployment.id}/redeploy`}>
+                                  <IconRefresh className="h-4 w-4 mr-1" /> Redeploy
+                                </Link>
+                              </Button>
+                            </>
                           )}
                           {deployment.deployment_url && (
                             <Button

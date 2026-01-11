@@ -107,6 +107,12 @@ export interface CreateDeploymentOnBehalfRequest {
   environment_variables?: EnvironmentVariable[];
 }
 
+export interface RedeployDeploymentRequest {
+  environment?: DeploymentEnvironment;
+  branch?: string;
+  environment_variables?: EnvironmentVariable[];
+}
+
 export interface DeploymentLogs {
   logs: string;
 }
@@ -264,6 +270,22 @@ export const deploymentApi = createApi({
       ],
     }),
 
+    // Redeploy an existing deployment
+    redeployDeployment: builder.mutation<
+      Deployment,
+      { deploymentId: string; data: RedeployDeploymentRequest }
+    >({
+      query: ({ deploymentId, data }) => ({
+        url: `/deployments/${deploymentId}/redeploy`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, { deploymentId }) => [
+        { type: "Deployment", id: deploymentId },
+        { type: "ProjectDeployments", id: result?.project_id },
+      ],
+    }),
+
     // Get deployment logs
     getDeploymentLogs: builder.query<DeploymentLogs, string>({
       query: (deploymentId) => {
@@ -336,6 +358,7 @@ export const {
   useGetDeploymentQuery,
   useCreateDeploymentMutation,
   useRetryDeploymentMutation,
+  useRedeployDeploymentMutation,
   useGetDeploymentLogsQuery,
   useGetMonthlyUsageQuery,
   useGetLicenseBuyerDeploymentsQuery,

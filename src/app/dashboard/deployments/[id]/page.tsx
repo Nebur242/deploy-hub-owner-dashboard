@@ -49,6 +49,7 @@ import {
   IconTerminal,
   IconListDetails,
   IconFlask,
+  IconArrowUp,
 } from "@tabler/icons-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -142,6 +143,33 @@ export default function DeploymentDetailPage() {
           <IconTerminal className="h-4 w-4 mr-2" /> View Full Logs
         </Link>
       </Button>
+
+      {/* Redeploy button - available for all completed deployments */}
+      {(deployment.status === DeploymentStatus.SUCCESS ||
+        deployment.status === DeploymentStatus.FAILED) && (
+          <>
+            <Button
+              variant="outline"
+              asChild
+              className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+            >
+              <Link href={`/dashboard/deployments/${deploymentId}/redeploy?mode=update`}>
+                <IconArrowUp className="h-4 w-4 mr-2" />
+                Update
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              asChild
+              className="text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+            >
+              <Link href={`/dashboard/deployments/${deploymentId}/redeploy`}>
+                <IconRefresh className="h-4 w-4 mr-2" />
+                Redeploy
+              </Link>
+            </Button>
+          </>
+        )}
 
       {deployment.status === DeploymentStatus.FAILED && (
         <Button

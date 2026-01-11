@@ -211,13 +211,13 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
                     ? 'border-primary bg-primary/5'
-                    : 'border-gray-300 hover:border-primary/50'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-primary/50'
                     }`}
             >
                 <input {...getInputProps()} />
                 <Upload className="h-10 w-10 mx-auto text-gray-400 mb-2" />
                 <p className="text-lg font-medium">Drag and drop files here, or click to browse</p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Max file size: {formatFileSize(maxSize)}
                     {acceptedFileTypes && acceptedFileTypes.length > 0 && (
                         <> • Accepted formats: {acceptedFileTypes.join(', ')}</>
@@ -226,7 +226,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             </div>
 
             {fileRejections.length > 0 && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
                     {fileRejections.map(({ file, errors }: FileRejection) => (
                         <div key={file.name} className="mb-1">
                             <strong>{file.name}</strong>: {errors.map(e => e.message).join(', ')}
@@ -242,7 +242,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                         {uploadingFiles.map((item) => (
                             <li
                                 key={item.file.id}
-                                className="flex items-center p-2 bg-gray-50 rounded-md"
+                                className="flex items-center p-2 bg-gray-50 dark:bg-gray-800 rounded-md"
                             >
                                 <div className="mr-2">{getFileIcon(item.type)}</div>
                                 <div className="flex-1 min-w-0 mr-2">
@@ -250,7 +250,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                                         <p className="text-sm font-medium truncate" title={item.file.name}>
                                             {item.file.name}
                                         </p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
                                             {formatFileSize(item.file.size)}
                                         </p>
                                     </div>
