@@ -442,17 +442,17 @@ export function SiteHeader() {
                 <Avatar className="h-8 w-8">
                   <AvatarImage
                     src={
-                      user?.profilePicture ||
+                      user?.profile_picture ||
                       `https://avatar.iran.liara.run/public/boy?username=${user?.id || "user"
                       }`
                     }
                   />
                   <AvatarFallback>
-                    {user?.firstName?.charAt(0) || "U"}
+                    {user?.first_name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <span className="hidden text-sm font-medium lg:inline-block">
-                  {user?.firstName || "Admin"}
+                  {user?.first_name || "Admin"}
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -461,7 +461,7 @@ export function SiteHeader() {
               <div className="flex items-center gap-2 p-2">
                 <div className="flex flex-col space-y-0.5 leading-none">
                   <p className="text-sm font-medium">
-                    {user?.firstName || "Admin"}
+                    {user?.first_name || "Admin"}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.firebase?.email || "admin@example.com"}

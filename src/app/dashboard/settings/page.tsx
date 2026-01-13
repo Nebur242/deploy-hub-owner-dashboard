@@ -67,14 +67,14 @@ export default function SettingsPage() {
 
     // Form state
     const [profileData, setProfileData] = useState({
-        firstName: user?.firstName || "",
-        lastName: user?.lastName || "",
+        firstName: user?.first_name || "",
+        lastName: user?.last_name || "",
         company: user?.company || "",
     });
 
     const [userPreferences, setUserPreferences] = useState<Partial<UserPreferences>>({
         theme: "system",
-        emailNotifications: true,
+        email_notifications: true,
     });
 
     const [notificationSettings, setNotificationSettings] = useState({
@@ -101,34 +101,34 @@ export default function SettingsPage() {
     useEffect(() => {
         if (userData) {
             setProfileData({
-                firstName: userData.firstName || "",
-                lastName: userData.lastName || "",
+                firstName: userData.first_name || "",
+                lastName: userData.last_name || "",
                 company: userData.company || "",
             });
 
             if (userData.preferences) {
                 setUserPreferences({
                     theme: userData.preferences.theme,
-                    emailNotifications: userData.preferences.emailNotifications,
+                    email_notifications: userData.preferences.email_notifications,
                 });
             }
 
             // Initialize notification settings if available
             if (userData.notifications) {
                 setNotificationSettings({
-                    projectUpdates: userData.notifications.projectUpdates ?? true,
-                    deploymentAlerts: userData.notifications.deploymentAlerts ?? true,
-                    licenseExpiration: userData.notifications.licenseExpiration ?? true,
+                    projectUpdates: userData.notifications.project_updates ?? true,
+                    deploymentAlerts: userData.notifications.deployment_alerts ?? true,
+                    licenseExpiration: userData.notifications.license_expiration ?? true,
                     marketing: userData.notifications.marketing ?? false,
                 });
             }
 
             // If there's a profile picture URL, try to fetch the associated media
-            if (userData.profilePicture) {
+            if (userData.profile_picture) {
                 // We don't need to fetch the media data as we'll just use the URL
                 setProfileMedia({
                     id: "profile-picture",
-                    url: userData.profilePicture,
+                    url: userData.profile_picture,
                     type: "image",
                 } as Media);
             }
@@ -164,10 +164,10 @@ export default function SettingsPage() {
             await updateUser({
                 id: user.id,
                 updateData: {
-                    firstName: profileData.firstName,
-                    lastName: profileData.lastName,
+                    first_name: profileData.firstName,
+                    last_name: profileData.lastName,
                     company: profileData.company,
-                    profilePicture: profileMedia?.url || undefined
+                    profile_picture: profileMedia?.url || undefined
                 }
             }).unwrap();
 
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                 id: user.id,
                 preferences: {
                     theme: userPreferences.theme,
-                    emailNotifications: userPreferences.emailNotifications
+                    email_notifications: userPreferences.email_notifications
                 }
             }).unwrap();
 
@@ -230,7 +230,11 @@ export default function SettingsPage() {
         try {
             await updateNotifications({
                 id: user.id,
-                notifications: notificationSettings
+                notifications: {
+                    project_updates: notificationSettings.projectUpdates,
+                    deployment_alerts: notificationSettings.deploymentAlerts,
+                    license_expiration: notificationSettings.licenseExpiration
+                }
             }).unwrap();
 
             toast.success("Notification settings updated", {
@@ -380,12 +384,12 @@ export default function SettingsPage() {
                                 <div className="relative group">
                                     <Avatar className="h-32 w-32 border-4 border-background shadow-md">
                                         <AvatarImage
-                                            src={profileMedia?.url || user.profilePicture}
-                                            alt={`${user.firstName || 'User'}'s profile picture`}
+                                            src={profileMedia?.url || user.profile_picture}
+                                            alt={`${user.first_name || 'User'}'s profile picture`}
                                             className="object-cover"
                                         />
                                         <AvatarFallback className="text-3xl">
-                                            {getInitials(user.firstName || user.firebase?.email || 'User')}
+                                            {getInitials(user.first_name || user.firebase?.email || 'User')}
                                         </AvatarFallback>
                                     </Avatar>
                                     <Button
@@ -400,13 +404,13 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="text-center">
                                     <h3 className="font-medium text-lg">
-                                        {user.firstName} {user.lastName || ''}
+                                        {user.first_name} {user.last_name || ''}
                                     </h3>
                                     <p className="text-muted-foreground text-sm">{user.firebase?.email}</p>
                                     <div className="mt-2 flex gap-2 justify-center flex-wrap">
                                         {user.roles?.map(role => (
-                                            <Badge key={role} variant="outline" className={getRoleBadgeColor(role)}>
-                                                {role}
+                                            <Badge key={role.id} variant="outline" className={getRoleBadgeColor(role.name)}>
+                                                {role.name}
                                             </Badge>
                                         ))}
                                     </div>
@@ -501,8 +505,8 @@ export default function SettingsPage() {
                             </CardContent>
                             <CardFooter className="flex justify-between">
                                 <Button variant="outline" type="button" onClick={() => setProfileData({
-                                    firstName: userData?.firstName || user.firstName || "",
-                                    lastName: userData?.lastName || user.lastName || "",
+                                    firstName: userData?.first_name || user.first_name || "",
+                                    lastName: userData?.last_name || user.last_name || "",
                                     company: userData?.company || user.company || "",
                                 })}>
                                     Reset
@@ -562,8 +566,8 @@ export default function SettingsPage() {
                                         </div>
                                         <Switch
                                             id="emailNotifications"
-                                            checked={userPreferences.emailNotifications}
-                                            onCheckedChange={checked => setUserPreferences({ ...userPreferences, emailNotifications: checked })}
+                                            checked={userPreferences.email_notifications}
+                                            onCheckedChange={checked => setUserPreferences({ ...userPreferences, email_notifications: checked })}
                                         />
                                     </div>
                                 </div>
@@ -571,7 +575,7 @@ export default function SettingsPage() {
                             <CardFooter className="flex justify-between">
                                 <Button variant="outline" type="button" onClick={() => setUserPreferences({
                                     theme: userData?.preferences?.theme || "system",
-                                    emailNotifications: userData?.preferences?.emailNotifications !== undefined ? userData.preferences.emailNotifications : true,
+                                    email_notifications: userData?.preferences?.email_notifications !== undefined ? userData.preferences.email_notifications : true,
                                 })}>
                                     Reset to Defaults
                                 </Button>
@@ -658,9 +662,9 @@ export default function SettingsPage() {
                             </CardContent>
                             <CardFooter className="flex justify-between">
                                 <Button variant="outline" type="button" onClick={() => setNotificationSettings({
-                                    projectUpdates: userData?.notifications?.projectUpdates ?? true,
-                                    deploymentAlerts: userData?.notifications?.deploymentAlerts ?? true,
-                                    licenseExpiration: userData?.notifications?.licenseExpiration ?? true,
+                                    projectUpdates: userData?.notifications?.project_updates ?? true,
+                                    deploymentAlerts: userData?.notifications?.deployment_alerts ?? true,
+                                    licenseExpiration: userData?.notifications?.license_expiration ?? true,
                                     marketing: userData?.notifications?.marketing ?? false,
                                 })}>
                                     Reset to Defaults

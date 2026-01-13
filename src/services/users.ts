@@ -14,7 +14,7 @@ import {
   UserCredential,
 } from "firebase/auth";
 import { API_ROUTES, AXIOS } from "../config/api";
-import { Role, User } from "@/common/types";
+import { Role, RoleName, User } from "@/common/types";
 import { LoginDto, RegisterDto } from "@/common/dtos";
 
 export const createUser = async (createUserDto: {
@@ -242,4 +242,133 @@ export const signOutAllDevices = async (
       throw error;
     }
   }
+};
+
+// ============================================
+// OTP-based authentication functions
+// ============================================
+
+export interface RequestCodeResponse {
+  message: string;
+}
+
+export interface VerifyCodeResponse {
+  verificationToken: string;
+}
+
+export interface AuthWithVerificationResponse {
+  token: string;
+}
+
+export type DeveloperType = "individual" | "company" | "agency";
+
+export interface RegisterOwnerData {
+  email: string;
+  verification_token: string;
+  first_name: string;
+  last_name: string;
+  company_name?: string;
+  developer_type: DeveloperType;
+  country: string;
+  website_url?: string;
+  github_url?: string;
+  terms_accepted: boolean;
+}
+
+/**
+ * Request a verification code to be sent to the user's email
+ */
+export const requestCode = async (
+  email: string,
+  purpose: "login" | "register"
+): Promise<RequestCodeResponse> => {
+  const response = await AXIOS.post<{ data: RequestCodeResponse }>(
+    "/auth/request-code",
+    { email, purpose }
+  );
+  return response.data.data;
+};
+
+/**
+ * Verify the code sent to user's email and get a verification token
+ */
+export const verifyCode = async (
+  email: string,
+  code: string,
+  purpose: "login" | "register"
+): Promise<VerifyCodeResponse> => {
+  const response = await AXIOS.post<{ data: VerifyCodeResponse }>(
+    "/auth/verify-code",
+    { email, code, purpose }
+  );
+  return response.data.data;
+};
+
+/**
+ * Validate if a verification token is still valid
+ */
+export const validateToken = async (
+  email: string,
+  verificationToken: string,
+  purpose: "login" | "register"
+): Promise<{ valid: boolean }> => {
+  const response = await AXIOS.post<{ data: { valid: boolean } }>(
+    "/auth/validate-token",
+    { email, verificationToken, purpose }
+  );
+  return response.data.data;
+};
+
+/**
+ * Register an owner using verification token (OTP flow)
+ */
+export const registerOwnerWithVerification = async (
+  data: RegisterOwnerData
+): Promise<AuthWithVerificationResponse> => {
+  const response = await AXIOS.post<{ data: AuthWithVerificationResponse }>(
+    "/auth/register-owner-with-verification",
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Login using verification token (OTP flow)
+ */
+export const loginWithVerification = async (
+  email: string,
+  verificationToken: string
+): Promise<AuthWithVerificationResponse> => {
+  const response = await AXIOS.post<{ data: AuthWithVerificationResponse }>(
+    "/auth/login-with-verification",
+    { email, verificationToken }
+  );
+  return response.data.data;
+};
+
+/**
+ * Sign in to Firebase using custom token from backend
+ */
+export const firebaseSignInWithCustomToken = async (
+  customToken: string
+): Promise<UserCredential> => {
+  const auth = getAuth();
+  const { signInWithCustomToken } = await import("firebase/auth");
+  return signInWithCustomToken(auth, customToken);
+};
+
+// ============================================
+// Owner Profile functions
+// ============================================
+
+import { OwnerProfile } from "@/common/types/user";
+
+/**
+ * Get the owner profile for the currently authenticated user
+ */
+export const getOwnerProfile = async (): Promise<OwnerProfile> => {
+  const response = await AXIOS.get<{ data: OwnerProfile }>(
+    "/users/me/owner-profile"
+  );
+  return response.data.data;
 };

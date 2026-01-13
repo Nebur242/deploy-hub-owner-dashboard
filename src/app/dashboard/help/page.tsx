@@ -209,7 +209,7 @@ export default function HelpPage() {
   const form = useForm<SupportFormValues>({
     resolver: zodResolver(supportFormSchema),
     defaultValues: {
-      name: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "",
+      name: user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "",
       email: user?.firebase?.email || "",
       category: TicketCategory.GENERAL,
       priority: TicketPriority.MEDIUM,
@@ -223,7 +223,7 @@ export default function HelpPage() {
     if (user) {
       form.setValue(
         "name",
-        `${user.firstName || ""} ${user.lastName || ""}`.trim()
+        `${user.first_name || ""} ${user.last_name || ""}`.trim()
       );
       form.setValue("email", user.firebase?.email || "");
     }
@@ -286,7 +286,7 @@ export default function HelpPage() {
       setTimeout(() => {
         form.reset({
           name: user
-            ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+            ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
             : "",
           email: user?.firebase?.email || "",
           category: TicketCategory.GENERAL,

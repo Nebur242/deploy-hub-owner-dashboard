@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { useGetUserQuery } from "@/store/features/users";
 import Link from "next/link";
+import { RoleName } from "@/common/types";
 
 export default function ProfilePage() {
     const { infos: user } = useAppSelector((state) => state.auth);
@@ -36,11 +37,11 @@ export default function ProfilePage() {
         return name?.slice(0, 2).toUpperCase() || 'U';
     };
 
-    const getRoleBadgeColor = (role: string) => {
+    const getRoleBadgeColor = (role: RoleName) => {
         switch (role) {
             case "admin":
                 return "text-blue-700 bg-blue-100";
-            case "super_admin":
+            case "owner":
                 return "text-purple-700 bg-purple-100";
             default:
                 return "text-gray-700 bg-gray-100";
@@ -64,12 +65,12 @@ export default function ProfilePage() {
                         <div className="absolute -bottom-16 left-8">
                             <Avatar className="h-32 w-32 border-4 border-background shadow-md">
                                 <AvatarImage
-                                    src={userData?.profilePicture || user.profilePicture}
-                                    alt={`${user.firstName || 'User'}'s profile picture`}
+                                    src={userData?.profile_picture || user.profile_picture}
+                                    alt={`${user.first_name || 'User'}'s profile picture`}
                                     className="object-cover"
                                 />
                                 <AvatarFallback className="text-3xl">
-                                    {getInitials(user.firstName || user.firebase?.email || 'User')}
+                                    {getInitials(user.first_name || user.firebase?.email || 'User')}
                                 </AvatarFallback>
                             </Avatar>
                         </div>
@@ -78,12 +79,12 @@ export default function ProfilePage() {
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-bold">
-                                    {user.firstName} {user.lastName || ''}
+                                    {user.first_name} {user.last_name || ''}
                                 </h3>
                                 <div className="flex gap-2 flex-wrap">
                                     {user.roles?.map(role => (
-                                        <Badge key={role} variant="outline" className={getRoleBadgeColor(role)}>
-                                            {role}
+                                        <Badge key={role.id} variant="outline" className={getRoleBadgeColor(role.name)}>
+                                            {role.name}
                                         </Badge>
                                     ))}
                                 </div>

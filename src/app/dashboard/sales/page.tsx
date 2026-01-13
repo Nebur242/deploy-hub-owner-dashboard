@@ -122,8 +122,8 @@ export default function SalesPage() {
   };
 
   const getBuyerName = (order: typeof orders[0]) => {
-    if (order.user?.firstName) {
-      return `${order.user.firstName} ${order.user.lastName || ""}`.trim();
+    if (order.user?.first_name) {
+      return `${order.user.first_name} ${order.user.last_name || ""}`.trim();
     }
     if (order.billing?.first_name) {
       return `${order.billing.first_name} ${order.billing.last_name || ""}`.trim();

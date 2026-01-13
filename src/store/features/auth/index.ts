@@ -3,41 +3,26 @@ import { AxiosError } from "axios";
 import { AuthError, UserCredential } from "firebase/auth";
 import {
   authUser,
-  createUser,
-  firebaseCreateUser,
-  firebaseLoginUser,
-  firebaseLoginWithGoogle,
-  firebaseRegisterWithGoogle,
-  firebaseSendPasswordResetEmail,
-  firebaseSendValidationEmail,
-  checkEmailVerification,
+  firebaseSignInWithCustomToken,
   getUser,
   logout,
-  handleGoogleRedirectResult,
+  requestCode,
+  verifyCode,
+  loginWithVerification,
+  registerOwnerWithVerification,
+  DeveloperType,
 } from "../../../services/users";
 import { asyncHandler } from "@/utils/functions";
-import { AppUser, Status, User } from "@/common/types";
-import { LoginDto, RegisterDto } from "@/common/dtos";
+import { AppUser, hasRole, Status, User } from "@/common/types";
 
 export interface AuthInitialState {
   infos: AppUser | null;
   isLoggedIn: boolean;
+  // OTP flow state
+  otpEmail: string | null;
+  otpType: "login" | "register" | null;
+  verificationToken: string | null;
   authenticate: {
-    loading: boolean;
-    error: string;
-    status: Status;
-  };
-  login: {
-    loading: boolean;
-    error: string;
-    status: Status;
-  };
-  register: {
-    loading: boolean;
-    error: string;
-    status: Status;
-  };
-  googleAuth: {
     loading: boolean;
     error: string;
     status: Status;
@@ -47,12 +32,23 @@ export interface AuthInitialState {
     error: string;
     status: Status;
   };
-  reset: {
+  // OTP flow states
+  requestCode: {
     loading: boolean;
     error: string;
     status: Status;
   };
-  verifyEmail: {
+  verifyCode: {
+    loading: boolean;
+    error: string;
+    status: Status;
+  };
+  loginWithOtp: {
+    loading: boolean;
+    error: string;
+    status: Status;
+  };
+  registerWithOtp: {
     loading: boolean;
     error: string;
     status: Status;
@@ -62,23 +58,11 @@ export interface AuthInitialState {
 const initialState: AuthInitialState = {
   infos: null,
   isLoggedIn: false,
+  otpEmail: null,
+  otpType: null,
+  verificationToken: null,
   authenticate: {
     loading: true,
-    error: "",
-    status: "pending",
-  },
-  login: {
-    loading: false,
-    error: "",
-    status: "pending",
-  },
-  register: {
-    loading: false,
-    error: "",
-    status: "pending",
-  },
-  googleAuth: {
-    loading: false,
     error: "",
     status: "pending",
   },
@@ -87,318 +71,125 @@ const initialState: AuthInitialState = {
     error: "",
     status: "pending",
   },
-  reset: {
+  requestCode: {
     loading: false,
     error: "",
     status: "pending",
   },
-  verifyEmail: {
+  verifyCode: {
+    loading: false,
+    error: "",
+    status: "pending",
+  },
+  loginWithOtp: {
+    loading: false,
+    error: "",
+    status: "pending",
+  },
+  registerWithOtp: {
     loading: false,
     error: "",
     status: "pending",
   },
 };
 
-export const resetPassword = createAsyncThunk(
-  "auth/reset",
+// ============================================
+// OTP-based authentication thunks
+// ============================================
+
+export const requestOtpCode = createAsyncThunk(
+  "auth/requestOtpCode",
   async (
     {
       email,
-      onFailed,
+      purpose,
       onSuccess,
-    }: { email: string } & {
+      onFailed,
+    }: {
+      email: string;
+      purpose: "login" | "register";
       onSuccess?: () => void;
       onFailed?: () => void;
     },
     { rejectWithValue, fulfillWithValue }
   ) => {
-    const [, firebaseError] = await asyncHandler(
-      firebaseSendPasswordResetEmail(email)
-    );
-
-    if (firebaseError) {
-      if (onFailed) onFailed();
-      return rejectWithValue("Something went wrong...");
-    }
-
-    if (onSuccess) onSuccess();
-    return fulfillWithValue("Sent");
-  }
-);
-
-export const loginWithGoogle = createAsyncThunk(
-  "auth/loginWithGoogle",
-  async (
-    {
-      onSuccess,
-      onFailed,
-    }: {
-      onSuccess?: () => void;
-      onFailed?: () => void;
-    } = {},
-    { rejectWithValue, fulfillWithValue }
-  ) => {
-    const [firebaseUser, firebaseError] = await asyncHandler<
-      UserCredential,
-      AuthError
-    >(firebaseLoginWithGoogle());
-
-    if (firebaseError || !firebaseUser) {
-      // Check if this is a redirect in progress
-      if (firebaseError?.message === "REDIRECT_IN_PROGRESS") {
-        // Don't call onFailed for redirect, just return a special status
-        return rejectWithValue("REDIRECT_IN_PROGRESS");
-      }
-
-      if (onFailed) onFailed();
-      return rejectWithValue(
-        firebaseError?.message || "Google authentication failed"
-      );
-    }
-
-    const [user, axiosError] = await asyncHandler<
-      User,
-      AxiosError<{ message: string }>
-    >(getUser(firebaseUser.user.uid));
-
-    if (axiosError || !user) {
-      if (onFailed) onFailed();
-      return rejectWithValue(
-        axiosError?.response?.data.message || "User not found"
-      );
-    }
-
-    if (!user.roles.includes("admin")) {
-      if (onFailed) onFailed();
-      return rejectWithValue("You are not allowed to login");
-    }
-
-    // Create session using the same pattern as email/password auth
-    const idToken = await firebaseUser.user.getIdToken();
-    const response = await fetch("/api/auth/session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ idToken }),
-    });
-
-    if (!response.ok) {
-      const res = await response.json();
-      console.log(res);
-      if (onFailed) onFailed();
-      return rejectWithValue("Session not set");
-    }
-
-    if (onSuccess) onSuccess();
-    return fulfillWithValue({
-      ...user,
-      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
-    });
-  }
-);
-
-export const registerWithGoogle = createAsyncThunk(
-  "auth/registerWithGoogle",
-  async (
-    {
-      onSuccess,
-      onFailed,
-    }: {
-      onSuccess?: () => void;
-      onFailed?: () => void;
-    } = {},
-    { rejectWithValue, fulfillWithValue }
-  ) => {
-    const [firebaseUser, firebaseError] = await asyncHandler<
-      UserCredential,
-      AuthError
-    >(firebaseRegisterWithGoogle());
-
-    if (firebaseError || !firebaseUser) {
-      // Check if this is a redirect in progress
-      if (firebaseError?.message === "REDIRECT_IN_PROGRESS") {
-        // Don't call onFailed for redirect, just return a special status
-        return rejectWithValue("REDIRECT_IN_PROGRESS");
-      }
-
-      if (onFailed) onFailed();
-      return rejectWithValue(
-        firebaseError?.message || "Google authentication failed"
-      );
-    }
-
-    // Check if user already exists in our system
-    const [existingUser] = await asyncHandler<
-      User,
-      AxiosError<{ message: string }>
-    >(getUser(firebaseUser.user.uid));
-
-    if (existingUser) {
-      // User already exists, proceed with login flow
-      if (!existingUser.roles.includes("admin")) {
-        if (onFailed) onFailed();
-        return rejectWithValue("You are not allowed to register");
-      }
-
-      // Create session using the same pattern as email/password auth
-      const idToken = await firebaseUser.user.getIdToken();
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!response.ok) {
-        const res = await response.json();
-        console.log(res);
-        if (onFailed) onFailed();
-        return rejectWithValue("Session not set");
-      }
-
+    try {
+      await requestCode(email, purpose);
       if (onSuccess) onSuccess();
-      return fulfillWithValue({
-        ...existingUser,
-        firebase: firebaseUser.user.toJSON() as UserCredential["user"],
-      });
-    }
-
-    // Create new user in our system
-    const [user, axiosError] = await asyncHandler<
-      User,
-      AxiosError<{ message: string }>
-    >(
-      createUser({
-        uid: firebaseUser.user.uid,
-        roles: ["admin"],
-        email: firebaseUser.user.email || "",
-      })
-    );
-
-    if (axiosError || !user) {
-      console.log(axiosError);
-      await firebaseUser.user.delete();
+      return fulfillWithValue({ email, purpose });
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message: string }>;
       if (onFailed) onFailed();
       return rejectWithValue(
-        axiosError?.response?.data.message || "User creation failed"
+        axiosError?.response?.data?.message ||
+          "Failed to send verification code"
       );
     }
-
-    // Create session using the same pattern as email/password auth
-    const idToken = await firebaseUser.user.getIdToken();
-    const response = await fetch("/api/auth/session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ idToken }),
-    });
-
-    if (!response.ok) {
-      const res = await response.json();
-      console.log(res);
-      if (onFailed) onFailed();
-      return rejectWithValue("Session not set");
-    }
-
-    if (onSuccess) onSuccess();
-    return fulfillWithValue({
-      ...user,
-      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
-    });
   }
 );
 
-export const handleGoogleAuthRedirect = createAsyncThunk(
-  "auth/handleGoogleAuthRedirect",
+export const verifyOtpCode = createAsyncThunk(
+  "auth/verifyOtpCode",
   async (
     {
-      isRegister = false,
+      email,
+      code,
+      purpose,
       onSuccess,
       onFailed,
     }: {
-      isRegister?: boolean;
-      onSuccess?: () => void;
+      email: string;
+      code: string;
+      purpose: "login" | "register";
+      onSuccess?: (verificationToken: string) => void;
       onFailed?: () => void;
-    } = {},
+    },
     { rejectWithValue, fulfillWithValue }
   ) => {
-    const [redirectResult, redirectError] = await asyncHandler<
-      UserCredential | null,
-      AuthError
-    >(handleGoogleRedirectResult());
-
-    if (redirectError) {
+    try {
+      const response = await verifyCode(email, code, purpose);
+      if (onSuccess) onSuccess(response.verificationToken);
+      return fulfillWithValue({
+        verificationToken: response.verificationToken,
+        email,
+        purpose,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message: string }>;
       if (onFailed) onFailed();
-      return rejectWithValue(redirectError.message || "Redirect failed");
-    }
-
-    if (!redirectResult) {
-      // No redirect result means no redirect was in progress
-      return fulfillWithValue(null);
-    }
-
-    const firebaseUser = redirectResult;
-
-    if (isRegister) {
-      // Handle register flow
-      const [existingUser] = await asyncHandler<
-        User,
-        AxiosError<{ message: string }>
-      >(getUser(firebaseUser.user.uid));
-
-      if (existingUser) {
-        // User already exists, log them in
-        if (!existingUser.roles.includes("admin")) {
-          if (onFailed) onFailed();
-          return rejectWithValue("You are not allowed to login");
-        }
-
-        const idToken = await firebaseUser.user.getIdToken();
-        const response = await fetch("/api/auth/session", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ idToken }),
-        });
-
-        if (!response.ok) {
-          if (onFailed) onFailed();
-          return rejectWithValue("Session not set");
-        }
-
-        if (onSuccess) onSuccess();
-        return fulfillWithValue({
-          ...existingUser,
-          firebase: firebaseUser.user.toJSON() as UserCredential["user"],
-        });
-      }
-
-      // Create new user
-      const [user, axiosError] = await asyncHandler<
-        User,
-        AxiosError<{ message: string }>
-      >(
-        createUser({
-          uid: firebaseUser.user.uid,
-          roles: ["admin"],
-          email: firebaseUser.user.email || "",
-        })
+      return rejectWithValue(
+        axiosError?.response?.data?.message || "Invalid or expired code"
       );
+    }
+  }
+);
 
-      if (axiosError || !user) {
-        await firebaseUser.user.delete();
-        if (onFailed) onFailed();
-        return rejectWithValue(
-          axiosError?.response?.data.message || "User creation failed"
-        );
-      }
+export const loginOwnerWithOtp = createAsyncThunk(
+  "auth/loginOwnerWithOtp",
+  async (
+    {
+      email,
+      verificationToken,
+      onSuccess,
+      onFailed,
+    }: {
+      email: string;
+      verificationToken: string;
+      onSuccess?: () => void;
+      onFailed?: () => void;
+    },
+    { rejectWithValue, fulfillWithValue }
+  ) => {
+    try {
+      // Call backend to login with verification token
+      const response = await loginWithVerification(email, verificationToken);
 
-      const idToken = await firebaseUser.user.getIdToken();
-      const response = await fetch("/api/auth/session", {
+      // Sign in to Firebase with custom token
+      const firebaseUser = await firebaseSignInWithCustomToken(response.token);
+
+      // Set session cookie
+      const idToken = await firebaseUser.user.getIdToken(true);
+      const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -406,9 +197,18 @@ export const handleGoogleAuthRedirect = createAsyncThunk(
         body: JSON.stringify({ idToken }),
       });
 
-      if (!response.ok) {
+      if (!sessionResponse.ok) {
         if (onFailed) onFailed();
-        return rejectWithValue("Session not set");
+        return rejectWithValue("Failed to create session");
+      }
+
+      // Get user from backend
+      const user = await getUser(firebaseUser.user.uid);
+
+      // Verify user has owner role
+      if (!hasRole(user.roles, "owner") && !hasRole(user.roles, "admin")) {
+        if (onFailed) onFailed();
+        return rejectWithValue("You are not registered as an owner");
       }
 
       if (onSuccess) onSuccess();
@@ -416,27 +216,69 @@ export const handleGoogleAuthRedirect = createAsyncThunk(
         ...user,
         firebase: firebaseUser.user.toJSON() as UserCredential["user"],
       });
-    } else {
-      // Handle login flow
-      const [user, axiosError] = await asyncHandler<
-        User,
-        AxiosError<{ message: string }>
-      >(getUser(firebaseUser.user.uid));
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message: string }>;
+      if (onFailed) onFailed();
+      return rejectWithValue(
+        axiosError?.response?.data?.message || "Login failed"
+      );
+    }
+  }
+);
 
-      if (axiosError || !user) {
-        if (onFailed) onFailed();
-        return rejectWithValue(
-          axiosError?.response?.data.message || "User not found"
-        );
-      }
+export const registerOwnerWithOtp = createAsyncThunk(
+  "auth/registerOwnerWithOtp",
+  async (
+    {
+      email,
+      verification_token,
+      first_name,
+      last_name,
+      company_name,
+      developer_type,
+      country,
+      website_url,
+      github_url,
+      terms_accepted,
+      onSuccess,
+      onFailed,
+    }: {
+      email: string;
+      verification_token: string;
+      first_name: string;
+      last_name: string;
+      company_name?: string;
+      developer_type: DeveloperType;
+      country: string;
+      website_url?: string;
+      github_url: string;
+      terms_accepted: boolean;
+      onSuccess?: () => void;
+      onFailed?: () => void;
+    },
+    { rejectWithValue, fulfillWithValue }
+  ) => {
+    try {
+      // Register owner with backend
+      const response = await registerOwnerWithVerification({
+        email,
+        verification_token,
+        first_name,
+        last_name,
+        company_name,
+        developer_type,
+        country,
+        website_url,
+        github_url,
+        terms_accepted,
+      });
 
-      if (!user.roles.includes("admin")) {
-        if (onFailed) onFailed();
-        return rejectWithValue("You are not allowed to login");
-      }
+      // Sign in to Firebase with custom token
+      const firebaseUser = await firebaseSignInWithCustomToken(response.token);
 
-      const idToken = await firebaseUser.user.getIdToken();
-      const response = await fetch("/api/auth/session", {
+      // Set session cookie
+      const idToken = await firebaseUser.user.getIdToken(true);
+      const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -444,157 +286,24 @@ export const handleGoogleAuthRedirect = createAsyncThunk(
         body: JSON.stringify({ idToken }),
       });
 
-      if (!response.ok) {
+      if (!sessionResponse.ok) {
         if (onFailed) onFailed();
-        return rejectWithValue("Session not set");
+        return rejectWithValue("Failed to create session");
       }
 
-      if (onSuccess) onSuccess();
+      // Get user from backend
+      const user = await getUser(firebaseUser.user.uid);
+
       return fulfillWithValue({
         ...user,
         firebase: firebaseUser.user.toJSON() as UserCredential["user"],
       });
-    }
-  }
-);
-
-export const verifyEmailStatus = createAsyncThunk(
-  "auth/verifyEmailStatus",
-  async (_, { rejectWithValue, fulfillWithValue }) => {
-    const [isVerified, error] = await asyncHandler(checkEmailVerification());
-
-    if (error) {
-      return rejectWithValue("Unable to check email verification status");
-    }
-
-    return fulfillWithValue(isVerified);
-  }
-);
-
-export const registerUser = createAsyncThunk(
-  "auth/register",
-  async (
-    registerDto: RegisterDto & {
-      onSuccess?: () => void;
-      onFailed?: () => void;
-    },
-    { rejectWithValue, fulfillWithValue }
-  ) => {
-    const [firebaseUser, firebaseError] = await asyncHandler<
-      UserCredential,
-      AuthError
-    >(firebaseCreateUser(registerDto));
-
-    if (firebaseError || !firebaseUser) {
-      console.log(firebaseError);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message: string }>;
       return rejectWithValue(
-        firebaseError?.message || "Firebase register error"
+        axiosError?.response?.data?.message || "Registration failed"
       );
     }
-
-    await firebaseSendValidationEmail(firebaseUser.user);
-
-    const [user, axiosError] = await asyncHandler<
-      User,
-      AxiosError<{ message: string }>
-    >(
-      createUser({
-        uid: firebaseUser.user.uid,
-        roles: ["admin"],
-        email: firebaseUser.user.email || "",
-      })
-    );
-
-    if (axiosError || !user) {
-      console.log(axiosError);
-      await firebaseUser.user.delete();
-      return rejectWithValue(
-        axiosError?.response?.data.message || "Axios error"
-      );
-    }
-
-    const idToken = await firebaseUser.user.getIdToken();
-    const response = await fetch("/api/auth/session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ idToken }),
-    });
-
-    if (!response.ok) {
-      const res = await response.json();
-      console.log(res);
-      if (registerDto.onFailed) registerDto.onFailed();
-      return rejectWithValue("Session not set");
-    }
-
-    if (registerDto.onSuccess) registerDto.onSuccess();
-    return fulfillWithValue({
-      ...user,
-      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
-    });
-  }
-);
-
-export const loginUser = createAsyncThunk(
-  "auth/login",
-  async (
-    loginDto: LoginDto & {
-      onSuccess?: () => void;
-      onFailed?: () => void;
-    },
-    { rejectWithValue, fulfillWithValue }
-  ) => {
-    const [firebaseUser, firebaseError] = await asyncHandler<
-      UserCredential,
-      AuthError
-    >(firebaseLoginUser(loginDto));
-
-    if (firebaseError || !firebaseUser) {
-      return rejectWithValue(
-        firebaseError?.message || "Firebase register error"
-      );
-    }
-
-    const [user, axiosError] = await asyncHandler<
-      User,
-      AxiosError<{ message: string }>
-    >(getUser(firebaseUser.user.uid));
-
-    if (axiosError || !user) {
-      console.log(axiosError);
-      return rejectWithValue(
-        axiosError?.response?.data.message || "Axios error"
-      );
-    }
-
-    if (!user.roles.includes("admin")) {
-      // await firebaseUser.user.delete();
-      return rejectWithValue("You are not allowed to login");
-    }
-
-    const idToken = await firebaseUser.user.getIdToken();
-    const response = await fetch("/api/auth/session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ idToken }),
-    });
-
-    if (!response.ok) {
-      const res = await response.json();
-      console.log(res);
-      if (loginDto.onFailed) loginDto.onFailed();
-      return rejectWithValue("Session not set");
-    }
-
-    if (loginDto.onSuccess) loginDto.onSuccess();
-    return fulfillWithValue({
-      ...user,
-      firebase: firebaseUser.user.toJSON() as UserCredential["user"],
-    });
   }
 );
 
@@ -624,7 +333,11 @@ export const authenticateUser = createAsyncThunk(
       );
     }
 
-    if (!userInfos.roles.includes("admin")) {
+    // For the owner dashboard, allow either owner or admin roles
+    if (
+      !hasRole(userInfos.roles, "owner") &&
+      !hasRole(userInfos.roles, "admin")
+    ) {
       // await firebaseUser.user.delete();
       return rejectWithValue("You are not allowed to login");
     }
@@ -665,7 +378,31 @@ export const logoutUser = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    clearOtpState: (state) => {
+      state.otpEmail = null;
+      state.otpType = null;
+      state.verificationToken = null;
+      state.requestCode = { loading: false, error: "", status: "pending" };
+      state.verifyCode = { loading: false, error: "", status: "pending" };
+      state.loginWithOtp = { loading: false, error: "", status: "pending" };
+      state.registerWithOtp = { loading: false, error: "", status: "pending" };
+    },
+    restoreOtpState: (
+      state,
+      action: {
+        payload: {
+          email: string;
+          verificationToken: string;
+          type: "login" | "register";
+        };
+      }
+    ) => {
+      state.otpEmail = action.payload.email;
+      state.verificationToken = action.payload.verificationToken;
+      state.otpType = action.payload.type;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(authenticateUser.pending, (state: AuthInitialState) => {
@@ -688,41 +425,6 @@ const authSlice = createSlice({
         state.authenticate.error = action.payload as string;
         state.authenticate.status = "error";
       })
-      .addCase(loginUser.pending, (state: AuthInitialState) => {
-        state.login.loading = true;
-        state.login.error = "";
-        state.login.status = "pending";
-      })
-      .addCase(loginUser.fulfilled, (state: AuthInitialState, action) => {
-        state.login.loading = false;
-        state.login.error = "";
-        state.login.status = "success";
-        state.infos = action.payload;
-        state.isLoggedIn = true;
-      })
-      .addCase(loginUser.rejected, (state: AuthInitialState, action) => {
-        state.login.loading = false;
-        state.login.error = action.payload as string;
-        state.login.status = "error";
-      })
-      .addCase(registerUser.pending, (state: AuthInitialState) => {
-        state.register.loading = true;
-        state.register.error = "";
-        state.register.status = "pending";
-      })
-      .addCase(registerUser.fulfilled, (state: AuthInitialState) => {
-        state.register.loading = false;
-        state.register.error = "";
-        state.register.status = "success";
-        // Don't set user as logged in until email is verified
-        // state.infos = action.payload;
-        // state.isLoggedIn = true;
-      })
-      .addCase(registerUser.rejected, (state: AuthInitialState, action) => {
-        state.register.loading = false;
-        state.register.error = action.payload as string;
-        state.register.status = "error";
-      })
       .addCase(logoutUser.pending, (state: AuthInitialState) => {
         state.logout.loading = true;
         state.logout.error = "";
@@ -740,124 +442,97 @@ const authSlice = createSlice({
         state.logout.error = action.payload as string;
         state.logout.status = "error";
       })
-      .addCase(loginWithGoogle.pending, (state: AuthInitialState) => {
-        state.googleAuth.loading = true;
-        state.googleAuth.error = "";
-        state.googleAuth.status = "pending";
+      // OTP flow reducers
+      .addCase(requestOtpCode.pending, (state: AuthInitialState) => {
+        state.requestCode.loading = true;
+        state.requestCode.error = "";
+        state.requestCode.status = "pending";
       })
-      .addCase(loginWithGoogle.fulfilled, (state: AuthInitialState, action) => {
-        state.googleAuth.loading = false;
-        state.googleAuth.error = "";
-        state.googleAuth.status = "success";
-        state.infos = action.payload;
-        state.isLoggedIn = true;
+      .addCase(requestOtpCode.fulfilled, (state: AuthInitialState, action) => {
+        state.requestCode.loading = false;
+        state.requestCode.error = "";
+        state.requestCode.status = "success";
+        state.otpEmail = action.payload.email;
+        state.otpType = action.payload.purpose;
       })
-      .addCase(loginWithGoogle.rejected, (state: AuthInitialState, action) => {
-        state.googleAuth.loading = false;
-        state.googleAuth.error = action.payload as string;
-        state.googleAuth.status = "error";
+      .addCase(requestOtpCode.rejected, (state: AuthInitialState, action) => {
+        state.requestCode.loading = false;
+        state.requestCode.error = action.payload as string;
+        state.requestCode.status = "error";
       })
-      .addCase(registerWithGoogle.pending, (state: AuthInitialState) => {
-        state.googleAuth.loading = true;
-        state.googleAuth.error = "";
-        state.googleAuth.status = "pending";
+      .addCase(verifyOtpCode.pending, (state: AuthInitialState) => {
+        state.verifyCode.loading = true;
+        state.verifyCode.error = "";
+        state.verifyCode.status = "pending";
+      })
+      .addCase(verifyOtpCode.fulfilled, (state: AuthInitialState, action) => {
+        state.verifyCode.loading = false;
+        state.verifyCode.error = "";
+        state.verifyCode.status = "success";
+        state.verificationToken = action.payload.verificationToken;
+      })
+      .addCase(verifyOtpCode.rejected, (state: AuthInitialState, action) => {
+        state.verifyCode.loading = false;
+        state.verifyCode.error = action.payload as string;
+        state.verifyCode.status = "error";
+      })
+      .addCase(loginOwnerWithOtp.pending, (state: AuthInitialState) => {
+        state.loginWithOtp.loading = true;
+        state.loginWithOtp.error = "";
+        state.loginWithOtp.status = "pending";
       })
       .addCase(
-        registerWithGoogle.fulfilled,
+        loginOwnerWithOtp.fulfilled,
         (state: AuthInitialState, action) => {
-          state.googleAuth.loading = false;
-          state.googleAuth.error = "";
-          state.googleAuth.status = "success";
+          state.loginWithOtp.loading = false;
+          state.loginWithOtp.error = "";
+          state.loginWithOtp.status = "success";
           state.infos = action.payload;
           state.isLoggedIn = true;
+          // Clear OTP state after successful login
+          state.otpEmail = null;
+          state.otpType = null;
+          state.verificationToken = null;
         }
       )
       .addCase(
-        registerWithGoogle.rejected,
+        loginOwnerWithOtp.rejected,
         (state: AuthInitialState, action) => {
-          state.googleAuth.loading = false;
-          state.googleAuth.error = action.payload as string;
-          state.googleAuth.status = "error";
+          state.loginWithOtp.loading = false;
+          state.loginWithOtp.error = action.payload as string;
+          state.loginWithOtp.status = "error";
         }
       )
-      .addCase(handleGoogleAuthRedirect.pending, (state: AuthInitialState) => {
-        state.googleAuth.loading = true;
-        state.googleAuth.error = "";
-        state.googleAuth.status = "pending";
+      .addCase(registerOwnerWithOtp.pending, (state: AuthInitialState) => {
+        state.registerWithOtp.loading = true;
+        state.registerWithOtp.error = "";
+        state.registerWithOtp.status = "pending";
       })
       .addCase(
-        handleGoogleAuthRedirect.fulfilled,
+        registerOwnerWithOtp.fulfilled,
         (state: AuthInitialState, action) => {
-          state.googleAuth.loading = false;
-          state.googleAuth.error = "";
-
-          if (action.payload) {
-            // Redirect result was processed successfully
-            state.googleAuth.status = "success";
-            state.infos = action.payload;
-            state.isLoggedIn = true;
-          } else {
-            // No redirect result means no redirect was in progress
-            state.googleAuth.status = "pending";
-          }
+          state.registerWithOtp.loading = false;
+          state.registerWithOtp.error = "";
+          state.registerWithOtp.status = "success";
+          state.infos = action.payload;
+          state.isLoggedIn = true;
+          // Clear OTP state after successful registration
+          state.otpEmail = null;
+          state.otpType = null;
+          state.verificationToken = null;
         }
       )
       .addCase(
-        handleGoogleAuthRedirect.rejected,
+        registerOwnerWithOtp.rejected,
         (state: AuthInitialState, action) => {
-          state.googleAuth.loading = false;
-          state.googleAuth.error = action.payload as string;
-          state.googleAuth.status = "error";
-        }
-      )
-      .addCase(resetPassword.pending, (state: AuthInitialState) => {
-        state.reset.loading = true;
-        state.reset.error = "";
-        state.reset.status = "pending";
-      })
-      .addCase(resetPassword.fulfilled, (state: AuthInitialState) => {
-        state.reset.loading = false;
-        state.reset.error = "";
-        state.reset.status = "success";
-      })
-      .addCase(resetPassword.rejected, (state: AuthInitialState, action) => {
-        state.reset.loading = false;
-        state.reset.error = action.payload as string;
-        state.reset.status = "error";
-      })
-      .addCase(verifyEmailStatus.pending, (state: AuthInitialState) => {
-        state.verifyEmail.loading = true;
-        state.verifyEmail.error = "";
-        state.verifyEmail.status = "pending";
-      })
-      .addCase(
-        verifyEmailStatus.fulfilled,
-        (state: AuthInitialState, action) => {
-          state.verifyEmail.loading = false;
-          state.verifyEmail.error = "";
-          state.verifyEmail.status = "success";
-          // Update the user's email verification status in Firebase info
-          if (state.infos && state.infos.firebase) {
-            state.infos = {
-              ...state.infos,
-              firebase: {
-                ...state.infos.firebase,
-                emailVerified: action.payload,
-              },
-            } as AppUser;
-          }
-        }
-      )
-      .addCase(
-        verifyEmailStatus.rejected,
-        (state: AuthInitialState, action) => {
-          state.verifyEmail.loading = false;
-          state.verifyEmail.error = action.payload as string;
-          state.verifyEmail.status = "error";
+          state.registerWithOtp.loading = false;
+          state.registerWithOtp.error = action.payload as string;
+          state.registerWithOtp.status = "error";
         }
       );
   },
 });
 
+export const { clearOtpState, restoreOtpState } = authSlice.actions;
 const { reducer } = authSlice;
 export default reducer;

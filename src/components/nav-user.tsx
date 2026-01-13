@@ -115,7 +115,7 @@ export function NavUser() {
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.firstName || 'Admin'}</span>
+                  <span className="truncate font-medium">{user.first_name || 'Admin'}</span>
                   <span className="text-muted-foreground truncate text-xs">
                     {user.firebase.email}
                   </span>
@@ -136,7 +136,7 @@ export function NavUser() {
                     <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.firstName || 'Admin'}</span>
+                    <span className="truncate font-medium">{user.first_name || 'Admin'}</span>
                     <span className="text-muted-foreground truncate text-xs">
                       {user.firebase.email}
                     </span>
