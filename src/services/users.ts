@@ -314,7 +314,7 @@ export const validateToken = async (
 ): Promise<{ valid: boolean }> => {
   const response = await AXIOS.post<{ data: { valid: boolean } }>(
     "/auth/validate-token",
-    { email, verificationToken, purpose }
+    { email, verification_token: verificationToken, purpose }
   );
   return response.data.data;
 };
@@ -341,7 +341,7 @@ export const loginWithVerification = async (
 ): Promise<AuthWithVerificationResponse> => {
   const response = await AXIOS.post<{ data: AuthWithVerificationResponse }>(
     "/auth/login-with-verification",
-    { email, verificationToken }
+    { email, verification_token: verificationToken }
   );
   return response.data.data;
 };
