@@ -25,6 +25,8 @@ export default function CreateDeploymentPage() {
 
   // Use state to track the current project ID
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(initialProjectId);
+  // State to track the current configuration ID for getting default branch
+  const [currentConfigId, setCurrentConfigId] = useState<string | undefined>(initialConfigurationId);
   // State for tracking environment variable values entered by users
   const [envVarValues, setEnvVarValues] = useState<Record<string, string>>({});
   // State for project versions
@@ -69,25 +71,38 @@ export default function CreateDeploymentPage() {
 
   // Update versions when data is loaded
   useEffect(() => {
+    // Get the default branch from the selected configuration
+    const selectedConfig = configurationsData?.find(c => c.id === currentConfigId);
+    const defaultBranch = selectedConfig?.github_accounts?.[0]?.default_branch || 'main';
+    
     if (versionsData && Array.isArray(versionsData)) {
-      // Ensure 'main' is always included and at the beginning
-      const versions = ['main'];
-      versionsData.forEach(({ version }) => {
-        if (version !== 'main' && !versions.includes(version)) {
-          versions.push(version);
+      // Use the branch field from versions (validated against GitHub)
+      // instead of the version number
+      const branches = [defaultBranch];
+      versionsData.forEach(({ branch }) => {
+        // Only add if branch exists and is not already in the list
+        if (branch && branch !== defaultBranch && !branches.includes(branch)) {
+          branches.push(branch);
         }
       });
-      setProjectVersions(versions);
+      setProjectVersions(branches);
     } else {
-      // Default to just 'main' if no versions were returned
-      setProjectVersions(['main']);
+      // Default to just the default branch if no versions were returned
+      setProjectVersions([defaultBranch]);
     }
-  }, [versionsData]);
+  }, [versionsData, configurationsData, currentConfigId]);
 
   // Handler for project change
   const handleProjectChange = (selectedProjectId: string) => {
     // Update the state with the new project ID
     setCurrentProjectId(selectedProjectId);
+    // Reset configuration when project changes
+    setCurrentConfigId(undefined);
+  };
+
+  // Handler for configuration change
+  const handleConfigChange = (selectedConfigId: string) => {
+    setCurrentConfigId(selectedConfigId);
   };
 
   // Handler for environment variable changes
@@ -207,6 +222,7 @@ export default function CreateDeploymentPage() {
           isSuccess={isSuccess}
           error={error as { message: string } | null}
           onProjectChange={handleProjectChange}
+          onConfigChange={handleConfigChange}
           onEnvVarChange={handleEnvVarChange}
           envVarValues={envVarValues}
           isProjectOwner={isProjectOwner}

@@ -22,6 +22,7 @@ export const githubAccountDtoSchema = z.object({
     .string()
     .min(1, "Workflow file name is required")
     .regex(/\.(yaml|yml)$/, "Workflow file must be a .yaml or .yml file"),
+  default_branch: z.string().optional(),
 });
 
 // Deployment option schema

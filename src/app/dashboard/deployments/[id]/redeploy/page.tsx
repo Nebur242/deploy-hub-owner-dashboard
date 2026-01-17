@@ -135,9 +135,13 @@ export default function RedeployPage({ params }: PageProps) {
   // Update form values when deployment is loaded
   useEffect(() => {
     if (deployment) {
+      // Get the default branch from the configuration, falling back to deployment branch or 'main'
+      const configDefaultBranch = deployment.configuration?.github_accounts?.[0]?.default_branch;
+      const defaultBranch = configDefaultBranch || deployment.branch || "main";
+      
       form.reset({
         environment: deployment.environment as DeploymentEnvironment,
-        branch: deployment.branch || "main",
+        branch: defaultBranch,
       });
 
       // Initialize env var values from deployment
@@ -154,17 +158,20 @@ export default function RedeployPage({ params }: PageProps) {
   // Update versions when data is loaded
   useEffect(() => {
     if (versionsData && Array.isArray(versionsData)) {
-      const versions = ["main"];
+      // Get the default branch from the configuration
+      const configDefaultBranch = deployment?.configuration?.github_accounts?.[0]?.default_branch || "main";
+      const versions = [configDefaultBranch];
       versionsData.forEach(({ version }: { version: string }) => {
-        if (version !== "main" && !versions.includes(version)) {
+        if (version !== configDefaultBranch && !versions.includes(version)) {
           versions.push(version);
         }
       });
       setProjectVersions(versions);
     } else {
-      setProjectVersions(["main"]);
+      const configDefaultBranch = deployment?.configuration?.github_accounts?.[0]?.default_branch || "main";
+      setProjectVersions([configDefaultBranch]);
     }
-  }, [versionsData]);
+  }, [versionsData, deployment?.configuration?.github_accounts]);
 
   // Handler for environment variable changes
   const handleEnvVarChange = (key: string, value: string) => {
@@ -405,7 +412,7 @@ export default function RedeployPage({ params }: PageProps) {
                                   <SelectValue placeholder="Loading versions..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="main">Loading...</SelectItem>
+                                  <SelectItem value={field.value || "main"}>Loading...</SelectItem>
                                 </SelectContent>
                               </Select>
                             ) : (

@@ -36,6 +36,7 @@ export interface Project extends BaseEntity {
 export interface ProjectVersion extends BaseEntity {
   project_id: string;
   version: string;
+  branch?: string;
   release_notes: string;
   commit_hash?: string;
   is_latest: boolean;

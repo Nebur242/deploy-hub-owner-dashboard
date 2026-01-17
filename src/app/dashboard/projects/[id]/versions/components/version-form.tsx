@@ -22,7 +22,6 @@ import { Card } from "@/components/ui/card";
 import { IconLoader } from "@tabler/icons-react";
 import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
 import { ProjectVersion, ProjectConfiguration } from "@/common/types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IconAlertTriangle, IconBrandGithub, IconCheck } from "@tabler/icons-react";
 
 // Form schema validation
@@ -33,6 +32,7 @@ const formSchema = z.object({
             /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/,
             "Version must follow semantic versioning format (X.Y.Z)"
         ),
+    branch: z.string().min(1, "Branch or tag is required"),
     release_notes: z.string().optional(),
     commit_hash: z.string().optional(),
     is_stable: z.boolean(),
@@ -49,13 +49,13 @@ interface VersionFormProps {
     error: { message: string } | null;
     disabled?: boolean;
     configurations?: ProjectConfiguration[];
-    onVersionChange?: (version: string) => void;
-    githubVerificationResult?: {
+    onBranchChange?: (branch: string) => void;
+    branchVerificationResult?: {
         isValid: boolean;
         foundInAccounts: string[];
         message: string;
     } | null;
-    isVerifyingGithub?: boolean;
+    isVerifyingBranch?: boolean;
 }
 
 export default function VersionForm({
@@ -67,9 +67,9 @@ export default function VersionForm({
     error,
     disabled = false,
     configurations = [],
-    onVersionChange,
-    githubVerificationResult,
-    isVerifyingGithub = false,
+    onBranchChange,
+    branchVerificationResult,
+    isVerifyingBranch = false,
 }: VersionFormProps) {
     const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -78,6 +78,7 @@ export default function VersionForm({
         resolver: zodResolver(formSchema),
         defaultValues: initialData || {
             version: "",
+            branch: "",
             release_notes: "",
             commit_hash: "",
             is_stable: false,
@@ -87,37 +88,38 @@ export default function VersionForm({
     // Check for GitHub configurations
     const hasGithubConfigurations = configurations.some(
         config => config.github_accounts && config.github_accounts.length > 0
-    );    // Watch version changes from the form input
-    const versionValue = form.watch("version");
+    );
 
-    // Debounce the version value to prevent multiple API calls
-    // This will only trigger the verification after the user has stopped typing for 600ms
-    const debouncedVersion = useDebounce(versionValue, 600);
+    // Watch branch changes from the form input
+    const branchValue = form.watch("branch");
+
+    // Debounce the branch value to prevent multiple API calls
+    const debouncedBranch = useDebounce(branchValue || "", 600);
 
     // Track if this is the first render to prevent unnecessary API calls
-    const [isInitialRender, setIsInitialRender] = useState(true);
+    const [isInitialBranchRender, setIsInitialBranchRender] = useState(true);
 
-    // Call onVersionChange only when the debounced version changes
-    // This ensures we don't make API calls for every keystroke
+    // Call onBranchChange only when the debounced branch changes
     useEffect(() => {
         // Skip the first call with empty values to prevent unnecessary API calls on mount
-        if (isInitialRender) {
-            setIsInitialRender(false);
+        if (isInitialBranchRender) {
+            setIsInitialBranchRender(false);
             return;
         }
 
-        if (debouncedVersion && onVersionChange && !isEditing) {
-            // The parent component will receive the debounced version
-            // and can use it to verify against GitHub tags
-            onVersionChange(debouncedVersion);
+        if (debouncedBranch && onBranchChange && !isEditing) {
+            // The parent component will receive the debounced branch
+            // and can use it to verify against GitHub branches/tags
+            onBranchChange(debouncedBranch);
         }
-    }, [debouncedVersion, onVersionChange, isEditing, isInitialRender]);
+    }, [debouncedBranch, onBranchChange, isEditing, isInitialBranchRender]);
 
     // Populate form when editing and initial data is available
     useEffect(() => {
         if (isEditing && initialData) {
             form.reset({
                 version: initialData.version,
+                branch: initialData.branch || "",
                 release_notes: initialData.release_notes || "",
                 commit_hash: initialData.commit_hash || "",
                 is_stable: initialData.is_stable,
@@ -145,66 +147,6 @@ export default function VersionForm({
                 />
             )}
 
-            {/* GitHub Tag Verification Alert */}
-            {!isEditing && hasGithubConfigurations && versionValue && (
-                <>
-                    {isVerifyingGithub ? (
-                        <Alert className="bg-blue-50 border-blue-200 mb-6">
-                            <div className="flex items-center">
-                                <IconLoader className="h-4 w-4 mr-2 animate-spin text-blue-500" />
-                                <div>
-                                    <AlertTitle className="text-blue-700">Verifying Version Tag</AlertTitle>
-                                    <AlertDescription className="text-blue-600">
-                                        Checking if version {versionValue} exists as a tag in GitHub repositories...
-                                    </AlertDescription>
-                                </div>
-                            </div>
-                        </Alert>
-                    ) : githubVerificationResult && (
-                        githubVerificationResult.isValid ? (
-                            <Alert className="bg-green-50 border-green-200 mb-6">
-                                <div className="flex items-center">
-                                    <IconCheck className="h-4 w-4 mr-2 text-green-500" />
-                                    <div>
-                                        <AlertTitle className="text-green-700">Version Tag Found</AlertTitle>
-                                        <AlertDescription className="text-green-600">
-                                            {githubVerificationResult.message}
-                                        </AlertDescription>
-                                    </div>
-                                </div>
-                            </Alert>
-                        ) : (
-                            <Alert variant="destructive" className="mb-6">
-                                <IconAlertTriangle className="h-4 w-4 mr-2" />
-                                <AlertTitle>Version Tag Not Found</AlertTitle>
-                                <AlertDescription>
-                                    {githubVerificationResult.message}
-                                    <div className="mt-2 text-sm">
-                                        Make sure you have created a tag for this version in your GitHub repository.
-                                        <div className="mt-1">
-                                            <span className="font-medium">Valid formats:</span>
-                                            <ul className="list-disc ml-5 mt-1">
-                                                <li>&quot;{versionValue}&quot; (exact version)</li>
-                                                <li>&quot;v{versionValue}&quot; (with &apos;v&apos; prefix)</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </AlertDescription>
-                            </Alert>
-                        )
-                    )}
-
-                    {!isVerifyingGithub && versionValue && debouncedVersion !== versionValue && versionValue.length > 2 && (
-                        <Alert className="bg-blue-50 border-blue-200 mb-6">
-                            <div className="flex items-center">
-                                <IconLoader className="h-4 w-4 mr-2 animate-spin text-blue-500" />
-                                <AlertTitle className="text-blue-700">Waiting for input...</AlertTitle>
-                            </div>
-                        </Alert>
-                    )}
-                </>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Basic Information */}
                 <Card className="p-6 col-span-2">
@@ -220,28 +162,76 @@ export default function VersionForm({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Version Number</FormLabel>
-                                        <div className="flex items-center space-x-2">
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="e.g. 1.0.0"
-                                                    {...field}
-                                                    disabled={disabled || isEditing || isLoading || isSuccess}
-                                                    className={isEditing ? "bg-gray-100" : disabled ? "bg-gray-100 opacity-70" : ""}
-                                                />
-                                            </FormControl>
-                                            {!isEditing && hasGithubConfigurations && (
-                                                <div className="flex items-center text-xs text-muted-foreground">
-                                                    <IconBrandGithub className="h-3 w-3 mr-1" />
-                                                    Tag verification enabled
-                                                </div>
-                                            )}
-                                        </div>
+                                        <FormControl>
+                                            <Input
+                                                placeholder="e.g. 1.0.0"
+                                                {...field}
+                                                disabled={disabled || isEditing || isLoading || isSuccess}
+                                                className={isEditing ? "bg-gray-100" : disabled ? "bg-gray-100 opacity-70" : ""}
+                                            />
+                                        </FormControl>
                                         <FormDescription>
                                             {isEditing
                                                 ? "Version number cannot be modified after creation."
                                                 : "Use semantic versioning format (X.Y.Z) where X is major, Y is minor, and Z is patch version"
                                             }
                                         </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="branch"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Branch or Tag</FormLabel>
+                                        <div className="flex items-center space-x-2">
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="e.g. main, develop, v1.0.0"
+                                                    {...field}
+                                                    disabled={disabled || isEditing || isLoading || isSuccess}
+                                                    className={isEditing ? "bg-gray-100" : disabled ? "bg-gray-100 opacity-70" : ""}
+                                                />
+                                            </FormControl>
+                                            {!isEditing && hasGithubConfigurations && branchValue && (
+                                                <div className="flex items-center text-xs text-muted-foreground">
+                                                    <IconBrandGithub className="h-3 w-3 mr-1" />
+                                                    Branch/Tag verification
+                                                </div>
+                                            )}
+                                        </div>
+                                        <FormDescription>
+                                            {isEditing
+                                                ? "Branch or tag cannot be modified after creation."
+                                                : "Enter a branch name (e.g., main, develop) or a tag that exists in your GitHub repository. This will be used during deployment instead of the version tag."
+                                            }
+                                        </FormDescription>
+                                        {/* Branch Verification Status */}
+                                        {!isEditing && hasGithubConfigurations && branchValue && (
+                                            <div className="mt-2">
+                                                {isVerifyingBranch ? (
+                                                    <div className="flex items-center text-blue-600 text-sm">
+                                                        <IconLoader className="h-3 w-3 mr-1 animate-spin" />
+                                                        Verifying branch/tag...
+                                                    </div>
+                                                ) : branchVerificationResult && (
+                                                    branchVerificationResult.isValid ? (
+                                                        <div className="flex items-center text-green-600 text-sm">
+                                                            <IconCheck className="h-3 w-3 mr-1" />
+                                                            {branchVerificationResult.message}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center text-red-600 text-sm">
+                                                            <IconAlertTriangle className="h-3 w-3 mr-1" />
+                                                            {branchVerificationResult.message}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -349,17 +339,11 @@ export default function VersionForm({
                                 <p>Only commit hash and release notes can be modified.</p>
                             </div>
                         )}
-                        {!isEditing && hasGithubConfigurations && versionValue && githubVerificationResult && !githubVerificationResult.isValid && (
-                            <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-md border border-amber-200 mb-3">
-                                <p className="font-medium">Tag Missing</p>
-                                <p>This version doesn&apos;t exist as a tag in any GitHub repository. Creating it might cause deployment issues.</p>
-                            </div>
-                        )}
                         <div className="space-y-3">
                             <Button
                                 type="submit"
                                 onClick={form.handleSubmit(handleSubmit)}
-                                disabled={disabled || isLoading || isSuccess || isVerifyingGithub}
+                                disabled={disabled || isLoading || isSuccess || isVerifyingBranch}
                                 className="w-full"
                             >
                                 {isLoading && (

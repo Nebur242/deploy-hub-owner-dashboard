@@ -24,7 +24,7 @@ export const createUser = async (createUserDto: {
 }) => {
   const response = await AXIOS.post<{ data: User }>(
     API_ROUTES.users,
-    createUserDto
+    createUserDto,
   );
   return response.data.data;
 };
@@ -34,8 +34,11 @@ export const sendPasswordResetEmailApi = async (email: string) => {
   return response.data.data;
 };
 
-export const getUser = async (uid: string): Promise<User> => {
-  const response = await AXIOS.get<{ data: User }>(`/users/${uid}`);
+export const getUser = async (uid: string, token?: string): Promise<User> => {
+  const config = token
+    ? { headers: { Authorization: `Bearer ${token}` } }
+    : undefined;
+  const response = await AXIOS.get<{ data: User }>(`/users/${uid}`, config);
   return response.data.data;
 };
 
@@ -172,7 +175,7 @@ export const checkEmailVerification = async (): Promise<boolean> => {
  */
 export const changePassword = async (
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<void> => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -185,7 +188,7 @@ export const changePassword = async (
     // First re-authenticate user to ensure security for sensitive operations
     const credential = EmailAuthProvider.credential(
       user.email,
-      currentPassword
+      currentPassword,
     );
     await reauthenticateWithCredential(user, credential);
 
@@ -213,7 +216,7 @@ export const changePassword = async (
  * @throws Firebase Auth errors on failure
  */
 export const signOutAllDevices = async (
-  currentPassword: string
+  currentPassword: string,
 ): Promise<void> => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -226,7 +229,7 @@ export const signOutAllDevices = async (
     // First re-authenticate user to ensure security for sensitive operations
     const credential = EmailAuthProvider.credential(
       user.email,
-      currentPassword
+      currentPassword,
     );
     await reauthenticateWithCredential(user, credential);
 
@@ -280,11 +283,11 @@ export interface RegisterOwnerData {
  */
 export const requestCode = async (
   email: string,
-  purpose: "login" | "register"
+  purpose: "login" | "register",
 ): Promise<RequestCodeResponse> => {
   const response = await AXIOS.post<{ data: RequestCodeResponse }>(
     "/auth/request-code",
-    { email, purpose }
+    { email, purpose },
   );
   return response.data.data;
 };
@@ -295,11 +298,11 @@ export const requestCode = async (
 export const verifyCode = async (
   email: string,
   code: string,
-  purpose: "login" | "register"
+  purpose: "login" | "register",
 ): Promise<VerifyCodeResponse> => {
   const response = await AXIOS.post<{ data: VerifyCodeResponse }>(
     "/auth/verify-code",
-    { email, code, purpose }
+    { email, code, purpose },
   );
   return response.data.data;
 };
@@ -310,11 +313,11 @@ export const verifyCode = async (
 export const validateToken = async (
   email: string,
   verificationToken: string,
-  purpose: "login" | "register"
+  purpose: "login" | "register",
 ): Promise<{ valid: boolean }> => {
   const response = await AXIOS.post<{ data: { valid: boolean } }>(
     "/auth/validate-token",
-    { email, verification_token: verificationToken, purpose }
+    { email, verification_token: verificationToken, purpose },
   );
   return response.data.data;
 };
@@ -323,11 +326,11 @@ export const validateToken = async (
  * Register an owner using verification token (OTP flow)
  */
 export const registerOwnerWithVerification = async (
-  data: RegisterOwnerData
+  data: RegisterOwnerData,
 ): Promise<AuthWithVerificationResponse> => {
   const response = await AXIOS.post<{ data: AuthWithVerificationResponse }>(
     "/auth/register-owner-with-verification",
-    data
+    data,
   );
   return response.data.data;
 };
@@ -337,11 +340,11 @@ export const registerOwnerWithVerification = async (
  */
 export const loginWithVerification = async (
   email: string,
-  verificationToken: string
+  verificationToken: string,
 ): Promise<AuthWithVerificationResponse> => {
   const response = await AXIOS.post<{ data: AuthWithVerificationResponse }>(
     "/auth/login-with-verification",
-    { email, verification_token: verificationToken }
+    { email, verification_token: verificationToken },
   );
   return response.data.data;
 };
@@ -350,7 +353,7 @@ export const loginWithVerification = async (
  * Sign in to Firebase using custom token from backend
  */
 export const firebaseSignInWithCustomToken = async (
-  customToken: string
+  customToken: string,
 ): Promise<UserCredential> => {
   const auth = getAuth();
   const { signInWithCustomToken } = await import("firebase/auth");
@@ -368,7 +371,7 @@ import { OwnerProfile } from "@/common/types/user";
  */
 export const getOwnerProfile = async (): Promise<OwnerProfile> => {
   const response = await AXIOS.get<{ data: OwnerProfile }>(
-    "/users/me/owner-profile"
+    "/users/me/owner-profile",
   );
   return response.data.data;
 };

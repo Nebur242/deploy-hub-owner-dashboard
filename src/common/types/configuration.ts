@@ -8,6 +8,7 @@ export interface GithubAccount {
   access_token: string;
   repository: string;
   workflow_file: string;
+  default_branch?: string;
 }
 
 // Environment Variable entity

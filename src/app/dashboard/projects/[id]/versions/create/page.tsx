@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import VersionForm, { VersionFormValues } from "../components/version-form";
 import { getErrorMessage } from "@/utils/functions";
 import { useState, useCallback, useMemo } from "react";
-import { verifyVersionInGithubAccounts } from "@/services/github";
+import { verifyBranchInGithubAccounts } from "@/services/github";
 
 export default function CreateVersionPage() {
     const router = useRouter();
@@ -32,9 +32,9 @@ export default function CreateVersionPage() {
         isSuccess,
     }] = useCreateVersionMutation();
 
-    // State for GitHub tag verification
-    const [isVerifyingGithub, setIsVerifyingGithub] = useState(false);
-    const [githubVerificationResult, setGithubVerificationResult] = useState<{
+    // State for branch/tag verification
+    const [isVerifyingBranch, setIsVerifyingBranch] = useState(false);
+    const [branchVerificationResult, setBranchVerificationResult] = useState<{
         isValid: boolean;
         foundInAccounts: string[];
         message: string;
@@ -55,47 +55,32 @@ export default function CreateVersionPage() {
     ), [configurations]);
 
     /**
-     * Handles the version change event and verifies the version against GitHub tags
-     * 
-     * Note: This function receives the already debounced version value from the VersionForm component.
-     * The form component uses the useDebounce hook to prevent multiple API calls when the user
-     * is typing quickly. This ensures we only make API calls when the user has stopped typing
-     * for a specific amount of time (600ms).
+     * Handles the branch change event and verifies the branch/tag against GitHub
      */
-    const handleVersionChange = useCallback(async (version: string) => {
-        // Skip API calls for very short or invalid versions
-        if (!version || version.length < 3 || !hasConfigurations || allGithubAccounts.length === 0) {
-            return;
-        }
-
-        // Validate it's roughly in semver format before making API calls
-        const semverRegex = /^\d+(\.\d+)?(\.\d+)?/;
-        if (!semverRegex.test(version)) {
+    const handleBranchChange = useCallback(async (branch: string) => {
+        // Skip API calls for very short values
+        if (!branch || branch.length < 1 || !hasConfigurations || allGithubAccounts.length === 0) {
+            setBranchVerificationResult(null);
             return;
         }
 
         // Reset verification state
-        setIsVerifyingGithub(true);
-        setGithubVerificationResult(null);
+        setIsVerifyingBranch(true);
+        setBranchVerificationResult(null);
 
         try {
-            // Since version is already debounced in the form component,
-            // we can directly verify it against GitHub tags
-            const result = await verifyVersionInGithubAccounts(allGithubAccounts, version);
-
-            // Only update state if we're still on the same version
-            // This prevents race conditions when typing quickly
-            setGithubVerificationResult(result);
+            const result = await verifyBranchInGithubAccounts(allGithubAccounts, branch);
+            setBranchVerificationResult(result);
         } catch (err) {
-            console.error("Error verifying version tag:", err);
+            console.error("Error verifying branch:", err);
             const error = err as Error;
-            setGithubVerificationResult({
+            setBranchVerificationResult({
                 isValid: false,
                 foundInAccounts: [],
-                message: `Error checking version tag: ${error.message}`
+                message: `Error checking branch/tag: ${error.message}`
             });
         } finally {
-            setIsVerifyingGithub(false);
+            setIsVerifyingBranch(false);
         }
     }, [hasConfigurations, allGithubAccounts]);
 
@@ -109,21 +94,30 @@ export default function CreateVersionPage() {
             return;
         }
 
-        // Check if we should warn about missing GitHub tag
+        // Block submission if branch is provided but doesn't exist in GitHub
         const hasGithubAccounts = allGithubAccounts.length > 0;
-        const needsTagWarning = hasGithubAccounts &&
-            githubVerificationResult &&
-            !githubVerificationResult.isValid &&
-            !isVerifyingGithub;
+        if (values.branch && hasGithubAccounts) {
+            // Still verifying - block submission
+            if (isVerifyingBranch) {
+                toast.error("Verification in progress", {
+                    description: "Please wait for branch verification to complete.",
+                });
+                return;
+            }
 
-        // If version doesn't exist as GitHub tag, confirm with user
-        if (needsTagWarning) {
-            const confirmCreate = window.confirm(
-                `Warning: Version "${values.version}" doesn't exist as a tag in any GitHub repository. ` +
-                `This may cause deployment issues later. Do you want to create it anyway?`
-            );
+            // Branch doesn't exist - block submission
+            if (branchVerificationResult && !branchVerificationResult.isValid) {
+                toast.error("Invalid branch", {
+                    description: `Branch "${values.branch}" does not exist in any connected GitHub repository. Please enter a valid branch or tag name.`,
+                });
+                return;
+            }
 
-            if (!confirmCreate) {
+            // Branch verification hasn't been done yet - block and request verification
+            if (!branchVerificationResult) {
+                toast.error("Branch not verified", {
+                    description: "Please wait for the branch to be verified before creating the version.",
+                });
                 return;
             }
         }
@@ -209,9 +203,9 @@ export default function CreateVersionPage() {
                         } : null}
                         disabled={!hasConfigurations}
                         configurations={configurations}
-                        onVersionChange={handleVersionChange}
-                        githubVerificationResult={githubVerificationResult}
-                        isVerifyingGithub={isVerifyingGithub}
+                        onBranchChange={handleBranchChange}
+                        branchVerificationResult={branchVerificationResult}
+                        isVerifyingBranch={isVerifyingBranch}
                     />
                 )}
             </div>

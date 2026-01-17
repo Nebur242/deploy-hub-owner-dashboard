@@ -25,6 +25,7 @@ export interface DeploymentFormProps {
   isSuccess: boolean;
   error: { message: string } | null;
   onProjectChange?: (projectId: string) => void;
+  onConfigChange?: (configId: string) => void;
   onEnvVarChange?: (key: string, value: string) => void;
   envVarValues?: Record<string, string>;
   isLoadingVersions?: boolean;

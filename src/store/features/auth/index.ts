@@ -14,6 +14,7 @@ import {
 } from "../../../services/users";
 import { asyncHandler } from "@/utils/functions";
 import { AppUser, hasRole, Status, User } from "@/common/types";
+import { authService } from "@/services/auth-service";
 
 export interface AuthInitialState {
   infos: AppUser | null;
@@ -111,7 +112,7 @@ export const requestOtpCode = createAsyncThunk(
       onSuccess?: () => void;
       onFailed?: () => void;
     },
-    { rejectWithValue, fulfillWithValue }
+    { rejectWithValue, fulfillWithValue },
   ) => {
     try {
       await requestCode(email, purpose);
@@ -122,10 +123,10 @@ export const requestOtpCode = createAsyncThunk(
       if (onFailed) onFailed();
       return rejectWithValue(
         axiosError?.response?.data?.message ||
-          "Failed to send verification code"
+          "Failed to send verification code",
       );
     }
-  }
+  },
 );
 
 export const verifyOtpCode = createAsyncThunk(
@@ -144,7 +145,7 @@ export const verifyOtpCode = createAsyncThunk(
       onSuccess?: (verificationToken: string) => void;
       onFailed?: () => void;
     },
-    { rejectWithValue, fulfillWithValue }
+    { rejectWithValue, fulfillWithValue },
   ) => {
     try {
       const response = await verifyCode(email, code, purpose);
@@ -158,10 +159,10 @@ export const verifyOtpCode = createAsyncThunk(
       const axiosError = error as AxiosError<{ message: string }>;
       if (onFailed) onFailed();
       return rejectWithValue(
-        axiosError?.response?.data?.message || "Invalid or expired code"
+        axiosError?.response?.data?.message || "Invalid or expired code",
       );
     }
-  }
+  },
 );
 
 export const loginOwnerWithOtp = createAsyncThunk(
@@ -178,7 +179,7 @@ export const loginOwnerWithOtp = createAsyncThunk(
       onSuccess?: () => void;
       onFailed?: () => void;
     },
-    { rejectWithValue, fulfillWithValue }
+    { rejectWithValue, fulfillWithValue },
   ) => {
     try {
       // Call backend to login with verification token
@@ -189,6 +190,10 @@ export const loginOwnerWithOtp = createAsyncThunk(
 
       // Set session cookie
       const idToken = await firebaseUser.user.getIdToken(true);
+
+      // Save token to cache immediately so subsequent API calls can use it
+      authService.setToken(idToken);
+
       const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: {
@@ -202,8 +207,8 @@ export const loginOwnerWithOtp = createAsyncThunk(
         return rejectWithValue("Failed to create session");
       }
 
-      // Get user from backend
-      const user = await getUser(firebaseUser.user.uid);
+      // Get user from backend - pass token directly to avoid race condition
+      const user = await getUser(firebaseUser.user.uid, idToken);
 
       // Verify user has owner role
       if (!hasRole(user.roles, "owner") && !hasRole(user.roles, "admin")) {
@@ -220,10 +225,10 @@ export const loginOwnerWithOtp = createAsyncThunk(
       const axiosError = error as AxiosError<{ message: string }>;
       if (onFailed) onFailed();
       return rejectWithValue(
-        axiosError?.response?.data?.message || "Login failed"
+        axiosError?.response?.data?.message || "Login failed",
       );
     }
-  }
+  },
 );
 
 export const registerOwnerWithOtp = createAsyncThunk(
@@ -256,7 +261,7 @@ export const registerOwnerWithOtp = createAsyncThunk(
       onSuccess?: () => void;
       onFailed?: () => void;
     },
-    { rejectWithValue, fulfillWithValue }
+    { rejectWithValue, fulfillWithValue },
   ) => {
     try {
       // Register owner with backend
@@ -278,6 +283,10 @@ export const registerOwnerWithOtp = createAsyncThunk(
 
       // Set session cookie
       const idToken = await firebaseUser.user.getIdToken(true);
+
+      // Save token to cache immediately so subsequent API calls can use it
+      authService.setToken(idToken);
+
       const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: {
@@ -291,8 +300,8 @@ export const registerOwnerWithOtp = createAsyncThunk(
         return rejectWithValue("Failed to create session");
       }
 
-      // Get user from backend
-      const user = await getUser(firebaseUser.user.uid);
+      // Get user from backend - pass token directly to avoid race condition
+      const user = await getUser(firebaseUser.user.uid, idToken);
 
       return fulfillWithValue({
         ...user,
@@ -301,10 +310,10 @@ export const registerOwnerWithOtp = createAsyncThunk(
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;
       return rejectWithValue(
-        axiosError?.response?.data?.message || "Registration failed"
+        axiosError?.response?.data?.message || "Registration failed",
       );
     }
-  }
+  },
 );
 
 export const authenticateUser = createAsyncThunk(
@@ -317,7 +326,7 @@ export const authenticateUser = createAsyncThunk(
 
     if (firebaseError || !firebaseUser) {
       return rejectWithValue(
-        firebaseError?.message || "Firebase register error"
+        firebaseError?.message || "Firebase register error",
       );
     }
 
@@ -329,7 +338,7 @@ export const authenticateUser = createAsyncThunk(
     if (axiosError || !userInfos) {
       console.log(axiosError);
       return rejectWithValue(
-        axiosError?.response?.data.message || "Axios error"
+        axiosError?.response?.data.message || "Axios error",
       );
     }
 
@@ -346,7 +355,7 @@ export const authenticateUser = createAsyncThunk(
       ...userInfos,
       firebase: firebaseUser.toJSON() as UserCredential["user"],
     });
-  }
+  },
 );
 
 export const logoutUser = createAsyncThunk(
@@ -372,7 +381,7 @@ export const logoutUser = createAsyncThunk(
       const error = err as AuthError;
       return rejectWithValue(error?.message || "Error");
     }
-  }
+  },
 );
 
 const authSlice = createSlice({
@@ -396,7 +405,7 @@ const authSlice = createSlice({
           verificationToken: string;
           type: "login" | "register";
         };
-      }
+      },
     ) => {
       state.otpEmail = action.payload.email;
       state.verificationToken = action.payload.verificationToken;
@@ -418,7 +427,7 @@ const authSlice = createSlice({
           state.authenticate.status = "success";
           state.infos = action.payload;
           state.isLoggedIn = true;
-        }
+        },
       )
       .addCase(authenticateUser.rejected, (state: AuthInitialState, action) => {
         state.authenticate.loading = false;
@@ -493,7 +502,7 @@ const authSlice = createSlice({
           state.otpEmail = null;
           state.otpType = null;
           state.verificationToken = null;
-        }
+        },
       )
       .addCase(
         loginOwnerWithOtp.rejected,
@@ -501,7 +510,7 @@ const authSlice = createSlice({
           state.loginWithOtp.loading = false;
           state.loginWithOtp.error = action.payload as string;
           state.loginWithOtp.status = "error";
-        }
+        },
       )
       .addCase(registerOwnerWithOtp.pending, (state: AuthInitialState) => {
         state.registerWithOtp.loading = true;
@@ -520,7 +529,7 @@ const authSlice = createSlice({
           state.otpEmail = null;
           state.otpType = null;
           state.verificationToken = null;
-        }
+        },
       )
       .addCase(
         registerOwnerWithOtp.rejected,
@@ -528,7 +537,7 @@ const authSlice = createSlice({
           state.registerWithOtp.loading = false;
           state.registerWithOtp.error = action.payload as string;
           state.registerWithOtp.status = "error";
-        }
+        },
       );
   },
 });

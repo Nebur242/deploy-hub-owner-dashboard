@@ -18,7 +18,7 @@ export async function validateGithubConfig(
   username: string,
   access_token: string,
   repository: string,
-  workflow_file: string
+  workflow_file: string,
 ): Promise<GithubValidationResponse> {
   try {
     // Create Axios instance with GitHub API base URL and auth token
@@ -85,7 +85,7 @@ export async function validateGithubConfig(
 
     try {
       await githubApi.get(
-        `/repos/${username}/${repository}/contents/${workflowPath}`
+        `/repos/${username}/${repository}/contents/${workflowPath}`,
       );
     } catch (err) {
       const error = err as {
@@ -169,7 +169,7 @@ export async function verifyVersionTag(
   username: string,
   access_token: string,
   repository: string,
-  version: string
+  version: string,
 ): Promise<GithubValidationResponse> {
   logApiCall("verifyVersionTag", { username, repository, version });
 
@@ -213,13 +213,13 @@ export async function verifyVersionTag(
         `/repos/${username}/${repository}/tags`,
         {
           params: { per_page: 100 }, // Get up to 100 tags
-        }
+        },
       );
 
       // Check if the version exists in tags (exact match or with 'v' prefix)
       const tagExists = tags.some(
         (tag: { name: string }) =>
-          tag.name === version || tag.name === `v${version}`
+          tag.name === version || tag.name === `v${version}`,
       );
 
       const result = tagExists
@@ -249,14 +249,14 @@ export async function verifyVersionTag(
               message: `Invalid GitHub access token for user ${username}`,
             }
           : error.response?.status === 404
-          ? {
-              isValid: false,
-              message: `Repository "${repository}" not found for user ${username}`,
-            }
-          : {
-              isValid: false,
-              message: `Error checking tags: ${error.message}`,
-            };
+            ? {
+                isValid: false,
+                message: `Repository "${repository}" not found for user ${username}`,
+              }
+            : {
+                isValid: false,
+                message: `Error checking tags: ${error.message}`,
+              };
 
       // Cache error results too, but with shorter TTL
       versionTagCache[cacheKey] = {
@@ -300,7 +300,7 @@ export async function verifyVersionInGithubAccounts(
     repository: string;
     workflowFile?: string;
   }>,
-  version: string
+  version: string,
 ): Promise<{
   isValid: boolean;
   foundInAccounts: string[];
@@ -348,7 +348,7 @@ export async function verifyVersionInGithubAccounts(
         account.username,
         account.access_token,
         account.repository,
-        version
+        version,
       );
 
       if (result.isValid) {
@@ -356,10 +356,10 @@ export async function verifyVersionInGithubAccounts(
       } else if (!result.message.includes("not found as a tag")) {
         // Only collect non-tag-missing errors
         errors.push(
-          `${account.username}/${account.repository}: ${result.message}`
+          `${account.username}/${account.repository}: ${result.message}`,
         );
       }
-    })
+    }),
   );
 
   let result;
@@ -393,6 +393,203 @@ export async function verifyVersionInGithubAccounts(
   return result;
 }
 
+// Cache for branch/ref verification
+const branchRefCache: Record<
+  string,
+  {
+    isValid: boolean;
+    message: string;
+    timestamp: number;
+  }
+> = {};
+
+/**
+ * Verifies if a branch or tag exists in a specific GitHub repository
+ *
+ * @param username GitHub username
+ * @param accessToken GitHub access token
+ * @param repository Repository name
+ * @param ref Branch or tag name to check for
+ * @returns Validation result
+ */
+export async function verifyBranchOrRef(
+  username: string,
+  access_token: string,
+  repository: string,
+  ref: string,
+): Promise<GithubValidationResponse> {
+  logApiCall("verifyBranchOrRef", { username, repository, ref });
+
+  // Create a unique cache key
+  const cacheKey = `branch:${username}/${repository}/${ref}`;
+
+  // Check if we have a cached result that's not expired
+  if (branchRefCache[cacheKey]) {
+    const cacheEntry = branchRefCache[cacheKey];
+    const now = Date.now();
+
+    if (now - cacheEntry.timestamp < CACHE_TTL) {
+      logApiCall("verifyBranchOrRef:cache-hit", { username, repository, ref });
+      return {
+        isValid: cacheEntry.isValid,
+        message: cacheEntry.message,
+      };
+    }
+  }
+
+  try {
+    // Create Axios instance
+    const githubApi = axios.create({
+      baseURL: "https://api.github.com",
+      headers: {
+        Authorization: `token ${access_token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    // First, try to get the ref as a branch
+    try {
+      await githubApi.get(`/repos/${username}/${repository}/branches/${ref}`);
+      const result = {
+        isValid: true,
+        message: `Branch "${ref}" found in repository ${username}/${repository}`,
+      };
+      branchRefCache[cacheKey] = { ...result, timestamp: Date.now() };
+      return result;
+    } catch {
+      // Not found as branch, try as tag
+    }
+
+    // Try to get as a tag
+    try {
+      const { data: tags } = await githubApi.get(
+        `/repos/${username}/${repository}/tags`,
+        { params: { per_page: 100 } },
+      );
+
+      const tagExists = tags.some((tag: { name: string }) => tag.name === ref);
+
+      if (tagExists) {
+        const result = {
+          isValid: true,
+          message: `Tag "${ref}" found in repository ${username}/${repository}`,
+        };
+        branchRefCache[cacheKey] = { ...result, timestamp: Date.now() };
+        return result;
+      }
+    } catch {
+      // Tag lookup failed
+    }
+
+    // Neither branch nor tag found
+    const result = {
+      isValid: false,
+      message: `"${ref}" not found as a branch or tag in repository ${username}/${repository}`,
+    };
+    branchRefCache[cacheKey] = { ...result, timestamp: Date.now() };
+    return result;
+  } catch (err) {
+    const error = err as { response?: { status: number }; message: string };
+
+    const result =
+      error.response?.status === 401 || error.response?.status === 403
+        ? {
+            isValid: false,
+            message: `Invalid GitHub access token for user ${username}`,
+          }
+        : error.response?.status === 404
+          ? {
+              isValid: false,
+              message: `Repository "${repository}" not found for user ${username}`,
+            }
+          : {
+              isValid: false,
+              message: `Error checking branch/tag: ${error.message}`,
+            };
+
+    branchRefCache[cacheKey] = { ...result, timestamp: Date.now() };
+    return result;
+  }
+}
+
+/**
+ * Check if a branch or tag exists in any of the connected GitHub accounts
+ *
+ * @param accounts Array of GitHub accounts with credentials and repository info
+ * @param ref Branch or tag name to check
+ * @returns Result object with validation status and details
+ */
+export async function verifyBranchInGithubAccounts(
+  accounts: Array<{
+    username: string;
+    access_token: string;
+    repository: string;
+    workflowFile?: string;
+  }>,
+  ref: string,
+): Promise<{
+  isValid: boolean;
+  foundInAccounts: string[];
+  message: string;
+}> {
+  logApiCall("verifyBranchInGithubAccounts", {
+    accountCount: accounts?.length,
+    ref,
+  });
+
+  if (!accounts || accounts.length === 0) {
+    return {
+      isValid: false,
+      foundInAccounts: [],
+      message: "No GitHub accounts provided for verification",
+    };
+  }
+
+  const foundInAccounts: string[] = [];
+  const errors: string[] = [];
+
+  // Check each account for the branch/tag
+  await Promise.all(
+    accounts.map(async (account) => {
+      const result = await verifyBranchOrRef(
+        account.username,
+        account.access_token,
+        account.repository,
+        ref,
+      );
+
+      if (result.isValid) {
+        foundInAccounts.push(`${account.username}/${account.repository}`);
+      } else if (!result.message.includes("not found as a branch or tag")) {
+        // Only collect non-missing errors
+        errors.push(
+          `${account.username}/${account.repository}: ${result.message}`,
+        );
+      }
+    }),
+  );
+
+  if (foundInAccounts.length > 0) {
+    return {
+      isValid: true,
+      foundInAccounts,
+      message: `"${ref}" found in ${foundInAccounts.join(", ")}`,
+    };
+  } else if (errors.length > 0) {
+    return {
+      isValid: false,
+      foundInAccounts: [],
+      message: `Errors checking branch/tag: ${errors.join("; ")}`,
+    };
+  } else {
+    return {
+      isValid: false,
+      foundInAccounts: [],
+      message: `"${ref}" not found in any connected GitHub repositories`,
+    };
+  }
+}
+
 /**
  * Get all workflow files from a GitHub repository
  *
@@ -404,7 +601,7 @@ export async function verifyVersionInGithubAccounts(
 export async function getWorkflowFiles(
   username: string,
   access_token: string,
-  repository: string
+  repository: string,
 ): Promise<{ files: string[]; error?: string }> {
   try {
     const githubApi = axios.create({
@@ -417,7 +614,7 @@ export async function getWorkflowFiles(
 
     // Get contents of .github/workflows directory
     const { data } = await githubApi.get(
-      `/repos/${username}/${repository}/contents/.github/workflows`
+      `/repos/${username}/${repository}/contents/.github/workflows`,
     );
 
     // Filter for YAML files and extract names
@@ -425,7 +622,7 @@ export async function getWorkflowFiles(
       .filter(
         (file: { type: string; name: string }) =>
           file.type === "file" &&
-          (file.name.endsWith(".yml") || file.name.endsWith(".yaml"))
+          (file.name.endsWith(".yml") || file.name.endsWith(".yaml")),
       )
       .map((file: { name: string }) => file.name);
 
@@ -469,7 +666,7 @@ export async function getWorkflowFileContent(
   username: string,
   access_token: string,
   repository: string,
-  workflow_file: string
+  workflow_file: string,
 ): Promise<{ content: string; error?: string }> {
   try {
     const githubApi = axios.create({
@@ -486,7 +683,7 @@ export async function getWorkflowFileContent(
       : `.github/workflows/${workflow_file}`;
 
     const { data } = await githubApi.get(
-      `/repos/${username}/${repository}/contents/${workflowPath}`
+      `/repos/${username}/${repository}/contents/${workflowPath}`,
     );
 
     // Decode base64 content
@@ -519,6 +716,69 @@ export async function getWorkflowFileContent(
 }
 
 /**
+ * Get all branches from a GitHub repository
+ *
+ * @param username GitHub username
+ * @param accessToken GitHub access token
+ * @param repository Repository name
+ * @returns Array of branch names with default branch info
+ */
+export async function getBranches(
+  username: string,
+  access_token: string,
+  repository: string,
+): Promise<{ branches: string[]; defaultBranch?: string; error?: string }> {
+  try {
+    const githubApi = axios.create({
+      baseURL: "https://api.github.com",
+      headers: {
+        Authorization: `token ${access_token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    // First, get the repository info to get the default branch
+    const repoResponse = await githubApi.get(
+      `/repos/${username}/${repository}`,
+    );
+    const defaultBranch = repoResponse.data.default_branch;
+
+    // Get all branches (paginated, get first 100)
+    const { data } = await githubApi.get(
+      `/repos/${username}/${repository}/branches`,
+      { params: { per_page: 100 } },
+    );
+
+    // Extract branch names
+    const branches = data.map((branch: { name: string }) => branch.name);
+
+    return { branches, defaultBranch };
+  } catch (err) {
+    const error = err as { response?: { status: number }; message: string };
+
+    if (error.response?.status === 404) {
+      return {
+        branches: [],
+        error: "Repository not found or no branches available",
+      };
+    } else if (
+      error.response?.status === 401 ||
+      error.response?.status === 403
+    ) {
+      return {
+        branches: [],
+        error: "Access denied. Check your GitHub token permissions",
+      };
+    } else {
+      return {
+        branches: [],
+        error: `Error loading branches: ${error.message}`,
+      };
+    }
+  }
+}
+
+/**
  * Create a new workflow file in the GitHub repository
  *
  * @param username GitHub username
@@ -535,7 +795,7 @@ export async function createWorkflowFile(
   repository: string,
   workflow_file: string,
   content: string,
-  commitMessage: string = "Add GitHub workflow file"
+  commitMessage: string = "Add GitHub workflow file",
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const githubApi = axios.create({
@@ -554,7 +814,7 @@ export async function createWorkflowFile(
     // Check if file already exists
     try {
       await githubApi.get(
-        `/repos/${username}/${repository}/contents/${workflowPath}`
+        `/repos/${username}/${repository}/contents/${workflowPath}`,
       );
       return {
         success: false,
@@ -574,7 +834,7 @@ export async function createWorkflowFile(
       {
         message: commitMessage,
         content: Buffer.from(content).toString("base64"),
-      }
+      },
     );
 
     return { success: true };
@@ -611,7 +871,7 @@ export async function createWorkflowFile(
 export async function generateWorkflowWithAI(
   projectDescription: string,
   deploymentPreferences?: string,
-  framework?: string
+  framework?: string,
 ): Promise<{ content: string; error?: string }> {
   try {
     const response = await axios.post("/api/generate-workflow", {

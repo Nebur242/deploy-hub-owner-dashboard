@@ -39,6 +39,7 @@ export default function DeploymentForm({
   isSuccess,
   error,
   onProjectChange,
+  onConfigChange,
   onEnvVarChange,
   isLoadingVersions,
   isProjectOwner = false,
@@ -50,18 +51,33 @@ export default function DeploymentForm({
   const [configError, setConfigError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Get the default branch from projectVersions (first item is the default branch)
+  const defaultBranch = projectVersions[0] || 'main';
+
   // Initialize form
   const form = useForm<DeploymentFormValues>({
     resolver: zodResolver(deploymentSchema),
     defaultValues: initialData || {
       environment: DeploymentEnvironment.PREVIEW,
-      branch: "main",
+      branch: defaultBranch,
       environment_variables: [],
       project_id: initialProjectId || "",
       configuration_id: initialConfigurationId || "",
       is_test: false, // Default to false
     },
   });
+
+  // Update branch field when projectVersions changes (to reflect the default branch from config)
+  useEffect(() => {
+    const currentBranch = form.getValues('branch');
+    const newDefaultBranch = projectVersions[0] || 'main';
+    
+    // Only update if the current branch is not in the available versions
+    // or if it's still the old default and hasn't been explicitly changed by user
+    if (currentBranch && !projectVersions.includes(currentBranch)) {
+      form.setValue('branch', newDefaultBranch);
+    }
+  }, [projectVersions, form]);
 
   // Monitor the success state
   useEffect(() => {
@@ -252,10 +268,15 @@ export default function DeploymentForm({
   };
 
   // Handle configuration change
-  const handleConfigChange = () => {
+  const handleConfigChange = (configId?: string) => {
     // Reset environment variables when configuration changes
     setConfigEnvVars([]);
     setEnvVarValues({});
+    
+    // Call the external handler if provided
+    if (onConfigChange && configId) {
+      onConfigChange(configId);
+    }
   };
 
   return (

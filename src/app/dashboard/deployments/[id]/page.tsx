@@ -515,6 +515,10 @@ export default function DeploymentDetailPage() {
                           <span className="text-sm font-medium text-muted-foreground">Workflow File</span>
                           <p className="font-medium">{deployment.github_account.workflow_file}</p>
                         </div>
+                        <div className="p-3 border rounded">
+                          <span className="text-sm font-medium text-muted-foreground">Branch Deployed</span>
+                          <p className="font-medium">{deployment.branch || 'N/A'}</p>
+                        </div>
                       </div>
                     </div>
                   )}

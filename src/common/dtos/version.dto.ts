@@ -20,6 +20,7 @@ export const createVersionDtoSchema = versionBaseDtoSchema.extend({
       semverPattern,
       "Version must follow semantic versioning format (X.Y.Z)"
     ),
+  branch: z.string().optional(),
   project_id: z.string(),
 });
 

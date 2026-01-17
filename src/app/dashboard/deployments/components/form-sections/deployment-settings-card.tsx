@@ -177,7 +177,7 @@ export function DeploymentSettingsCard({
                     <SelectContent>
                       {projectVersions.map((version) => (
                         <SelectItem key={version} value={version}>
-                          {versionRegex.test(version) ? `v${version}` : "main"}
+                          {versionRegex.test(version) ? `v${version}` : version}
                         </SelectItem>
                       ))}
                     </SelectContent>

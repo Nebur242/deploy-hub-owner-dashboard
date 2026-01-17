@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { validateGithubConfig, getWorkflowFiles, getWorkflowFileContent } from "@/services/github";
+import { validateGithubConfig, getWorkflowFiles, getWorkflowFileContent, getBranches } from "@/services/github";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/hooks/theme-context";
 import { WorkflowAssistant } from "@/components/workflow-assistant";
@@ -42,8 +42,22 @@ import {
   IconRobot,
 } from "@tabler/icons-react";
 import Link from "next/link";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, Check, ChevronsUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -136,11 +150,20 @@ function GithubAccountFields({ index }: { index: number }) {
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
 
+  // Branch-related states
+  const [branches, setBranches] = useState<string[]>([]);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [branchError, setBranchError] = useState<string | null>(null);
+  const [repoDefaultBranch, setRepoDefaultBranch] = useState<string | undefined>(undefined);
+  const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
+  const [workflowPopoverOpen, setWorkflowPopoverOpen] = useState(false);
+
   // Watch for changes in username, token, and repository to reload workflows
   const username = form.watch(`github_accounts.${index}.username`);
   const accessToken = form.watch(`github_accounts.${index}.access_token`);
   const repository = form.watch(`github_accounts.${index}.repository`);
   const selectedWorkflow = form.watch(`github_accounts.${index}.workflow_file`);
+  const selectedBranch = form.watch(`github_accounts.${index}.default_branch`);
 
   // Determine Monaco Editor theme based on app theme
   const getEditorTheme = () => {
@@ -193,6 +216,58 @@ function GithubAccountFields({ index }: { index: number }) {
 
     return () => clearTimeout(timeoutId);
   }, [loadWorkflowFiles]);
+
+  // Load branches when credentials are available
+  const loadBranches = useCallback(async () => {
+    if (!username || !accessToken || !repository) {
+      setBranches([]);
+      setBranchError(null);
+      setRepoDefaultBranch(undefined);
+      return;
+    }
+
+    setIsLoadingBranches(true);
+    setBranchError(null);
+
+    try {
+      const result = await getBranches(username, accessToken, repository);
+
+      if (result.error) {
+        setBranchError(result.error);
+        setBranches([]);
+        setRepoDefaultBranch(undefined);
+      } else {
+        setBranches(result.branches);
+        setRepoDefaultBranch(result.defaultBranch);
+
+        // If no branch is selected yet, auto-select the default branch
+        const currentBranch = form.getValues(`github_accounts.${index}.default_branch`);
+        if (!currentBranch && result.defaultBranch) {
+          form.setValue(`github_accounts.${index}.default_branch`, result.defaultBranch);
+        }
+
+        if (result.branches.length === 0) {
+          setBranchError("No branches found in this repository");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading branches:", error);
+      setBranchError("Failed to load branches");
+      setBranches([]);
+      setRepoDefaultBranch(undefined);
+    } finally {
+      setIsLoadingBranches(false);
+    }
+  }, [username, accessToken, repository, form, index]);
+
+  // Load branches when dependencies change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadBranches();
+    }, 500); // Debounce to avoid too many API calls
+
+    return () => clearTimeout(timeoutId);
+  }, [loadBranches]);
 
   // Load workflow content for preview
   const loadWorkflowContent = async () => {
@@ -308,44 +383,70 @@ function GithubAccountFields({ index }: { index: number }) {
                     </Button>
                   </div>
                 </FormLabel>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <FormControl className="flex-1">
-                    {workflowFiles.length > 0 ? (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger className="text-sm">
-                          <SelectValue placeholder="Select a workflow file" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {workflowFiles.map((file) => (
-                            <SelectItem key={file} value={file}>
-                              {file}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        placeholder="deploy.yml"
-                        className="text-sm"
-                        {...field}
-                      />
-                    )}
-                  </FormControl>
+                <div className="flex gap-2 items-stretch">
+                  <div className="flex-1 min-w-0">
+                    <FormControl>
+                      {workflowFiles.length > 0 ? (
+                        <Popover open={workflowPopoverOpen} onOpenChange={setWorkflowPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={workflowPopoverOpen}
+                              className="w-full justify-between text-sm font-normal h-10"
+                            >
+                              <span className="truncate">{field.value || "Select a workflow file..."}</span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search workflow files..." />
+                              <CommandList>
+                                <CommandEmpty>No workflow file found.</CommandEmpty>
+                                <CommandGroup>
+                                  {workflowFiles.map((file) => (
+                                    <CommandItem
+                                      key={file}
+                                      value={file}
+                                      onSelect={() => {
+                                        field.onChange(file);
+                                        setWorkflowPopoverOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === file ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {file}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Input
+                          placeholder="deploy.yml"
+                          className="text-sm h-10"
+                          {...field}
+                        />
+                      )}
+                    </FormControl>
+                  </div>
                   {selectedWorkflow && (
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
                       onClick={handlePreviewClick}
                       disabled={!username || !accessToken || !repository}
-                      className="px-3 w-full sm:w-auto h-9 text-xs sm:text-sm"
+                      className="h-10 px-4 text-sm"
                     >
-                      <IconEye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span className="hidden sm:inline">Preview</span>
-                      <span className="sm:hidden">👁</span>
+                      <IconEye className="h-4 w-4 mr-2" />
+                      Preview
                     </Button>
                   )}
                 </div>
@@ -376,6 +477,119 @@ function GithubAccountFields({ index }: { index: number }) {
                 {workflowError && (
                   <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
                     {workflowError}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Default Branch Field - shown when credentials are provided */}
+        {username && accessToken && repository && (
+          <FormField
+            control={form.control}
+            name={`github_accounts.${index}.default_branch`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                  <span className="text-sm font-medium">Default Branch</span>
+                  <div className="flex items-center gap-2">
+                    {isLoadingBranches && (
+                      <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={loadBranches}
+                      disabled={!username || !accessToken || !repository || isLoadingBranches}
+                      className="h-7 px-2 text-xs lg:h-6"
+                    >
+                      <IconRefresh className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Refresh</span>
+                      <span className="sm:hidden">↻</span>
+                    </Button>
+                  </div>
+                </FormLabel>
+                <FormControl>
+                  {branches.length > 0 ? (
+                    <Popover open={branchPopoverOpen} onOpenChange={setBranchPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={branchPopoverOpen}
+                          className="w-full justify-between text-sm font-normal h-10"
+                        >
+                          {field.value
+                            ? (
+                              <span className="flex items-center gap-2">
+                                {field.value}
+                                {field.value === repoDefaultBranch && (
+                                  <span className="text-xs text-muted-foreground">(default)</span>
+                                )}
+                              </span>
+                            )
+                            : "Select a branch..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search branches..." />
+                          <CommandList>
+                            <CommandEmpty>No branch found.</CommandEmpty>
+                            <CommandGroup>
+                              {branches.map((branch) => (
+                                <CommandItem
+                                  key={branch}
+                                  value={branch}
+                                  onSelect={() => {
+                                    field.onChange(branch);
+                                    setBranchPopoverOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === branch ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {branch}
+                                  {branch === repoDefaultBranch && (
+                                    <span className="ml-2 text-xs text-muted-foreground">(default)</span>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <Input
+                      placeholder="main"
+                      className="text-sm"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  )}
+                </FormControl>
+                <FormDescription>
+                  {branches.length > 0
+                    ? "Select the default branch for deployments"
+                    : "Enter the default branch name (e.g., main, master)"
+                  }
+                  {repoDefaultBranch && (
+                    <span className="block text-xs text-muted-foreground mt-1">
+                      Repository default branch: {repoDefaultBranch}
+                    </span>
+                  )}
+                </FormDescription>
+                {branchError && (
+                  <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+                    {branchError}
                   </p>
                 )}
                 <FormMessage />
@@ -1181,6 +1395,7 @@ function LeftColumnWithTabs({
                     access_token: "",
                     repository: "",
                     workflow_file: "",
+                    default_branch: "",
                   })
                 }
                 className="w-full"
@@ -1189,7 +1404,7 @@ function LeftColumnWithTabs({
                 <IconPlus className="h-4 w-4 mr-2" />
                 Add GitHub Account
               </Button>
-              
+
               {/* Show limit info */}
               <p className="text-xs text-muted-foreground text-center">
                 {isUnlimitedAccounts ? (
@@ -1322,6 +1537,7 @@ export default function ConfigurationForm({
           access_token: "",
           repository: "",
           workflow_file: "",
+          default_branch: "",
         },
       ],
       deployment_option: {
