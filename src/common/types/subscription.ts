@@ -29,9 +29,9 @@ export interface DeploymentPool {
 export interface Subscription {
   id: string;
   user_id: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  stripe_price_id: string | null;
+  paddle_customer_id: string | null;
+  paddle_subscription_id: string | null;
+  paddle_price_id: string | null;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
   billing_interval: BillingInterval | null;
@@ -73,8 +73,8 @@ export interface PlanConfig {
   analyticsEnabled: boolean;
   monthlyPrice: number;
   yearlyPrice: number;
-  stripePriceIdMonthly?: string;
-  stripePriceIdYearly?: string;
+  paddlePriceIdMonthly?: string;
+  paddlePriceIdYearly?: string;
 }
 
 export interface CreateCheckoutSessionDto {
@@ -90,6 +90,24 @@ export interface UpdateSubscriptionDto {
   cancel_at_period_end?: boolean;
 }
 
+// Paddle checkout response (for Paddle.js overlay)
+export interface PaddleCheckoutResponse {
+  customerId: string;
+  priceId: string;
+  successUrl: string;
+  clientToken: string;
+  environment: string;
+  metadata: Record<string, string>;
+}
+
+// Legacy support for URL-based checkout (not used with Paddle)
 export interface CheckoutResponse {
-  url: string;
+  url?: string;
+  // Paddle checkout data
+  customerId?: string;
+  priceId?: string;
+  successUrl?: string;
+  clientToken?: string;
+  environment?: string;
+  metadata?: Record<string, string>;
 }

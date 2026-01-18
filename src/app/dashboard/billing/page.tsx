@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +29,7 @@ import {
     BillingInterval,
 } from "@/common/types/subscription";
 import { useSearchParams } from "next/navigation";
+import { usePaddle } from "@/hooks/use-paddle";
 
 const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
     [SubscriptionPlan.FREE]: <Zap className="h-5 w-5" />,
@@ -56,12 +57,38 @@ function BillingContent() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [billingInterval, setBillingInterval] = useState<BillingInterval>(BillingInterval.MONTHLY);
 
+    // Paddle checkout hook
+    const handleCheckoutSuccess = useCallback(() => {
+        toast.success("Subscription activated!", {
+            description: "Your subscription has been successfully activated.",
+        });
+        loadData(); // Reload subscription data
+    }, []);
+
+    const handleCheckoutClose = useCallback(() => {
+        setActionLoading(null);
+    }, []);
+
+    const handleCheckoutError = useCallback((error: Error) => {
+        console.error("Checkout error:", error);
+        toast.error("Checkout failed", {
+            description: error.message || "Please try again later.",
+        });
+        setActionLoading(null);
+    }, []);
+
+    const { openCheckout } = usePaddle({
+        onCheckoutSuccess: handleCheckoutSuccess,
+        onCheckoutClose: handleCheckoutClose,
+        onCheckoutError: handleCheckoutError,
+    });
+
     useEffect(() => {
         loadData();
     }, []);
 
     useEffect(() => {
-        // Handle success/cancel from Stripe checkout
+        // Handle success/cancel from Paddle checkout redirect
         const success = searchParams.get("success");
         const canceled = searchParams.get("canceled");
 
@@ -103,15 +130,15 @@ function BillingContent() {
 
         try {
             setActionLoading(plan);
-            const { url } = await subscriptionService.createCheckoutSession({
+            const checkoutData = await subscriptionService.createCheckoutSession({
                 plan,
                 billing_interval: billingInterval,
                 success_url: `${window.location.origin}/dashboard/billing?success=true`,
                 cancel_url: `${window.location.origin}/dashboard/billing?canceled=true`,
             });
 
-            // Redirect to Stripe checkout
-            window.location.href = url;
+            // Open Paddle checkout overlay
+            await openCheckout(checkoutData);
         } catch (error: any) {
             console.error("Error creating checkout session:", error);
             toast.error("Failed to start checkout", {
@@ -123,18 +150,12 @@ function BillingContent() {
     };
 
     const handleManageBilling = async () => {
-        try {
-            setActionLoading("portal");
-            const { url } = await subscriptionService.createPortalSession();
-            window.location.href = url;
-        } catch (error: any) {
-            console.error("Error creating portal session:", error);
-            toast.error("Failed to open billing portal", {
-                description: error?.response?.data?.message || "Please try again later.",
-            });
-        } finally {
-            setActionLoading(null);
-        }
+        // Paddle customer portal - opens in new tab
+        // For now, we'll show a toast with instructions since Paddle portal 
+        // requires specific setup. Users can manage subscriptions via email links from Paddle.
+        toast.info("Manage your subscription", {
+            description: "Check your email for subscription management links from Paddle, or contact support for assistance.",
+        });
     };
 
     const handleCancelSubscription = async () => {
@@ -405,7 +426,7 @@ function BillingContent() {
                                             </span>
                                         )}
                                     </div>
-                                    {subscription?.stripe_subscription_id && (
+                                    {subscription?.paddle_subscription_id && (
                                         <div className="mt-4 space-x-2">
                                             <Button
                                                 variant="outline"
