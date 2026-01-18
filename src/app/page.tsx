@@ -12,6 +12,7 @@ import { BillingInterval, PlanConfig, SubscriptionPlan } from "@/common/types/su
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { authenticateUser } from "@/store/features/auth";
 import { toast } from "sonner";
+import { usePaddle } from "@/hooks/use-paddle";
 import {
   IconRocket,
   IconCode,
@@ -225,6 +226,9 @@ export default function LandingPage() {
   // RTK Query hooks
   const { data: apiPlans, isLoading: loadingPlans } = useGetPublicPlansQuery();
   const [createCheckoutSession, { isLoading: isCreatingCheckout }] = useCreateCheckoutSessionMutation();
+  
+  // Paddle checkout
+  const { openCheckout, isLoading: isPaddleLoading } = usePaddle();
 
   // Trigger authentication check on mount
   useEffect(() => {
@@ -273,20 +277,17 @@ export default function LandingPage() {
       return;
     }
 
-    // Create checkout session
+    // Create checkout session and open Paddle overlay
     try {
-      const response = await createCheckoutSession({
+      const checkoutData = await createCheckoutSession({
         plan: plan.plan.toLowerCase() as SubscriptionPlan,
         billing_interval: billingPeriod as BillingInterval,
         success_url: `${window.location.origin}/dashboard/billing?success=true`,
         cancel_url: `${window.location.origin}/#pricing`,
       }).unwrap();
 
-      if (response.url) {
-        window.location.href = response.url;
-      } else {
-        toast.error("Failed to create checkout session");
-      }
+      // Open Paddle checkout overlay
+      await openCheckout(checkoutData);
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Failed to start checkout. Please try again.");
