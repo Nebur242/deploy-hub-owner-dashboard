@@ -228,7 +228,7 @@ export default function LandingPage() {
   const [createCheckoutSession, { isLoading: isCreatingCheckout }] = useCreateCheckoutSessionMutation();
   
   // Paddle checkout
-  const { openCheckout, isLoading: isPaddleLoading } = usePaddle();
+  const { openCheckout } = usePaddle();
 
   // Trigger authentication check on mount
   useEffect(() => {
