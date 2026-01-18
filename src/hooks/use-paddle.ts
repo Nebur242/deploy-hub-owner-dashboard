@@ -53,12 +53,12 @@ export function usePaddle(options: UsePaddleOptions = {}) {
 
       // Check if script is already being loaded
       const existingScript = document.querySelector(
-        'script[src*="paddle.com"]'
+        'script[src*="paddle.com"]',
       );
       if (existingScript) {
         existingScript.addEventListener("load", () => resolve());
         existingScript.addEventListener("error", () =>
-          reject(new Error("Failed to load Paddle script"))
+          reject(new Error("Failed to load Paddle script")),
         );
         return;
       }
@@ -110,7 +110,7 @@ export function usePaddle(options: UsePaddleOptions = {}) {
         throw error;
       }
     },
-    [loadPaddleScript]
+    [loadPaddleScript],
   );
 
   // Open Paddle checkout overlay
@@ -118,7 +118,7 @@ export function usePaddle(options: UsePaddleOptions = {}) {
     async (checkoutData: CheckoutResponse) => {
       if (!checkoutData.clientToken || !checkoutData.priceId) {
         onCheckoutError?.(
-          new Error("Invalid checkout data: missing clientToken or priceId")
+          new Error("Invalid checkout data: missing clientToken or priceId"),
         );
         return;
       }
@@ -127,7 +127,7 @@ export function usePaddle(options: UsePaddleOptions = {}) {
         // Initialize Paddle with the provided token and environment
         await initializePaddle(
           checkoutData.clientToken,
-          checkoutData.environment || "sandbox"
+          checkoutData.environment || "sandbox",
         );
 
         if (!window.Paddle) {
@@ -156,11 +156,11 @@ export function usePaddle(options: UsePaddleOptions = {}) {
       } catch (error) {
         console.error("Failed to open Paddle checkout:", error);
         onCheckoutError?.(
-          error instanceof Error ? error : new Error("Checkout failed")
+          error instanceof Error ? error : new Error("Checkout failed"),
         );
       }
     },
-    [initializePaddle, onCheckoutError]
+    [initializePaddle, onCheckoutError],
   );
 
   // Setup event listeners
@@ -176,21 +176,21 @@ export function usePaddle(options: UsePaddleOptions = {}) {
     // Paddle emits events on window
     window.addEventListener(
       "paddle:checkout:complete",
-      handleCheckoutComplete as EventListener
+      handleCheckoutComplete as EventListener,
     );
     window.addEventListener(
       "paddle:checkout:close",
-      handleCheckoutClose as EventListener
+      handleCheckoutClose as EventListener,
     );
 
     return () => {
       window.removeEventListener(
         "paddle:checkout:complete",
-        handleCheckoutComplete as EventListener
+        handleCheckoutComplete as EventListener,
       );
       window.removeEventListener(
         "paddle:checkout:close",
-        handleCheckoutClose as EventListener
+        handleCheckoutClose as EventListener,
       );
     };
   }, [onCheckoutSuccess, onCheckoutClose]);
