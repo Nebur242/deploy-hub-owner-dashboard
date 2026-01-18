@@ -25,7 +25,7 @@ export const subscriptionService = {
    */
   async getPublicPlans(): Promise<PlanConfig[]> {
     const response = await axios.get<{ data: PlanConfig[] }>(
-      `${API_URL}/plans`
+      `${API_URL}/plans`,
     );
     return response.data.data || response.data;
   },
@@ -35,7 +35,7 @@ export const subscriptionService = {
    */
   async getPlans(): Promise<PlanConfig[]> {
     const response = await AXIOS.get<{ data: PlanConfig[] }>(
-      `${SUBSCRIPTION_URL}/plans`
+      `${SUBSCRIPTION_URL}/plans`,
     );
     return response.data.data || response.data;
   },
@@ -44,11 +44,11 @@ export const subscriptionService = {
    * Create a checkout session to upgrade subscription
    */
   async createCheckoutSession(
-    dto: CreateCheckoutSessionDto
+    dto: CreateCheckoutSessionDto,
   ): Promise<CheckoutResponse> {
     const response = await AXIOS.post<{ data: CheckoutResponse }>(
       `${SUBSCRIPTION_URL}/checkout`,
-      dto
+      dto,
     );
     return response.data.data || response.data;
   },
@@ -58,7 +58,7 @@ export const subscriptionService = {
    */
   async createPortalSession(): Promise<CheckoutResponse> {
     const response = await AXIOS.post<{ data: CheckoutResponse }>(
-      `${SUBSCRIPTION_URL}/portal`
+      `${SUBSCRIPTION_URL}/portal`,
     );
     return response.data.data || response.data;
   },
@@ -69,7 +69,7 @@ export const subscriptionService = {
   async updateSubscription(dto: UpdateSubscriptionDto): Promise<Subscription> {
     const response = await AXIOS.put<{ data: Subscription }>(
       SUBSCRIPTION_URL,
-      dto
+      dto,
     );
     return response.data.data || response.data;
   },
@@ -79,7 +79,7 @@ export const subscriptionService = {
    */
   async cancelSubscription(): Promise<Subscription> {
     const response = await AXIOS.post<{ data: Subscription }>(
-      `${SUBSCRIPTION_URL}/cancel`
+      `${SUBSCRIPTION_URL}/cancel`,
     );
     return response.data.data || response.data;
   },
