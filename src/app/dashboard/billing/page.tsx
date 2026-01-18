@@ -150,12 +150,29 @@ function BillingContent() {
     };
 
     const handleManageBilling = async () => {
-        // Paddle customer portal - opens in new tab
-        // For now, we'll show a toast with instructions since Paddle portal 
-        // requires specific setup. Users can manage subscriptions via email links from Paddle.
-        toast.info("Manage your subscription", {
-            description: "Check your email for subscription management links from Paddle, or contact support for assistance.",
-        });
+        try {
+            setActionLoading("portal");
+            const urls = await subscriptionService.getManagementUrls();
+            
+            if (urls.updatePaymentMethod) {
+                // Open Paddle's payment method update page
+                window.open(urls.updatePaymentMethod, "_blank");
+            } else if (urls.cancel) {
+                // Fallback to cancel URL if no update payment method URL
+                window.open(urls.cancel, "_blank");
+            } else {
+                toast.info("Manage your subscription", {
+                    description: "No active subscription found. Please subscribe to a plan first.",
+                });
+            }
+        } catch (error: any) {
+            console.error("Error getting management URLs:", error);
+            toast.error("Failed to open billing portal", {
+                description: error?.response?.data?.message || "Please try again later.",
+            });
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     const handleCancelSubscription = async () => {

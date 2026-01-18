@@ -83,4 +83,17 @@ export const subscriptionService = {
     );
     return response.data.data || response.data;
   },
+
+  /**
+   * Get management URLs for updating payment method and cancellation
+   */
+  async getManagementUrls(): Promise<{
+    updatePaymentMethod?: string;
+    cancel?: string;
+  }> {
+    const response = await AXIOS.get<{
+      data: { updatePaymentMethod?: string; cancel?: string };
+    }>(`${SUBSCRIPTION_URL}/management-urls`);
+    return response.data.data || response.data;
+  },
 };
