@@ -8,7 +8,6 @@ import {
   IconFileWord,
   IconHelp,
   IconInnerShadowTop,
-  IconListDetails,
   IconReport,
   IconSearch,
   IconSettings,
@@ -56,11 +55,6 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
-    },
-    {
-      title: "Categories",
-      url: "/dashboard/categories",
-      icon: IconListDetails,
     },
     {
       title: "Media",

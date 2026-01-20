@@ -32,7 +32,7 @@ AXIOS.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor that handles token expiration
@@ -70,7 +70,7 @@ AXIOS.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export const axiosBaseQuery =
@@ -79,17 +79,19 @@ export const axiosBaseQuery =
       url: string;
       method: AxiosRequestConfig["method"];
       data?: AxiosRequestConfig["data"];
+      body?: AxiosRequestConfig["data"];
       params?: AxiosRequestConfig["params"];
     },
     unknown,
     unknown
   > =>
-  async ({ url, method, data }) => {
+  async ({ url, method, data, body, params }) => {
     try {
       const result = await AXIOS({
         url: url,
         method,
-        data,
+        data: data || body,
+        params,
       });
       return {
         data: result.data.data || result.data,

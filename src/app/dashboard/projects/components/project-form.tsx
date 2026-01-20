@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconLoader } from "@tabler/icons-react";
 import { SuccessAlert, ErrorAlert } from "@/components/ui/alerts";
-import { CategorySelector } from "@/app/dashboard/categories/components";
+import { CategorySelector } from "@/components/category-selector";
 import { CreateProjectDto, createProjectDtoSchema } from "@/common/dtos";
 import { TagInput } from "@/components/tag-input";
 import { SingleMediaSelector } from "@/app/dashboard/media/components/media-selector";
