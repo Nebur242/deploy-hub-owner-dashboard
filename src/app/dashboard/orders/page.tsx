@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useGetOrdersQuery } from "@/store/features/orders";
 import {
     Table,
@@ -46,7 +46,6 @@ export default function OrdersPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
-    const [hasPendingOrders, setHasPendingOrders] = useState(false);
 
     const { data, isLoading, isFetching, error, refetch } = useGetOrdersQuery({
         search: searchTerm || undefined,
@@ -58,14 +57,10 @@ export default function OrdersPage() {
     const orders = useMemo(() => data?.items || [], [data?.items]);
     const totalOrders = data?.meta?.totalItems || 0;
     const totalPages = data?.meta?.totalPages || 1;
-
-    // Check if there are pending orders
-    useEffect(() => {
-        if (orders && orders.length > 0) {
-            const pendingOrders = orders.some(order => order.status === OrderStatus.PENDING);
-            setHasPendingOrders(pendingOrders);
-        }
-    }, [orders]);
+    const hasPendingOrders = useMemo(
+        () => orders.some((order) => order.status === OrderStatus.PENDING),
+        [orders]
+    );
 
     // Handle pagination manually since we're using API pagination
     const handlePreviousPage = () => {

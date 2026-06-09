@@ -58,6 +58,12 @@ import {
 } from "@/store/features/reviews";
 import { toast } from "sonner";
 
+type ReviewRequestError = {
+  data?: {
+    message?: string;
+  };
+};
+
 const breadcrumbItems: BreadcrumbItem[] = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Reviews", href: "/dashboard/reviews" },
@@ -109,6 +115,11 @@ const getStatusBadge = (status: ReviewStatus) => {
       return <Badge variant="outline">{status}</Badge>;
   }
 };
+
+function getReviewErrorMessage(error: unknown, fallback: string) {
+  const message = (error as ReviewRequestError | null)?.data?.message;
+  return typeof message === "string" && message.trim() ? message : fallback;
+}
 
 export default function ReviewsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -166,8 +177,8 @@ export default function ReviewsPage() {
         data: { status: ReviewStatus.APPROVED },
       }).unwrap();
       toast.success("Review approved successfully");
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to approve review");
+    } catch (error: unknown) {
+      toast.error(getReviewErrorMessage(error, "Failed to approve review"));
     }
   };
 
@@ -196,8 +207,8 @@ export default function ReviewsPage() {
       setRejectDialogOpen(false);
       setSelectedReview(null);
       setRejectionReason("");
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to reject review");
+    } catch (error: unknown) {
+      toast.error(getReviewErrorMessage(error, "Failed to reject review"));
     }
   };
 

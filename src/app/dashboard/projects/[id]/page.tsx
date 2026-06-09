@@ -9,8 +9,9 @@ import {
     useDeleteProjectMutation,
     useSubmitForReviewMutation,
 } from "@/store/features/projects";
-import { useGetDeploymentsQuery } from "@/store/features/deployments";
+import { DeploymentStatus, useGetDeploymentsQuery } from "@/store/features/deployments";
 import { useGetProjectReviewsQuery } from "@/store/features/reviews";
+import { LicenseStatus } from "@/common/types/license";
 import { DeploymentStatusBadge } from "../../deployments/components";
 import {
     IconArrowBack,
@@ -239,6 +240,46 @@ export default function ProjectPreviewPage() {
 
     // Get the latest version if available
     const latestVersion = versions.find(v => v.is_latest);
+
+    const hasSuccessfulDeployment = deployments.some(
+        (deployment) => deployment.status === DeploymentStatus.SUCCESS
+    );
+    const publicLicenses = project?.licenses?.filter(
+        (license) => license.status === LicenseStatus.PUBLIC
+    ) || [];
+    const readinessItems = [
+        {
+            label: "Project details",
+            done: Boolean(project?.name && project?.description && project?.tech_stack?.length),
+            href: `/dashboard/projects/${projectId}/edit`,
+            action: "Edit project",
+        },
+        {
+            label: "Deployment setup",
+            done: hasConfigurations,
+            href: `/dashboard/projects/${projectId}/configurations/create`,
+            action: "Create setup",
+        },
+        {
+            label: "Test deployment",
+            done: hasSuccessfulDeployment,
+            href: `/dashboard/deployments/create?projectId=${projectId}`,
+            action: "Deploy",
+        },
+        {
+            label: "Public license",
+            done: publicLicenses.length > 0,
+            href: "/dashboard/licenses/create",
+            action: "Create license",
+        },
+        {
+            label: "Marketplace review",
+            done: project?.moderation_status === ModerationStatus.APPROVED,
+            href: `/dashboard/projects/${projectId}`,
+            action: "Submit",
+        },
+    ];
+    const readinessComplete = readinessItems.filter((item) => item.done).length;
 
     // Breadcrumb items
     const breadcrumbItems: BreadcrumbItem[] = [
@@ -559,12 +600,12 @@ export default function ProjectPreviewPage() {
                                     ) : !hasConfigurations ? (
                                         <div className="flex flex-col items-center justify-center py-8 space-y-4">
                                             <p className="text-muted-foreground text-center">
-                                                You need to create at least one configuration before you can deploy this project.
+                                                You need to create at least one deployment setup before you can deploy this project.
                                             </p>
                                             <Button asChild>
                                                 <Link href={`/dashboard/projects/${projectId}/configurations/create`}>
                                                     <IconCode className="h-4 w-4 mr-2" />
-                                                    Create Configuration
+                                                    Create Deployment Setup
                                                 </Link>
                                             </Button>
                                         </div>
@@ -652,6 +693,38 @@ export default function ProjectPreviewPage() {
 
                         {/* Project Status and Actions */}
                         <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Launch Readiness</CardTitle>
+                                    <CardDescription>
+                                        {readinessComplete} of {readinessItems.length} items ready to sell this project with licenses
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {readinessItems.map((item) => (
+                                        <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                                            <div className="flex items-center gap-2">
+                                                {item.done ? (
+                                                    <IconCircleCheck className="h-4 w-4 text-green-600" />
+                                                ) : (
+                                                    <IconCircleX className="h-4 w-4 text-muted-foreground" />
+                                                )}
+                                                <span className="text-sm font-medium">{item.label}</span>
+                                            </div>
+                                            {item.done ? (
+                                                <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                                                    Ready
+                                                </Badge>
+                                            ) : (
+                                                <Button size="sm" variant="outline" asChild>
+                                                    <Link href={item.href}>{item.action}</Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+
                             {/* Moderation Status Card */}
                             <Card>
                                 <CardHeader>
@@ -795,7 +868,7 @@ export default function ProjectPreviewPage() {
                                         <Button className="w-full" asChild variant="default">
                                             <Link href={`/dashboard/projects/${projectId}/configurations/create`}>
                                                 <IconCode className="h-4 w-4 mr-2" />
-                                                Create Configuration
+                                                Create Deployment Setup
                                             </Link>
                                         </Button>
                                     )}

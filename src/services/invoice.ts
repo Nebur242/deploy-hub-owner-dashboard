@@ -134,7 +134,7 @@ export const generateInvoice = async (order: Order): Promise<Blob> => {
       [
         `Name: ${order.license.name}`,
         `Description: ${order.license.description}`,
-        `Deployment Limit: ${order.license.deployment_limit} deployments`,
+        `Deployments per Purchase: ${order.license.deployment_limit} deployments`,
         `Billing Period: ${formatPeriod(order.license.period)}`,
       ],
       margin,

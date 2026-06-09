@@ -42,12 +42,24 @@ Please create a complete, production-ready GitHub Actions workflow that includes
 7. **Error handling** and proper job dependencies
 
 **CRITICAL REQUIREMENT - Variable Usage:**
-- Most variables should be defined as INPUTS that users will provide when running the workflow
-- Use \`\${{ github.event.inputs.variable_name }}\` for user-provided inputs
+- Use a single workflow_dispatch input named \`DATA\` as a JSON string for all non-secret user-provided deployment values beyond the fixed inputs below
+- Use \`${{ fromJson(github.event.inputs.DATA).variables.YOUR_VARIABLE_NAME }}\` for custom user-provided values
+- \`DATA\` also includes \`branch\` and \`environment\` keys for convenience
 - Use \`\${{ secrets.VARIABLE_NAME }}\` for sensitive data like API keys, tokens, passwords
 - DO NOT hardcode values - users should be able to configure deployment settings through inputs
-- Include an "inputs" section in the workflow_dispatch trigger for configuration variables
-- Examples of variables that should be inputs: deployment environment, version numbers, build configurations, deployment targets, etc.
+- Include an "inputs" section in the workflow_dispatch trigger
+- Always include these Deploy Hub managed workflow_dispatch inputs exactly:
+  - BRANCH
+  - ENVIRONMENT
+  - DATA
+  - DEPLOY_HUB_DEPLOYMENT_ID
+  - DEPLOY_HUB_CALLBACK_URL
+  - DEPLOY_HUB_CALLBACK_TOKEN
+- Add a final step named "Report deployment result to Deploy Hub" with \`if: always()\`.
+- The final step must POST JSON to \`\${{ github.event.inputs.DEPLOY_HUB_CALLBACK_URL }}\` with deployment_id, callback_token, status, run_id, commit_sha, and deployment_url when available.
+- Use \`\${{ job.status }}\` for status and \`\${{ github.run_id }}\` for run_id.
+- Use \`${{ github.event.inputs.BRANCH }}\` for checkout ref and \`${{ github.event.inputs.ENVIRONMENT }}\` for the selected environment.
+- Do not create extra top-level workflow_dispatch inputs for custom deployment variables; keep them inside \`DATA\`.
 - Examples of variables that should be secrets: API keys, access tokens, deployment credentials, database passwords
 
 Important requirements:
@@ -55,9 +67,10 @@ Important requirements:
 - Include proper security practices
 - Add comments explaining each step
 - Make the workflow modular and maintainable
-- Include comprehensive inputs section for user configuration
+- Include a short preparation step when needed to parse \`DATA\` for shell usage
 - Use secrets for all sensitive information
 - Consider different environments (staging, production) as input options
+- Do not require users to create Deploy Hub callback secrets or variables manually; callback values come from workflow_dispatch inputs.
 
 Return ONLY the YAML content without any markdown formatting or code blocks. The response should be valid YAML that can be directly saved as a .github/workflows/deploy.yml file.
 `;
@@ -68,7 +81,7 @@ Return ONLY the YAML content without any markdown formatting or code blocks. The
         {
           role: "system",
           content:
-            "You are an expert DevOps engineer who creates optimized GitHub Actions workflows. Always respond with valid YAML content only, no markdown formatting. IMPORTANT: Use workflow inputs and secrets for all configurable values - do not hardcode deployment settings.",
+            "You are an expert DevOps engineer who creates optimized GitHub Actions workflows. Always respond with valid YAML content only, no markdown formatting. IMPORTANT: Use the fixed workflow_dispatch inputs BRANCH, ENVIRONMENT, DATA, DEPLOY_HUB_DEPLOYMENT_ID, DEPLOY_HUB_CALLBACK_URL, and DEPLOY_HUB_CALLBACK_TOKEN. Put custom user-entered values inside DATA as JSON and read them with fromJson(github.event.inputs.DATA).",
         },
         {
           role: "user",

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, Suspense, useCallback } from "react";
+import { useGetProjectsQuery } from "@/store/features/projects";
+import { useGetLicensesQuery } from "@/store/features/licenses";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,9 +29,29 @@ import {
     SubscriptionStatus,
     SubscriptionPlan,
     BillingInterval,
+    BillingPortalResponse,
+    CheckoutResponse,
 } from "@/common/types/subscription";
 import { useSearchParams } from "next/navigation";
-import { usePaddle } from "@/hooks/use-paddle";
+import { buildPublicAppUrl } from "@/lib/public-app-url";
+
+type BillingErrorItem = {
+    message?: string;
+    details?: string;
+};
+
+type BillingErrorData =
+    | {
+        message?: string;
+        errors?: BillingErrorItem[];
+    }
+    | BillingErrorItem[];
+
+type BillingRequestError = {
+    response?: {
+        data?: BillingErrorData;
+    };
+};
 
 const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
     [SubscriptionPlan.FREE]: <Zap className="h-5 w-5" />,
@@ -48,6 +70,54 @@ const statusColors: Record<SubscriptionStatus, string> = {
     [SubscriptionStatus.PAUSED]: "bg-gray-500",
 };
 
+const planOrder: Record<SubscriptionPlan, number> = {
+    [SubscriptionPlan.FREE]: 0,
+    [SubscriptionPlan.STARTER]: 1,
+    [SubscriptionPlan.PRO]: 2,
+};
+
+function extractErrorDescription(error: unknown): string {
+    const responseData = (error as BillingRequestError | null)?.response?.data;
+
+    if (Array.isArray(responseData) && responseData.length > 0) {
+        const firstDetail = responseData[0]?.details || responseData[0]?.message;
+        if (typeof firstDetail === "string" && firstDetail.trim()) {
+            return firstDetail;
+        }
+    }
+
+    if (responseData && !Array.isArray(responseData)) {
+        if (typeof responseData.message === "string" && responseData.message.trim()) {
+            return responseData.message;
+        }
+
+        if (Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+            const firstMessage = responseData.errors[0]?.message;
+            if (typeof firstMessage === "string" && firstMessage.trim()) {
+                return firstMessage;
+            }
+        }
+    }
+
+    return "Please try again later.";
+}
+
+function hasManagedSubscription(subscription: Subscription | null | undefined): boolean {
+    return Boolean(subscription?.metadata?.stripe_subscription_id);
+}
+
+function getBillingProviderLabel(subscription: Subscription | null | undefined): string {
+    if (subscription?.metadata?.stripe_subscription_id || subscription?.metadata?.stripe_customer_id) {
+        return "Stripe";
+    }
+
+    return "Not connected";
+}
+
+function getManagementTargetUrl(session: BillingPortalResponse): string | undefined {
+    return session.url || session.updatePaymentMethod || session.cancel;
+}
+
 function BillingContent() {
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState("overview");
@@ -56,47 +126,56 @@ function BillingContent() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [billingInterval, setBillingInterval] = useState<BillingInterval>(BillingInterval.MONTHLY);
-
-    // Paddle checkout hook
-    const handleCheckoutSuccess = useCallback(() => {
-        toast.success("Subscription activated!", {
-            description: "Your subscription has been successfully activated.",
-        });
-        loadData(); // Reload subscription data
-    }, []);
-
-    const handleCheckoutClose = useCallback(() => {
-        setActionLoading(null);
-    }, []);
-
-    const handleCheckoutError = useCallback((error: Error) => {
-        console.error("Checkout error:", error);
-        toast.error("Checkout failed", {
-            description: error.message || "Please try again later.",
-        });
-        setActionLoading(null);
-    }, []);
-
-    const { openCheckout } = usePaddle({
-        onCheckoutSuccess: handleCheckoutSuccess,
-        onCheckoutClose: handleCheckoutClose,
-        onCheckoutError: handleCheckoutError,
+    const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
+        limit: 1,
+        page: 1,
     });
+    const { data: licensesData, isLoading: isLoadingLicenses } = useGetLicensesQuery({
+        limit: 1,
+        page: 1,
+    });
+
+    const launchCheckout = useCallback(
+        async (checkoutData: CheckoutResponse) => {
+            if (checkoutData.url) {
+                globalThis.location.href = checkoutData.url;
+                return;
+            }
+
+            throw new Error("Hosted checkout URL was missing from the billing provider response.");
+        },
+        [],
+    );
 
     useEffect(() => {
         loadData();
     }, []);
 
     useEffect(() => {
-        // Handle success/cancel from Paddle checkout redirect
         const success = searchParams.get("success");
         const canceled = searchParams.get("canceled");
+        const sessionId = searchParams.get("session_id");
 
         if (success === "true") {
-            toast.success("Subscription activated!", {
-                description: "Your subscription has been successfully activated.",
-            });
-            loadData(); // Reload subscription data
+            (async () => {
+                try {
+                    if (sessionId) {
+                        const updated = await subscriptionService.syncCheckoutSession(sessionId);
+                        setSubscription(updated);
+                    } else {
+                        await loadData();
+                    }
+
+                    toast.success("Subscription activated!", {
+                        description: "Your subscription has been successfully activated.",
+                    });
+                } catch (error) {
+                    console.error("Error syncing subscription after checkout:", error);
+                    toast.error("We could not confirm the checkout yet", {
+                        description: extractErrorDescription(error),
+                    });
+                }
+            })();
         } else if (canceled === "true") {
             toast.info("Checkout canceled", {
                 description: "You can upgrade your plan anytime.",
@@ -130,19 +209,30 @@ function BillingContent() {
 
         try {
             setActionLoading(plan);
+            if (hasManagedSubscription(subscription) && subscription.plan !== SubscriptionPlan.FREE) {
+                const updated = await subscriptionService.updateSubscription({
+                    plan,
+                    billing_interval: billingInterval,
+                });
+                setSubscription(updated);
+                toast.success("Plan updated", {
+                    description: "Your subscription has been updated.",
+                });
+                return;
+            }
+
             const checkoutData = await subscriptionService.createCheckoutSession({
                 plan,
                 billing_interval: billingInterval,
-                success_url: `${window.location.origin}/dashboard/billing?success=true`,
-                cancel_url: `${window.location.origin}/dashboard/billing?canceled=true`,
+                success_url: buildPublicAppUrl("/dashboard/billing?success=true"),
+                cancel_url: buildPublicAppUrl("/dashboard/billing?canceled=true"),
             });
 
-            // Open Paddle checkout overlay
-            await openCheckout(checkoutData);
-        } catch (error: any) {
+            await launchCheckout(checkoutData);
+        } catch (error: unknown) {
             console.error("Error creating checkout session:", error);
             toast.error("Failed to start checkout", {
-                description: error?.response?.data?.message || "Please try again later.",
+                description: extractErrorDescription(error),
             });
         } finally {
             setActionLoading(null);
@@ -152,23 +242,23 @@ function BillingContent() {
     const handleManageBilling = async () => {
         try {
             setActionLoading("portal");
-            const urls = await subscriptionService.getManagementUrls();
-            
-            if (urls.updatePaymentMethod) {
-                // Open Paddle's payment method update page
-                window.open(urls.updatePaymentMethod, "_blank");
-            } else if (urls.cancel) {
-                // Fallback to cancel URL if no update payment method URL
-                window.open(urls.cancel, "_blank");
+            const portal = await subscriptionService.openBillingPortal(
+                buildPublicAppUrl("/dashboard/billing"),
+            );
+
+            const targetUrl = getManagementTargetUrl(portal);
+
+            if (targetUrl) {
+                window.open(targetUrl, "_blank");
             } else {
                 toast.info("Manage your subscription", {
                     description: "No active subscription found. Please subscribe to a plan first.",
                 });
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error getting management URLs:", error);
             toast.error("Failed to open billing portal", {
-                description: error?.response?.data?.message || "Please try again later.",
+                description: extractErrorDescription(error),
             });
         } finally {
             setActionLoading(null);
@@ -185,10 +275,10 @@ function BillingContent() {
             toast.success("Subscription will be canceled", {
                 description: "Your subscription will end at the current billing period.",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error canceling subscription:", error);
             toast.error("Failed to cancel subscription", {
-                description: error?.response?.data?.message || "Please try again later.",
+                description: extractErrorDescription(error),
             });
         } finally {
             setActionLoading(null);
@@ -207,10 +297,10 @@ function BillingContent() {
             toast.success("Subscription reactivated", {
                 description: "Your subscription will continue as normal.",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error reactivating subscription:", error);
             toast.error("Failed to reactivate subscription", {
-                description: error?.response?.data?.message || "Please try again later.",
+                description: extractErrorDescription(error),
             });
         } finally {
             setActionLoading(null);
@@ -241,6 +331,77 @@ function BillingContent() {
         return billingInterval === BillingInterval.MONTHLY
             ? planConfig.monthlyPrice
             : planConfig.yearlyPrice;
+    };
+
+    const currentProjectCount = projectsData?.meta?.totalItems || 0;
+    const currentLicenseCount = licensesData?.meta?.totalItems || 0;
+    const isUsageLoading = isLoadingProjects || isLoadingLicenses;
+
+    const getPlanUsageConflicts = (plan: PlanConfig): string[] => {
+        const conflicts: string[] = [];
+
+        if (plan.maxProjects !== -1 && currentProjectCount > plan.maxProjects) {
+            conflicts.push(
+                `${currentProjectCount} project${currentProjectCount === 1 ? "" : "s"} in use, but ${plan.name} allows ${plan.maxProjects}`,
+            );
+        }
+
+        if (
+            plan.maxLicensesPerProject !== -1 &&
+            currentLicenseCount > plan.maxLicensesPerProject
+        ) {
+            conflicts.push(
+                `${currentLicenseCount} license${currentLicenseCount === 1 ? "" : "s"} in use, but ${plan.name} allows ${plan.maxLicensesPerProject}`,
+            );
+        }
+
+        return conflicts;
+    };
+
+    const getPlanChangeType = (plan: SubscriptionPlan): "current" | "upgrade" | "downgrade" => {
+        if (!subscription || plan === subscription.plan) {
+            return "current";
+        }
+
+        return planOrder[plan] > planOrder[subscription.plan] ? "upgrade" : "downgrade";
+    };
+
+    const freePlan = plans.find((plan) => plan.plan === SubscriptionPlan.FREE);
+    const freePlanConflicts = freePlan ? getPlanUsageConflicts(freePlan) : [];
+
+    const handleChangePlan = async (plan: PlanConfig) => {
+        if (!subscription || plan.plan === subscription.plan) return;
+
+        const changeType = getPlanChangeType(plan.plan);
+
+        if (changeType === "upgrade") {
+            await handleUpgrade(plan.plan);
+            return;
+        }
+
+        if (plan.plan === SubscriptionPlan.FREE) {
+            await handleCancelSubscription();
+            return;
+        }
+
+        try {
+            setActionLoading(plan.plan);
+            await subscriptionService.updateSubscription({
+                plan: plan.plan,
+                billing_interval: billingInterval,
+            });
+            await loadData();
+            toast.success("Plan downgrade requested", {
+                description: `Your subscription is being changed to ${plan.name}.`,
+            });
+        } catch (error: unknown) {
+            console.error("Error downgrading subscription:", error);
+            toast.error("Failed to change plan", {
+                description: extractErrorDescription(error),
+            });
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     if (loading) {
@@ -420,6 +581,9 @@ function BillingContent() {
                                             ? `Billed ${subscription.billing_interval}`
                                             : "Free forever"}
                                     </p>
+                                    <div className="mt-3">
+                                        <Badge variant="outline">{getBillingProviderLabel(subscription)}</Badge>
+                                    </div>
                                     {subscription?.current_period_end && (
                                         <div className="mt-4 space-y-2">
                                             <div className="flex items-center gap-2">
@@ -443,7 +607,7 @@ function BillingContent() {
                                             </span>
                                         )}
                                     </div>
-                                    {subscription?.paddle_subscription_id && (
+                                    {hasManagedSubscription(subscription) && (
                                         <div className="mt-4 space-x-2">
                                             <Button
                                                 variant="outline"
@@ -456,11 +620,11 @@ function BillingContent() {
                                                 <ExternalLink className="h-4 w-4 mr-2" />
                                                 Manage Billing
                                             </Button>
-                                            {!subscription.cancel_at_period_end && (
+                                            {!subscription?.cancel_at_period_end && (
                                                 <Button
                                                     variant="ghost"
                                                     onClick={handleCancelSubscription}
-                                                    disabled={actionLoading === "cancel"}
+                                                    disabled={actionLoading === "cancel" || isUsageLoading || freePlanConflicts.length > 0}
                                                 >
                                                     {actionLoading === "cancel" && (
                                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -474,6 +638,16 @@ function BillingContent() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {hasManagedSubscription(subscription) && !subscription?.cancel_at_period_end && freePlanConflicts.length > 0 && (
+                        <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Free plan downgrade blocked</AlertTitle>
+                            <AlertDescription>
+                                Reduce your current usage before canceling: {freePlanConflicts.join(". ")}.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     {/* Plan Features */}
                     <Card>
@@ -495,17 +669,11 @@ function BillingContent() {
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Licenses per Project</span>
+                                        <span className="text-sm font-medium">Max Licenses</span>
                                         <span className="text-sm text-muted-foreground">
                                             {subscription?.max_licenses_per_project === -1
                                                 ? "Unlimited"
                                                 : subscription?.max_licenses_per_project}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Deployments</span>
-                                        <span className="text-sm text-muted-foreground">
-                                            Unlimited
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
@@ -521,9 +689,9 @@ function BillingContent() {
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium">Platform Fee</span>
                                         <Badge variant={
-                                            (subscription?.platform_fee_percent ?? 50) <= 15 ? "default" 
-                                            : (subscription?.platform_fee_percent ?? 50) <= 25 ? "secondary" 
-                                            : "outline"
+                                            (subscription?.platform_fee_percent ?? 50) <= 15 ? "default"
+                                                : (subscription?.platform_fee_percent ?? 50) <= 25 ? "secondary"
+                                                    : "outline"
                                         }>
                                             {subscription?.platform_fee_percent ?? 50}%
                                         </Badge>
@@ -548,6 +716,16 @@ function BillingContent() {
                                             )}
                                         </span>
                                     </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium">AI Owner Assistant</span>
+                                        <span className="text-sm">
+                                            {subscription?.ai_assistant_enabled ? (
+                                                <Check className="h-4 w-4 text-green-600" />
+                                            ) : (
+                                                <X className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
@@ -558,9 +736,43 @@ function BillingContent() {
                             </p>
                         </CardFooter>
                     </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Current Usage</CardTitle>
+                            <CardDescription>
+                                These totals determine which plans you can safely downgrade to.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <span className="text-sm font-medium text-muted-foreground">Projects</span>
+                                    <div className="text-3xl font-bold">
+                                        {isLoadingProjects ? "..." : currentProjectCount}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <span className="text-sm font-medium text-muted-foreground">Licenses</span>
+                                    <div className="text-3xl font-bold">
+                                        {isLoadingLicenses ? "..." : currentLicenseCount}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="plans" className="space-y-6">
+                    <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Downgrades check current usage</AlertTitle>
+                        <AlertDescription>
+                            You currently have {currentProjectCount} project{currentProjectCount === 1 ? "" : "s"} and {currentLicenseCount} license{currentLicenseCount === 1 ? "" : "s"}.
+                            Plans that cannot fit both totals are disabled.
+                        </AlertDescription>
+                    </Alert>
+
                     {/* Billing Interval Toggle */}
                     <div className="flex items-center justify-center gap-4 mb-6">
                         <span
@@ -584,8 +796,8 @@ function BillingContent() {
                         >
                             <div
                                 className={`absolute top-1 h-4 w-4 rounded-full bg-primary transition-transform ${billingInterval === BillingInterval.YEARLY
-                                        ? "translate-x-9"
-                                        : "translate-x-1"
+                                    ? "translate-x-9"
+                                    : "translate-x-1"
                                     }`}
                             />
                         </button>
@@ -608,6 +820,21 @@ function BillingContent() {
                         {plans.map((plan) => {
                             const isCurrentPlan = subscription?.plan === plan.plan;
                             const price = getPlanPrice(plan);
+                            const changeType = getPlanChangeType(plan.plan);
+                            const usageConflicts = changeType === "downgrade" ? getPlanUsageConflicts(plan) : [];
+                            const isDowngradeBlocked = changeType === "downgrade" && (isUsageLoading || usageConflicts.length > 0);
+                            const isFreeDowngradeScheduled =
+                                plan.plan === SubscriptionPlan.FREE &&
+                                subscription?.cancel_at_period_end;
+                            const buttonLabel = isCurrentPlan
+                                ? "Current Plan"
+                                : changeType === "upgrade"
+                                    ? "Upgrade"
+                                    : plan.plan === SubscriptionPlan.FREE
+                                        ? isFreeDowngradeScheduled
+                                            ? "Scheduled"
+                                            : "Downgrade"
+                                        : "Downgrade";
 
                             return (
                                 <Card
@@ -646,12 +873,8 @@ function BillingContent() {
                                             <li className="flex items-center gap-2">
                                                 <Check className="h-4 w-4 text-green-600" />
                                                 {plan.maxLicensesPerProject === -1
-                                                    ? "Unlimited licenses/project"
-                                                    : `${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}/project`}
-                                            </li>
-                                            <li className="flex items-center gap-2">
-                                                <Check className="h-4 w-4 text-green-600" />
-                                                Unlimited deployments
+                                                    ? "Unlimited licenses"
+                                                    : `${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}`}
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <Check className="h-4 w-4 text-green-600" />
@@ -680,28 +903,45 @@ function BillingContent() {
                                                 )}
                                                 Priority support
                                             </li>
+                                            <li className="flex items-center gap-2">
+                                                {plan.aiAssistantEnabled ? (
+                                                    <Check className="h-4 w-4 text-green-600" />
+                                                ) : (
+                                                    <X className="h-4 w-4 text-muted-foreground" />
+                                                )}
+                                                AI Owner Assistant
+                                            </li>
                                         </ul>
                                     </CardContent>
                                     <CardFooter>
-                                        <Button
-                                            className="w-full"
-                                            variant={isCurrentPlan ? "outline" : "default"}
-                                            disabled={
-                                                isCurrentPlan ||
-                                                plan.plan === SubscriptionPlan.FREE ||
-                                                actionLoading === plan.plan
-                                            }
-                                            onClick={() => handleUpgrade(plan.plan)}
-                                        >
-                                            {actionLoading === plan.plan && (
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        <div className="w-full space-y-2">
+                                            <Button
+                                                className="w-full"
+                                                variant={isCurrentPlan ? "outline" : "default"}
+                                                disabled={
+                                                    isCurrentPlan ||
+                                                    isFreeDowngradeScheduled ||
+                                                    isDowngradeBlocked ||
+                                                    actionLoading === plan.plan
+                                                }
+                                                onClick={() => handleChangePlan(plan)}
+                                            >
+                                                {actionLoading === plan.plan && (
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                )}
+                                                {buttonLabel}
+                                            </Button>
+                                            {usageConflicts.length > 0 && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {usageConflicts.join(". ")}
+                                                </p>
                                             )}
-                                            {isCurrentPlan
-                                                ? "Current Plan"
-                                                : plan.plan === SubscriptionPlan.FREE
-                                                    ? "Free"
-                                                    : "Upgrade"}
-                                        </Button>
+                                            {changeType === "downgrade" && isUsageLoading && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Checking your current usage before allowing this downgrade.
+                                                </p>
+                                            )}
+                                        </div>
                                     </CardFooter>
                                 </Card>
                             );
@@ -709,7 +949,7 @@ function BillingContent() {
                     </div>
 
                     <p className="text-center text-sm text-muted-foreground mt-6">
-                        All paid plans include a 14-day free trial. Cancel anytime.
+                        Paid plans use a hosted checkout and billing portal. Cancel anytime.
                     </p>
                 </TabsContent>
             </Tabs>

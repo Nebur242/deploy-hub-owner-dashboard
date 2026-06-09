@@ -37,6 +37,7 @@ export const createConfigurationDtoSchema = z.object({
     .string()
     .min(3, "Name must be at least 3 characters")
     .max(50, "Name must be less than 50 characters"),
+  note: z.string().max(2000, "Note must be less than 2000 characters").optional(),
   github_accounts: z.array(githubAccountDtoSchema),
   deployment_option: deploymentOptionDtoSchema,
 });
@@ -50,6 +51,7 @@ export const updateConfigurationDtoSchema = z.object({
     .min(3, "Name must be at least 3 characters")
     .max(50, "Name must be less than 50 characters")
     .optional(),
+  note: z.string().max(2000, "Note must be less than 2000 characters").optional(),
   github_accounts: z.array(githubAccountDtoSchema).optional(),
   deployment_option: deploymentOptionDtoSchema.optional(),
 });

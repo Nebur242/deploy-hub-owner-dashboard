@@ -27,10 +27,6 @@ export default function EditProjectPage() {
   const router = useRouter();
   const projectId = params?.id || "";
 
-  const [initialValues, setInitialValues] = useState<
-    CreateProjectDto | undefined
-  >(undefined);
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState<{ id: string, name: string } | null>(null);
 
@@ -55,7 +51,7 @@ export default function EditProjectPage() {
 
   const [deleteConfiguration, { isLoading: isDeletingConfig }] = useDeleteConfigurationMutation();
 
-  // Handle configuration deletion
+  // Handle deployment setup deletion
   const handleDeleteConfig = async () => {
     if (!configToDelete) return;
 
@@ -65,8 +61,8 @@ export default function EditProjectPage() {
         configId: configToDelete.id
       }).unwrap();
 
-      toast.success("Configuration deleted", {
-        description: `${configToDelete.name || "Configuration"} has been removed`,
+      toast.success("Deployment setup deleted", {
+        description: `${configToDelete.name || "Deployment setup"} has been removed`,
       });
 
       setDeleteModalOpen(false);
@@ -77,12 +73,12 @@ export default function EditProjectPage() {
     } catch (error) {
       console.error("Failed to delete configuration:", error);
       toast.error("Failed to delete", {
-        description: "An error occurred while deleting the configuration.",
+        description: "An error occurred while deleting the deployment setup.",
       });
     }
   };
 
-  const confirmDeleteConfig = (configId: string, configName: string = "Configuration") => {
+  const confirmDeleteConfig = (configId: string, configName: string = "Deployment setup") => {
     const config = project?.configurations?.find(c => c.id === configId);
     setConfigToDelete({
       id: configId,
@@ -110,10 +106,8 @@ export default function EditProjectPage() {
     </Button>
   );
 
-  // Set the initial values when the project data is loaded
-  useEffect(() => {
-    if (project) {
-      setInitialValues({
+  const initialValues: CreateProjectDto | undefined = project
+    ? {
         name: project.name,
         slug: project.slug,
         description: project.description,
@@ -123,9 +117,8 @@ export default function EditProjectPage() {
         categories: project.categories || [],
         preview_url: project.preview_url || "",
         image: project.image || null,
-      });
-    }
-  }, [project]);
+      }
+    : undefined;
 
   // Clean up when component unmounts
   useEffect(() => {
@@ -244,15 +237,15 @@ export default function EditProjectPage() {
           } : null}
         />
 
-        {/* Configurations Section */}
+        {/* Deployment Setup Section */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Deployment Configurations</h2>
+            <h2 className="text-2xl font-bold">Deployment Setup</h2>
             <Button asChild>
               <Link
                 href={`/dashboard/projects/${projectId}/configurations/create`}
               >
-                <IconPlus className="h-4 w-4 mr-2" /> Add Configuration
+                <IconPlus className="h-4 w-4 mr-2" /> Add Setup
               </Link>
             </Button>
           </div>
@@ -262,7 +255,12 @@ export default function EditProjectPage() {
               {project.configurations?.map((config) => (
                 <Card key={config.id} className="overflow-hidden py-0">
                   <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-4 border-b">
-                    <h3 className="font-semibold">{config.name || `Configuration #${config.id.substring(0, 4)}`}</h3>
+                    <h3 className="font-semibold">{config.name || `Setup #${config.id.substring(0, 4)}`}</h3>
+                    {config.note && (
+                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                        {config.note}
+                      </p>
+                    )}
                   </div>
                   <CardContent className="px-6 pb-6">
                     <div className="space-y-4">
@@ -301,13 +299,13 @@ export default function EditProjectPage() {
                             href={`/dashboard/projects/${projectId}/configurations/${config.id}/edit`}
                           >
                             <IconEdit className="h-4 w-4" />
-                            Edit Configuration
+                            Edit Setup
                           </Link>
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => confirmDeleteConfig(config.id, `Configuration #${config.id.substring(0, 4)}`)}
+                          onClick={() => confirmDeleteConfig(config.id, `Setup #${config.id.substring(0, 4)}`)}
                         >
                           {isDeletingConfig ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -331,10 +329,10 @@ export default function EditProjectPage() {
                   <IconPlus className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">
-                  No Configurations Yet
+                  No Deployment Setup Yet
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-md">
-                  Add deployment configurations to define how your project
+                  Add deployment setup to define how your project
                   should be built and deployed.
                 </p>
                 <Button asChild>
@@ -342,7 +340,7 @@ export default function EditProjectPage() {
                     href={`/dashboard/projects/${projectId}/configurations/create`}
                   >
                     <IconPlus className="h-4 w-4 mr-2" /> Add Your First
-                    Configuration
+                    Setup
                   </Link>
                 </Button>
               </CardContent>
@@ -356,10 +354,10 @@ export default function EditProjectPage() {
           <DialogHeader>
             <div className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              <DialogTitle>Delete Configuration</DialogTitle>
+              <DialogTitle>Delete Deployment Setup</DialogTitle>
             </div>
             <DialogDescription className="pt-2">
-              Are you sure you want to delete this configuration? This action cannot be undone.
+              Are you sure you want to delete this deployment setup? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">

@@ -50,8 +50,7 @@ import { formatDistanceToNow } from "date-fns";
 import DeploymentStatusBadge from "../deployments/components/deployment-status-badge";
 
 const breadcrumbItems: BreadcrumbItem[] = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "License Buyer Deployments", href: "/dashboard/license-buyer-deployments" },
+  { label: "Customer Deployments", href: "/dashboard/license-buyer-deployments" },
 ];
 
 export default function LicenseBuyerDeploymentsPage() {
@@ -68,7 +67,7 @@ export default function LicenseBuyerDeploymentsPage() {
   // Fetch licenses for filter dropdown
   const { data: licensesData, isLoading: isLoadingLicenses } = useGetLicensesQuery({ limit: 50 });
 
-  // Main query for license buyer deployments
+  // Main query for customer deployments from purchased licenses
   const { data, isLoading, isFetching, refetch } = useGetLicenseBuyerDeploymentsQuery({
     project_id: selectedProjectId !== "all" ? selectedProjectId : undefined,
     license_id: selectedLicenseId !== "all" ? selectedLicenseId : undefined,
@@ -128,10 +127,10 @@ export default function LicenseBuyerDeploymentsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              License Buyer Deployments
+              Customer Deployments
             </h1>
             <p className="text-muted-foreground">
-              View and manage deployments made by users who purchased your licenses
+              View and manage deployments made by customers who purchased your licenses
             </p>
           </div>
           <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
@@ -154,7 +153,7 @@ export default function LicenseBuyerDeploymentsPage() {
                 <div className="text-2xl font-bold">{summaryStats.total}</div>
               )}
               <p className="text-xs text-muted-foreground">
-                By license buyers
+                By customers
               </p>
             </CardContent>
           </Card>
@@ -334,7 +333,7 @@ export default function LicenseBuyerDeploymentsPage() {
               <div className="text-center py-10 text-muted-foreground">
                 <IconRocket className="mx-auto h-12 w-12 mb-4 opacity-50" />
                 <p>No deployments found</p>
-                <p className="text-sm">License buyers haven&apos;t made any deployments yet</p>
+                <p className="text-sm">Customers haven&apos;t made any deployments yet</p>
               </div>
             ) : (
               <>

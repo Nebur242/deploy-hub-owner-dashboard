@@ -110,7 +110,7 @@ const helpData: HelpData = {
     {
       question: "What are the different deployment environments?",
       answer:
-        "Deploy Hub supports three environments: Development (for testing), Staging (for pre-production), and Production (for live sites). Each environment can have its own configuration and environment variables.",
+        "Deploy Hub supports three environments: Development (for testing), Staging (for pre-production), and Production (for live sites). Each environment can have its own deployment setup and environment variables.",
     },
     {
       question: "How do I organize my projects with categories?",
@@ -132,7 +132,7 @@ const helpData: HelpData = {
     {
       question: "What should I do if my deployment fails?",
       answer:
-        "Check the deployment logs for error messages. Common issues include build errors, missing environment variables, or configuration problems. You can retry a failed deployment after fixing the issue by clicking 'Retry Deployment'.",
+        "Check the deployment logs for error messages. Common issues include build errors, missing environment variables, or setup problems. You can retry a failed deployment after fixing the issue by clicking 'Retry Deployment'.",
     },
     {
       question: "How do I set environment variables?",
@@ -142,7 +142,7 @@ const helpData: HelpData = {
     {
       question: "What is a test deployment?",
       answer:
-        "Test deployments allow you to verify your configuration without counting against your deployment limits. They're perfect for testing new configurations or troubleshooting issues before going live.",
+        "Test deployments allow you to verify your setup before going live. They're perfect for testing deployment setup changes or troubleshooting setup issues.",
     },
   ],
   licenses: [
@@ -181,12 +181,12 @@ const helpData: HelpData = {
     {
       question: "How do I receive payouts from license sales?",
       answer:
-        "Payouts are processed automatically to your connected Stripe account. Go to Earnings to view your balance, pending payouts, and payout history. Set up your payout schedule in Billing > Payout Settings.",
+        "Deploy Hub records your share of each sale in the royalty ledger and releases eligible balances after the payout hold period. Go to Payouts to complete your Stripe Connect recipient setup, review pending and available royalties, and track payout history.",
     },
     {
       question: "What happens if my subscription expires?",
       answer:
-        "If your subscription expires, you'll retain access to your projects and data, but new deployments will be paused. Renew your subscription or update your payment method to resume deployments.",
+        "If your subscription expires, you'll retain access to your projects and data. Some owner features may be limited until you renew or update your payment method.",
     },
   ],
 };
@@ -228,13 +228,6 @@ export default function HelpPage() {
       form.setValue("email", user.firebase?.email || "");
     }
   }, [user, form]);
-
-  // Search from URL parameter on component mount
-  useEffect(() => {
-    if (urlSearchQuery) {
-      setSearchQuery(urlSearchQuery);
-    }
-  }, [urlSearchQuery]);
 
   // Filter FAQs based on search query
   const getFilteredFAQs = (): SearchResult[] | null => {

@@ -8,7 +8,8 @@ import {
 } from "@/common/types/coupon";
 import { authService } from "./auth-service";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 class CouponService {
   private async getHeaders(): Promise<HeadersInit> {
@@ -29,7 +30,7 @@ class CouponService {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -154,7 +155,7 @@ class CouponService {
    * Validate a coupon code (public endpoint)
    */
   async validateCoupon(
-    data: ValidateCouponDto
+    data: ValidateCouponDto,
   ): Promise<CouponValidationResponse> {
     const response = await fetch(`${API_URL}/coupons/validate`, {
       method: "POST",

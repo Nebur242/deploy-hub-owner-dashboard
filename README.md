@@ -51,11 +51,16 @@ bun install
 
 3. Configure environment variables:
 
-Create a `.env.local` file in the root directory and add:
+Create a `.env.local` file in the root directory from `.env.example` and set at least:
 
 ```
-REACT_APP_API_URL=your_api_endpoint
+NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
+NEXT_PUBLIC_APP_URL=http://localhost:4002
 ```
+
+Firebase public keys are required for auth and push setup. `FIREBASE_CLIENT_EMAIL` and
+`FIREBASE_PRIVATE_KEY` are also required for the server-side Firebase admin helper used by
+the Next app routes. `OPENAI_API_KEY` is optional unless you are testing workflow generation.
 
 4. Start the development server:
 
@@ -69,7 +74,7 @@ pnpm dev
 bun dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:4002](http://localhost:4002) in your browser.
 
 ## 🏗️ Project Structure
 

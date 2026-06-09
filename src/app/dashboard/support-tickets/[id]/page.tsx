@@ -61,6 +61,12 @@ import {
 } from "@/components/ui/dialog";
 import { MultipleMediaSelector } from "@/app/dashboard/media/components/media-selector";
 
+type TicketRequestError = {
+    data?: {
+        message?: string;
+    };
+};
+
 const getStatusBadge = (status: LicenseTicketStatus) => {
     switch (status) {
         case LicenseTicketStatus.OPEN:
@@ -122,6 +128,11 @@ const priorityOptions = [
     { value: LicenseTicketPriority.URGENT, label: "Urgent" },
 ];
 
+function getTicketErrorMessage(error: unknown, fallback: string) {
+    const message = (error as TicketRequestError | null)?.data?.message;
+    return typeof message === "string" && message.trim() ? message : fallback;
+}
+
 export default function TicketDetailPage() {
     const router = useRouter();
     const params = useParams();
@@ -165,8 +176,8 @@ export default function TicketDetailPage() {
             setSelectedMedia([]);
             toast.success("Message sent");
             refetch();
-        } catch (error: any) {
-            toast.error(error?.data?.message || "Failed to send message");
+        } catch (error: unknown) {
+            toast.error(getTicketErrorMessage(error, "Failed to send message"));
         }
     };
 
@@ -178,8 +189,8 @@ export default function TicketDetailPage() {
             }).unwrap();
             toast.success("Status updated");
             refetch();
-        } catch (error: any) {
-            toast.error(error?.data?.message || "Failed to update status");
+        } catch (error: unknown) {
+            toast.error(getTicketErrorMessage(error, "Failed to update status"));
         }
     };
 
@@ -191,8 +202,8 @@ export default function TicketDetailPage() {
             }).unwrap();
             toast.success("Priority updated");
             refetch();
-        } catch (error: any) {
-            toast.error(error?.data?.message || "Failed to update priority");
+        } catch (error: unknown) {
+            toast.error(getTicketErrorMessage(error, "Failed to update priority"));
         }
     };
 
@@ -201,8 +212,8 @@ export default function TicketDetailPage() {
             await closeTicket(ticketId).unwrap();
             toast.success("Ticket closed");
             refetch();
-        } catch (error: any) {
-            toast.error(error?.data?.message || "Failed to close ticket");
+        } catch (error: unknown) {
+            toast.error(getTicketErrorMessage(error, "Failed to close ticket"));
         }
     };
 

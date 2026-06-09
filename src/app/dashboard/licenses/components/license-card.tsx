@@ -160,7 +160,7 @@ export function LicenseCard({ license, projectId }: LicenseCardProps) {
                         <h4 className="font-medium">License Details:</h4>
                         <ul className="mt-2 space-y-1 text-sm">
                             <li>Price: {formatCurrency(license.price, license.currency)}</li>
-                            <li>Deployment Limit: {license.deployment_limit}</li>
+                            <li>Deployments per purchase: {license.deployment_limit}</li>
                             <li>Billing Period: {license.period === LicensePeriod.FOREVER ? "Lifetime" : license.period.charAt(0).toUpperCase() + license.period.slice(1)}</li>
                         </ul>
                     </div>

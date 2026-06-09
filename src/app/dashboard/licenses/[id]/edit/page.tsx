@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     useGetLicenseQuery,
@@ -22,10 +22,6 @@ export default function EditLicensePage() {
 
     // Avoid firing the query until we actually have a licenseId
     const skipLicenseFetch = !licenseId;
-
-    const [initialValues, setInitialValues] = useState<
-        CreateLicenseDto | undefined
-    >(undefined);
 
     // RTK Query hooks
     const {
@@ -66,27 +62,24 @@ export default function EditLicensePage() {
         </Button>
     );
 
-    // Set the initial values when the license data is loaded
-    useEffect(() => {
-        if (license) {
-            setInitialValues({
-                name: license.name,
-                description: license.description,
-                price: license.price,
-                currency: license.currency,
-                deployment_limit: license.deployment_limit,
-                period: license.period,
-                features: license.features || [],
-                project_ids: license.projects?.map(project => project.id) || [],
-                status: license.status,
-                popular: license.popular || false,
-                can_submit_support_ticket: license.can_submit_support_ticket || false,
-                can_redeploy: license.can_redeploy || false,
-                can_update: license.can_update || false,
-                has_priority_support: license.has_priority_support || false,
-            });
+    const initialValues: CreateLicenseDto | undefined = license
+        ? {
+            name: license.name,
+            description: license.description,
+            monthly_price: license.monthly_price ?? null,
+            yearly_price: license.yearly_price ?? null,
+            currency: license.currency,
+            deployment_limit: license.deployment_limit,
+            features: license.features || [],
+            project_ids: license.projects?.map(project => project.id) || [],
+            status: license.status,
+            popular: license.popular || false,
+            can_submit_support_ticket: license.can_submit_support_ticket || false,
+            can_redeploy: license.can_redeploy || false,
+            can_update: license.can_update || false,
+            has_priority_support: license.has_priority_support || false,
         }
-    }, [license]);
+        : undefined;
 
     // Clean up when component unmounts
     useEffect(() => {

@@ -1,7 +1,8 @@
 import { Review, PaginatedReviewsResponse } from "@/common/types/review";
 import { authService } from "./auth-service";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 // API wrapper response type
 interface ApiResponse<T> {
@@ -28,7 +29,7 @@ class ReviewService {
   async getProjectReviews(
     projectId: string,
     page = 1,
-    limit = 10
+    limit = 10,
   ): Promise<PaginatedReviewsResponse> {
     const headers = await this.getHeaders();
     const response = await fetch(
@@ -36,7 +37,7 @@ class ReviewService {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -75,7 +76,7 @@ class ReviewService {
       {
         method: "GET",
         headers,
-      }
+      },
     );
 
     if (!response.ok) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -79,10 +79,8 @@ export default function RedeployPage({ params }: PageProps) {
   // Determine mode from query params (default to redeploy)
   const mode: PageMode = searchParams.get("mode") === "update" ? "update" : "redeploy";
 
-  // State for environment variable values
+  // State for environment variable overrides
   const [envVarValues, setEnvVarValues] = useState<Record<string, string>>({});
-  // State for project versions
-  const [projectVersions, setProjectVersions] = useState<string[]>(["main"]);
   // State to toggle showing only required variables
   const [showOnlyRequired, setShowOnlyRequired] = useState(true);
   // State for video modal
@@ -143,35 +141,25 @@ export default function RedeployPage({ params }: PageProps) {
         environment: deployment.environment as DeploymentEnvironment,
         branch: defaultBranch,
       });
-
-      // Initialize env var values from deployment
-      if (deployment.environment_variables) {
-        const initialValues: Record<string, string> = {};
-        deployment.environment_variables.forEach((envVar) => {
-          initialValues[envVar.key] = envVar.default_value || "";
-        });
-        setEnvVarValues(initialValues);
-      }
     }
   }, [deployment, form]);
 
-  // Update versions when data is loaded
-  useEffect(() => {
-    if (versionsData && Array.isArray(versionsData)) {
-      // Get the default branch from the configuration
-      const configDefaultBranch = deployment?.configuration?.github_accounts?.[0]?.default_branch || "main";
-      const versions = [configDefaultBranch];
-      versionsData.forEach(({ version }: { version: string }) => {
-        if (version !== configDefaultBranch && !versions.includes(version)) {
-          versions.push(version);
-        }
-      });
-      setProjectVersions(versions);
-    } else {
-      const configDefaultBranch = deployment?.configuration?.github_accounts?.[0]?.default_branch || "main";
-      setProjectVersions([configDefaultBranch]);
+  const projectVersions = useMemo(() => {
+    const configDefaultBranch =
+      deployment?.configuration?.github_accounts?.[0]?.default_branch || "main";
+
+    if (!versionsData || !Array.isArray(versionsData)) {
+      return [configDefaultBranch];
     }
-  }, [versionsData, deployment?.configuration?.github_accounts]);
+
+    return versionsData.reduce<string[]>((versions, { version }: { version: string }) => {
+      if (!versions.includes(version)) {
+        versions.push(version);
+      }
+
+      return versions;
+    }, [configDefaultBranch]);
+  }, [deployment?.configuration?.github_accounts, versionsData]);
 
   // Handler for environment variable changes
   const handleEnvVarChange = (key: string, value: string) => {
@@ -610,7 +598,7 @@ export default function RedeployPage({ params }: PageProps) {
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Configuration</span>
+                      <span className="text-sm text-muted-foreground">Setup</span>
                       <span className="text-sm font-medium">
                         {deployment.configuration?.name || "N/A"}
                       </span>

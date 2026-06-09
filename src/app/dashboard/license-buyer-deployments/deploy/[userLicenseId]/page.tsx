@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,7 +69,7 @@ import { JsonKeyValueEditor } from "@/components/json-key-value-editor";
 const deployOnBehalfSchema = z.object({
   title: z.string().optional(),
   project_id: z.string().min(1, "Please select a project"),
-  configuration_id: z.string().min(1, "Please select a configuration"),
+  configuration_id: z.string().min(1, "Please select a deployment setup"),
   environment: z.nativeEnum(DeploymentEnvironment),
   branch: z.string().min(1, "Please enter a branch"),
 });
@@ -86,7 +86,6 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [configEnvVars, setConfigEnvVars] = useState<EnvironmentVariable[]>([]);
   const [envVarValues, setEnvVarValues] = useState<Record<string, string>>({});
 
   // State for video modal
@@ -173,20 +172,6 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
     }
   );
 
-  // Load configuration environment variables
-  useEffect(() => {
-    if (!configData) return;
-    const envVars = configData.deployment_option?.environment_variables || [];
-    setConfigEnvVars(envVars);
-
-    // Initialize env var values with default values from configuration
-    const initialValues: Record<string, string> = {};
-    envVars.forEach((envVar) => {
-      initialValues[envVar.key] = envVar.default_value || "";
-    });
-    setEnvVarValues(initialValues);
-  }, [configData]);
-
   const form = useForm<DeployOnBehalfFormValues>({
     resolver: zodResolver(deployOnBehalfSchema),
     defaultValues: {
@@ -198,18 +183,9 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
     },
   });
 
-  // Update configuration_id and reset env vars when project changes
-  useEffect(() => {
-    if (selectedProjectId) {
-      form.setValue("configuration_id", "");
-      setSelectedConfigId("");
-      setConfigEnvVars([]);
-      setEnvVarValues({});
-    }
-  }, [selectedProjectId, form]);
-
   const projects = projectsData?.items || [];
   const configurations = configurationsData || [];
+  const configEnvVars = configData?.deployment_option?.environment_variables || [];
   
   // Ensure 'main' is always included as a default branch option
   const versions = (() => {
@@ -223,11 +199,15 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
 
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);
+    setSelectedConfigId("");
+    setEnvVarValues({});
     form.setValue("project_id", projectId);
+    form.setValue("configuration_id", "");
   };
 
   const handleConfigChange = (configId: string) => {
     setSelectedConfigId(configId);
+    setEnvVarValues({});
     form.setValue("configuration_id", configId);
   };
 
@@ -243,11 +223,10 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
 
     // Validate required environment variables
     const missingRequiredVars = configEnvVars
-      .filter(
-        (envVar) =>
-          envVar.is_required &&
-          (!envVarValues[envVar.key] || envVarValues[envVar.key].trim() === "")
-      )
+      .filter((envVar) => {
+        const envVarValue = envVarValues[envVar.key] ?? envVar.default_value ?? "";
+        return envVar.is_required && envVarValue.trim() === "";
+      })
       .map((envVar) => envVar.key);
 
     if (missingRequiredVars.length > 0) {
@@ -261,7 +240,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
     // Process environment variables
     const processedEnvVars = configEnvVars.map((envVar) => ({
       ...envVar,
-      default_value: envVarValues[envVar.key] || envVar.default_value || "",
+      default_value: envVarValues[envVar.key] ?? envVar.default_value ?? "",
     }));
 
     try {
@@ -277,7 +256,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
       }).unwrap();
 
       toast.success("Deployment created", {
-        description: `Deployment created successfully on behalf of the license buyer`,
+        description: `Deployment created successfully on behalf of the customer`,
       });
 
       router.push("/dashboard/license-buyer-deployments");
@@ -305,8 +284,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
   };
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Buyer Deployments", href: "/dashboard/license-buyer-deployments" },
+    { label: "Customer Deployments", href: "/dashboard/license-buyer-deployments" },
     { label: "Deploy on Behalf" },
   ];
 
@@ -336,7 +314,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
           <Button variant="outline" asChild>
             <Link href="/dashboard/license-buyer-deployments">
               <IconArrowLeft className="mr-2 h-4 w-4" />
-              Back to Buyer Deployments
+              Back to Customer Deployments
             </Link>
           </Button>
         </div>
@@ -362,7 +340,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
               Deploy on Behalf
             </h1>
             <p className="text-muted-foreground">
-              Create a deployment on behalf of a license buyer
+              Create a deployment on behalf of a customer
             </p>
           </div>
         </div>
@@ -377,7 +355,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                   <CardHeader>
                     <CardTitle>Project Details</CardTitle>
                     <CardDescription>
-                      Select the project and configuration for this deployment
+                      Select the project and deployment setup for this deployment
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -430,13 +408,13 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                       )}
                     />
 
-                    {/* Configuration Selection */}
+                    {/* Deployment Setup Selection */}
                     <FormField
                       control={form.control}
                       name="configuration_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Configuration</FormLabel>
+                          <FormLabel>Deployment Setup</FormLabel>
                           <Select
                             value={field.value}
                             onValueChange={handleConfigChange}
@@ -449,8 +427,8 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                                     !selectedProjectId
                                       ? "Select a project first"
                                       : isLoadingConfigurations
-                                      ? "Loading configurations..."
-                                      : "Select a configuration"
+                                      ? "Loading deployment setup..."
+                                      : "Select a deployment setup"
                                   }
                                 />
                               </SelectTrigger>
@@ -465,7 +443,7 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                             </SelectContent>
                           </Select>
                           <FormDescription>
-                            Select the deployment configuration to use
+                            Select the deployment setup to use
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -479,21 +457,21 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                   <CardHeader>
                     <CardTitle>Environment Variables</CardTitle>
                     <CardDescription>
-                      Environment variables from the selected configuration
+                      Environment variables from the selected deployment setup
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {isLoadingConfigData ? (
                       <div className="flex items-center justify-center py-6">
                         <IconLoader className="h-6 w-6 animate-spin text-primary mr-2" />
-                        <span>Loading configuration details...</span>
+                        <span>Loading deployment setup details...</span>
                       </div>
                     ) : configFetchError ? (
                       <Alert variant="destructive">
                         <IconAlertCircle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
                         <AlertDescription>
-                          Failed to load configuration details. Please try again.
+                          Failed to load deployment setup details. Please try again.
                         </AlertDescription>
                       </Alert>
                     ) : !selectedConfigId ? (
@@ -501,17 +479,20 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                         <IconAlertCircle className="h-4 w-4" />
                         <AlertTitle>Required</AlertTitle>
                         <AlertDescription>
-                          Please select a configuration to see the required environment
+                          Please select a deployment setup to see the required environment
                           variables.
                         </AlertDescription>
                       </Alert>
                     ) : configEnvVars.length === 0 ? (
                       <div className="text-center py-4 text-muted-foreground">
-                        No environment variables found for this configuration.
+                        No environment variables found for this deployment setup.
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {configEnvVars.map((envVar) => (
+                          (() => {
+                            const envVarValue = envVarValues[envVar.key] ?? envVar.default_value ?? "";
+                            return (
                           <div
                             key={envVar.key}
                             className={`${envVar.is_required ? "block" : "hidden"} p-4 border rounded-md`}
@@ -540,10 +521,10 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                             {envVar.type === "json" ? (
                               <JsonKeyValueEditor
                                 defaultJson={envVar.default_value || "{}"}
-                                value={envVarValues[envVar.key] || ""}
+                                value={envVarValue}
                                 onChange={(value) => handleEnvVarChange(envVar.key, value)}
                                 disabled={isCreating}
-                                hasError={!!(envVar.is_required && !envVarValues[envVar.key])}
+                                hasError={!!(envVar.is_required && !envVarValue)}
                               />
                             ) : (
                               <div className="relative">
@@ -554,11 +535,11 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                                       ? `Enter value for ${envVar.key} (required)`
                                       : `Enter value for ${envVar.key} (default: ${envVar.default_value || "empty"})`
                                   }
-                                  value={envVarValues[envVar.key] || ""}
+                                  value={envVarValue}
                                   onChange={(e) => handleEnvVarChange(envVar.key, e.target.value)}
                                   disabled={isCreating}
                                   className={`${
-                                    envVar.is_required && !envVarValues[envVar.key]
+                                    envVar.is_required && !envVarValue
                                       ? "border-red-500"
                                       : ""
                                   } ${envVar.is_secret ? "pr-10" : ""}`}
@@ -617,6 +598,8 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
                               )}
                             </div>
                           </div>
+                            )
+                          })()
                         ))}
                       </div>
                     )}
@@ -626,12 +609,12 @@ export default function DeployOnBehalfPage({ params }: PageProps) {
 
               {/* Sidebar column - 1/3 width */}
               <div className="space-y-6">
-                {/* License Buyer Card */}
+                    {/* Customer Card */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <IconUser className="h-4 w-4" />
-                      License Buyer
+                      Customer
                     </CardTitle>
                     <CardDescription>
                       This deployment will use the buyer&apos;s deployment quota

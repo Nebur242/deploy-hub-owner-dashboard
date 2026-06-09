@@ -51,7 +51,7 @@ export default function CreateConfigurationPage() {
       label: project?.name || "Project",
       href: `/dashboard/projects/${projectId}/edit`,
     },
-    { label: "Add Configuration" },
+    { label: "Add Deployment Setup" },
   ];
 
   // Action buttons
@@ -71,7 +71,7 @@ export default function CreateConfigurationPage() {
   useEffect(() => {
     if (isSuccess) {
       // Show success toast
-      toast.success("Configuration created successfully");
+      toast.success("Deployment setup created successfully");
 
       // Set a short timeout before redirecting to see the success state
       const timer = setTimeout(() => {
@@ -95,7 +95,7 @@ export default function CreateConfigurationPage() {
     return (
       <DashboardLayout
         breadcrumbItems={breadcrumbItems}
-        title="Create Configuration"
+        title="Create Deployment Setup"
         actions={actionButtons}
       >
         <div className="flex justify-center items-center p-12">
@@ -121,7 +121,7 @@ export default function CreateConfigurationPage() {
         <Alert variant="destructive" className="max-w-xl mx-auto my-8">
           <AlertTitle>Project not found</AlertTitle>
           <AlertDescription>
-            The project you&apos;re trying to add configuration for could not be
+            The project you&apos;re trying to add a deployment setup for could not be
             found.
           </AlertDescription>
           <div className="mt-4">
@@ -137,7 +137,7 @@ export default function CreateConfigurationPage() {
   return (
     <DashboardLayout
       breadcrumbItems={breadcrumbItems}
-      title={`Add Configuration for ${project.name}`}
+      title={`Add Deployment Setup for ${project.name}`}
       actions={actionButtons}
     >
       <ConfigurationForm

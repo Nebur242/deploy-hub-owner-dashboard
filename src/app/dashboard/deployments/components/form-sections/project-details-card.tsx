@@ -1,6 +1,6 @@
 "use client";
 
-import { IconLoader } from "@tabler/icons-react";
+import { IconInfoCircle, IconLoader } from "@tabler/icons-react";
 import {
   Card,
   CardContent,
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProjectDetailsSectionProps } from "../types";
 
 export function ProjectDetailsCard({
@@ -33,6 +34,11 @@ export function ProjectDetailsCard({
   onConfigChange,
   onProjectChange
 }: ProjectDetailsSectionProps) {
+  const selectedConfigurationId = form.watch("configuration_id");
+  const selectedConfiguration = configurations.find(
+    (config) => config.id === selectedConfigurationId
+  );
+
   const handleProjectChange = (value: string) => {
     // No need to set projectId value here since we're handling it directly in the onValueChange
 
@@ -88,7 +94,7 @@ export function ProjectDetailsCard({
                 <SelectContent>
                   {!projects.some(p => !p.configurations?.length) ? null : (
                     <SelectItem value="info" disabled>
-                      Only projects with configurations are listed
+                      Only projects with deployment setup are listed
                     </SelectItem>
                   )}
                   {projects.length > 0 ? (
@@ -114,7 +120,7 @@ export function ProjectDetailsCard({
           name="configuration_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Configuration</FormLabel>
+              <FormLabel>Deployment Setup</FormLabel>
               <Select
                 onValueChange={(value) => {
                   // Update the form field directly
@@ -139,9 +145,9 @@ export function ProjectDetailsCard({
                     ) : !field.value && !form.watch("project_id") ? (
                       <span className="text-muted-foreground">Select a project first</span>
                     ) : !configurations.length && form.watch("project_id") ? (
-                      <span className="text-muted-foreground">No configurations available</span>
+                      <span className="text-muted-foreground">No deployment setup available</span>
                     ) : (
-                      <SelectValue placeholder="Select a configuration" />
+                      <SelectValue placeholder="Select a deployment setup" />
                     )}
                   </SelectTrigger>
                 </FormControl>
@@ -155,19 +161,31 @@ export function ProjectDetailsCard({
                   ) : (
                     <SelectItem value="no-configs" disabled>
                       {form.watch("project_id")
-                        ? "No configurations for this project"
+                        ? "No deployment setup for this project"
                         : "Select a project first"}
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
               <FormDescription>
-                Choose a deployment configuration for your project
+                Choose the deployment setup for your project
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {selectedConfiguration && (
+          <Alert>
+            <IconInfoCircle className="h-4 w-4" />
+            <AlertTitle>Setup note</AlertTitle>
+            <AlertDescription className="whitespace-pre-wrap">
+              {selectedConfiguration.note?.trim()
+                ? selectedConfiguration.note
+                : "No note has been added for this deployment setup yet."}
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

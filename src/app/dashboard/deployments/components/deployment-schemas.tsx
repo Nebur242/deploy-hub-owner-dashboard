@@ -6,7 +6,7 @@ import { environmentVariableDtoSchema } from "@/common/dtos";
 export const deploymentSchema = z.object({
   title: z.string().optional(),
   project_id: z.string().min(1, { message: "Project is required" }),
-  configuration_id: z.string().min(1, { message: "Configuration is required" }),
+  configuration_id: z.string().min(1, { message: "Deployment setup is required" }),
   environment: z.enum([
     DeploymentEnvironment.PRODUCTION,
     DeploymentEnvironment.PREVIEW

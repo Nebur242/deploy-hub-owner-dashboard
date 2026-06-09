@@ -15,7 +15,7 @@ import { useGetProjectsQuery, useGetConfigurationsQuery } from "@/store/features
 export default function EditDeploymentPage() {
   const params = useParams();
   const deploymentId = params.id as string;
-  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(undefined);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
   // Fetch the deployment
   const {
@@ -29,12 +29,7 @@ export default function EditDeploymentPage() {
     pollingInterval: 45000,
   });
 
-  // Set initial project ID once deployment data is loaded
-  useEffect(() => {
-    if (deployment) {
-      setCurrentProjectId(deployment.project_id);
-    }
-  }, [deployment]);
+  const currentProjectId = selectedProjectId || deployment?.project_id;
 
   // Fetch projects
   const {
@@ -49,7 +44,6 @@ export default function EditDeploymentPage() {
   const {
     data: configurationsData,
     isLoading: isLoadingConfigurations,
-    refetch: refetchConfigurations
   } = useGetConfigurationsQuery(currentProjectId || '', {
     skip: !currentProjectId
   });
@@ -57,8 +51,7 @@ export default function EditDeploymentPage() {
   // Handler for project change
   const handleProjectChange = (selectedProjectId: string) => {
     console.log("Project changed:", selectedProjectId);
-    setCurrentProjectId(selectedProjectId);
-    refetchConfigurations();
+    setSelectedProjectId(selectedProjectId);
   };
 
   // Breadcrumb items

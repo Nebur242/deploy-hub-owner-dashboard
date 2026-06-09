@@ -22,6 +22,7 @@ export function EnvVariablesCard({
   form,
   isLoading,
   success,
+  configurationNote,
   configEnvVars,
   envVarValues,
   onEnvVarChange,
@@ -75,14 +76,24 @@ export function EnvVariablesCard({
       <CardHeader>
         <CardTitle>Environment Variables</CardTitle>
         <CardDescription>
-          Environment variables from the selected configuration
+          Environment variables from the selected deployment setup
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {configurationNote && (
+          <Alert>
+            <IconAlertCircle className="h-4 w-4" />
+            <AlertTitle>Setup note</AlertTitle>
+            <AlertDescription className="whitespace-pre-wrap">
+              {configurationNote}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isLoadingConfig ? (
           <div className="flex items-center justify-center py-6">
             <IconLoader className="h-6 w-6 animate-spin text-primary mr-2" />
-            <span>Loading configuration details...</span>
+            <span>Loading deployment setup details...</span>
           </div>
         ) : configError ? (
           <Alert variant="destructive">
@@ -95,12 +106,12 @@ export function EnvVariablesCard({
             <IconAlertCircle className="h-4 w-4" />
             <AlertTitle>Required</AlertTitle>
             <AlertDescription>
-              Please select a configuration to see the required environment variables.
+              Please select a deployment setup to see the required environment variables.
             </AlertDescription>
           </Alert>
         ) : configEnvVars.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
-            No environment variables found for this configuration.
+            No environment variables found for this deployment setup.
           </div>
         ) : (
           <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">

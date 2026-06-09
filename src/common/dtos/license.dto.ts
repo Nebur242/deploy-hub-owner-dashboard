@@ -1,18 +1,26 @@
 import { z } from "zod";
 import { Currency } from "../enums/project";
-import { LicenseStatus, LicensePeriod } from "../types/license";
+import { LicenseStatus } from "../types/license";
 
 // Base schema for license data
-const licenseBaseDtoSchema = z.object({
+const licenseBaseFields = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  price: z.number().nonnegative("Price must be a non-negative number"),
+  monthly_price: z
+    .number()
+    .nonnegative("Monthly price must be a non-negative number")
+    .nullable()
+    .optional(),
+  yearly_price: z
+    .number()
+    .nonnegative("Yearly price must be a non-negative number")
+    .nullable()
+    .optional(),
   currency: z.nativeEnum(Currency),
   deployment_limit: z
     .number()
     .int()
     .min(5, "Deployment limit must be at least 5"),
-  period: z.nativeEnum(LicensePeriod), // Billing period
   features: z.array(z.string()),
   status: z.nativeEnum(LicenseStatus),
   popular: z.boolean(),
@@ -22,18 +30,47 @@ const licenseBaseDtoSchema = z.object({
   has_priority_support: z.boolean(), // User has priority support
 });
 
+type PriceValidationShape = {
+  monthly_price: z.ZodTypeAny;
+  yearly_price: z.ZodTypeAny;
+};
+
+type PriceValidationData = {
+  monthly_price?: number | null;
+  yearly_price?: number | null;
+};
+
+const withPriceValidation = <T extends z.ZodRawShape & PriceValidationShape>(
+  schema: z.ZodObject<T>,
+) =>
+  schema.refine(
+    (data) => {
+      const priceData = data as PriceValidationData;
+      const monthly = Number(priceData.monthly_price || 0);
+      const yearly = Number(priceData.yearly_price || 0);
+      return monthly >= 0 && yearly >= 0;
+    },
+    {
+      message: "Prices must be valid non-negative numbers",
+    },
+  );
+
 // Schema for creating new licenses
-export const createLicenseDtoSchema = licenseBaseDtoSchema.extend({
-  project_ids: z
-    .array(z.string())
-    .min(1, "At least one project must be associated"),
-});
+export const createLicenseDtoSchema = withPriceValidation(
+  licenseBaseFields.extend({
+    project_ids: z
+      .array(z.string())
+      .min(1, "At least one project must be associated"),
+  }),
+);
 
 // Schema for updating existing licenses
-export const updateLicenseDtoSchema = licenseBaseDtoSchema.extend({
-  id: z.string(),
-  project_ids: z.array(z.string()).optional(),
-});
+export const updateLicenseDtoSchema = withPriceValidation(
+  licenseBaseFields.extend({
+    id: z.string(),
+    project_ids: z.array(z.string()).optional(),
+  }),
+);
 
 // Schema for purchasing a license
 export const purchaseLicenseDtoSchema = z.object({

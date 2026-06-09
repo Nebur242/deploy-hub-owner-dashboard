@@ -23,14 +23,22 @@ export enum LicensePeriod {
   FOREVER = "forever",
 }
 
+export enum LicenseBillingInterval {
+  MONTHLY = "monthly",
+  YEARLY = "yearly",
+}
+
 // License Option entity
 export interface LicenseOption extends BaseEntity {
   name: string;
   description: string;
   price: number;
+  monthly_price?: number | null;
+  yearly_price?: number | null;
   currency: Currency;
   deployment_limit: number;
   period: LicensePeriod; // Billing period (forever = one-time, others = subscription)
+  billing_intervals?: LicenseBillingInterval[];
   features: string[];
   projects: Project[]; // Multiple projects can be associated with a license
   owner_id: string; // UUID - Owner who created the license
@@ -43,6 +51,53 @@ export interface LicenseOption extends BaseEntity {
   has_priority_support: boolean; // User has priority support
   stripe_product_id?: string;
   stripe_price_id?: string;
+}
+
+export function getLicenseBillingIntervals(license: Pick<LicenseOption, "monthly_price" | "yearly_price">): LicenseBillingInterval[] {
+  const intervals: LicenseBillingInterval[] = [];
+  if (Number(license.monthly_price || 0) > 0) {
+    intervals.push(LicenseBillingInterval.MONTHLY);
+  }
+  if (Number(license.yearly_price || 0) > 0) {
+    intervals.push(LicenseBillingInterval.YEARLY);
+  }
+  return intervals;
+}
+
+export function isFreeLicense(license: Pick<LicenseOption, "monthly_price" | "yearly_price">): boolean {
+  return getLicenseBillingIntervals(license).length === 0;
+}
+
+export function getLicensePrimaryInterval(license: LicenseOption): LicenseBillingInterval | null {
+  return getLicenseBillingIntervals(license)[0] || null;
+}
+
+export function getLicensePriceForInterval(
+  license: Pick<LicenseOption, "monthly_price" | "yearly_price">,
+  interval: LicenseBillingInterval,
+): number | null {
+  const value =
+    interval === LicenseBillingInterval.YEARLY ? license.yearly_price : license.monthly_price;
+  return Number(value || 0) > 0 ? Number(value) : null;
+}
+
+export function getLicensePriceSummary(license: LicenseOption): string {
+  const monthly = getLicensePriceForInterval(license, LicenseBillingInterval.MONTHLY);
+  const yearly = getLicensePriceForInterval(license, LicenseBillingInterval.YEARLY);
+
+  if (monthly !== null && yearly !== null) {
+    return "Monthly + yearly";
+  }
+
+  if (monthly !== null) {
+    return "Monthly";
+  }
+
+  if (yearly !== null) {
+    return "Yearly";
+  }
+
+  return "Free";
 }
 
 // License Purchase entity

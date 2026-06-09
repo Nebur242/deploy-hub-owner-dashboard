@@ -121,6 +121,11 @@ export const requestOtpCode = createAsyncThunk(
     } catch (error) {
       const axiosError = error as AxiosError<{ message: string }>;
       if (onFailed) onFailed();
+      if (!axiosError.response) {
+        return rejectWithValue(
+          "Unable to reach the API. Check that the API server is running and NEXT_PUBLIC_API_URL is correct.",
+        );
+      }
       return rejectWithValue(
         axiosError?.response?.data?.message ||
           "Failed to send verification code",

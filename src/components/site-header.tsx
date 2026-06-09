@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -62,7 +61,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 export function SiteHeader() {
   const {
     infos: user,
-    logout: { loading, status, error },
+    logout: { loading },
   } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -210,20 +209,6 @@ export function SiteHeader() {
       setLogoutDialogOpen(false);
     }
   };
-
-  // Handle logout status changes
-  useEffect(() => {
-    if (status === "success") {
-      router.push("/auth/login");
-    }
-    if (status === "error") {
-      toast.error(error, {
-        description: "Could not log out. Please try again.",
-        duration: 5000,
-      });
-      setLogoutDialogOpen(false);
-    }
-  }, [status, error, router]);
 
   return (
     <header

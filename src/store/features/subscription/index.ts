@@ -6,6 +6,7 @@ import {
   CreateCheckoutSessionDto,
   UpdateSubscriptionDto,
   CheckoutResponse,
+  BillingPortalResponse,
 } from "@/common/types/subscription";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -46,10 +47,11 @@ export const subscriptionApi = createApi({
     }),
 
     // Create a billing portal session
-    createPortalSession: builder.mutation<CheckoutResponse, void>({
-      query: () => ({
+    createPortalSession: builder.mutation<BillingPortalResponse, { return_url?: string } | void>({
+      query: (body) => ({
         url: "subscriptions/portal",
         method: "POST",
+        data: body,
       }),
     }),
 
@@ -75,8 +77,11 @@ export const subscriptionApi = createApi({
     // Reactivate a canceled subscription
     reactivateSubscription: builder.mutation<Subscription, void>({
       query: () => ({
-        url: "subscriptions/reactivate",
-        method: "POST",
+        url: "subscriptions",
+        method: "PUT",
+        data: {
+          cancel_at_period_end: false,
+        },
       }),
       invalidatesTags: ["Subscription"],
     }),

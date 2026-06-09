@@ -91,7 +91,7 @@ export function DeploymentSettingsCard({
                       Test Mode
                     </FormLabel>
                     <FormDescription>
-                      Test your deployment configuration before making your project public. Test deployments don&apos;t consume license limits.
+                      Test your deployment setup before making your project public.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -109,7 +109,7 @@ export function DeploymentSettingsCard({
               <Alert>
                 <IconInfoCircle className="h-4 w-4" />
                 <AlertDescription>
-                  This is a <strong>test deployment</strong>. You can verify your configuration works correctly without affecting your production environment or consuming deployment limits.
+                  This is a <strong>test deployment</strong>. You can verify your setup works correctly without affecting your production environment.
                 </AlertDescription>
               </Alert>
             )}

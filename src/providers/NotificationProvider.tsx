@@ -28,17 +28,18 @@ interface NotificationProviderProps {
 }
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
-    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-    const [isInitialized, setIsInitialized] = useState(false);
+    const isNotificationSupported = typeof window !== 'undefined' && 'Notification' in window;
+    const [hasPermission, setHasPermission] = useState<boolean | null>(() =>
+        isNotificationSupported ? Notification.permission === 'granted' : null
+    );
     const [notificationCount, setNotificationCount] = useState(0);
     const router = useRouter();
+    const isInitialized = isNotificationSupported;
 
     // Initialize notification service
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-
         // Check if notifications are supported
-        if (!('Notification' in window)) {
+        if (!isNotificationSupported) {
             console.log('⚠️ This browser does not support notifications');
             return;
         }
@@ -46,22 +47,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         // Initialize FCM
         try {
             notificationService.initialize();
-            setIsInitialized(true);
-
-            // Check current permission status
-            const permissionStatus = Notification.permission;
-            console.log('🔔 Current notification permission status:', permissionStatus);
-            setHasPermission(permissionStatus === 'granted');
 
             // If permission is already granted, get a token
-            if (permissionStatus === 'granted') {
+            if (hasPermission) {
                 console.log('🔔 Permission already granted, getting FCM token');
                 notificationService.getToken();
             }
         } catch (error) {
             console.error('❌ Error initializing notifications:', error);
         }
-    }, []);
+    }, [hasPermission, isNotificationSupported]);
 
     // Listen for FCM notifications
     useEffect(() => {

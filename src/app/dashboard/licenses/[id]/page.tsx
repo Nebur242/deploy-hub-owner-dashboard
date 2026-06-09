@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PurchaseStatus } from "@/common/enums/project";
 import Link from "next/link";
 import { IconEdit } from "@tabler/icons-react";
-import { formatCurrency, formatDate, formatPeriod } from "@/utils/format";
+import { formatCurrency, formatDate, formatLicensePriceSummary } from "@/utils/format";
+import { getLicenseBillingIntervals } from "@/common/types/license";
 
 export default function ViewLicensePage() {
     const { id: licenseId } = useParams() as { id?: string };
@@ -148,6 +149,13 @@ export default function ViewLicensePage() {
             actions={actionButtons}
         >
             <div className="space-y-8">
+                <Alert>
+                    <AlertTitle>Stripe billing</AlertTitle>
+                    <AlertDescription>
+                        Paid licenses sync their Stripe product and price links automatically when you save pricing changes or when a buyer starts checkout.
+                    </AlertDescription>
+                </Alert>
+
                 {/* License Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card className="col-span-2">
@@ -164,14 +172,14 @@ export default function ViewLicensePage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <h3 className="text-sm font-medium text-muted-foreground">Price</h3>
+                                        <h3 className="text-sm font-medium text-muted-foreground">Pricing</h3>
                                         <p className="mt-1 text-xl font-semibold">
-                                            {license && formatCurrency(license.currency, license.price)}
+                                            {license && formatLicensePriceSummary(license)}
                                         </p>
                                     </div>
 
                                     <div>
-                                        <h3 className="text-sm font-medium text-muted-foreground">Deployments</h3>
+                                        <h3 className="text-sm font-medium text-muted-foreground">Deployments per Purchase</h3>
                                         <p className="mt-1">
                                             <Badge variant="outline" className="text-lg font-semibold">
                                                 {license?.deployment_limit} {license?.deployment_limit === 1 ? 'deployment' : 'deployments'}
@@ -180,12 +188,18 @@ export default function ViewLicensePage() {
                                     </div>
 
                                     <div>
-                                        <h3 className="text-sm font-medium text-muted-foreground">Billing Period</h3>
-                                        <p className="mt-1">
-                                            <Badge variant="outline" className="text-lg font-semibold">
-                                                {license && formatPeriod(license.period)}
-                                            </Badge>
-                                        </p>
+                                        <h3 className="text-sm font-medium text-muted-foreground">Billing Options</h3>
+                                        <div className="mt-1 flex flex-wrap gap-2">
+                                            {license && getLicenseBillingIntervals(license).length > 0 ? (
+                                                getLicenseBillingIntervals(license).map((interval) => (
+                                                    <Badge key={interval} variant="outline" className="text-lg font-semibold capitalize">
+                                                        {interval}
+                                                    </Badge>
+                                                ))
+                                            ) : (
+                                                <Badge variant="outline" className="text-lg font-semibold">Free</Badge>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -298,7 +312,7 @@ export default function ViewLicensePage() {
                                             <TableHead>Project</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Amount</TableHead>
-                                            <TableHead>Deployments</TableHead>
+                                            <TableHead>Deployments per Purchase</TableHead>
                                             <TableHead>Purchased On</TableHead>
                                             <TableHead>Expires</TableHead>
                                         </TableRow>

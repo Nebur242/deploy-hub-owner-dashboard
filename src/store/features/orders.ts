@@ -137,7 +137,7 @@ export const ordersApi = createApi({
       ],
     }),
 
-    // ===== Owner/Seller Sales Endpoints =====
+    // ===== Owner Sales Endpoints =====
     getOwnerSales: builder.query<
       {
         items: Order[];

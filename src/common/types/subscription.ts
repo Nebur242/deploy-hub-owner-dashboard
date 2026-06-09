@@ -20,18 +20,12 @@ export enum BillingInterval {
   YEARLY = "yearly",
 }
 
-export interface DeploymentPool {
-  total: number;
-  allocated: number;
-  available: number;
-}
+export type BillingProvider = "stripe";
+export type CheckoutMode = "redirect";
 
 export interface Subscription {
   id: string;
   user_id: string;
-  paddle_customer_id: string | null;
-  paddle_subscription_id: string | null;
-  paddle_price_id: string | null;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
   billing_interval: BillingInterval | null;
@@ -45,18 +39,22 @@ export interface Subscription {
   trial_start: string | null;
   trial_end: string | null;
   max_projects: number;
-  max_deployments_per_month: number;
   max_github_accounts: number; // Max GitHub accounts per project (-1 = unlimited)
-  max_licenses_per_project: number; // Max licenses per project
+  max_licenses_per_project: number; // Max total licenses an owner can create
   platform_fee_percent: number; // Platform fee percentage on license sales
   custom_domain_enabled: boolean;
   priority_support: boolean;
   analytics_enabled: boolean;
-  metadata: Record<string, unknown> | null;
+  ai_assistant_enabled: boolean;
+  metadata: {
+    billing_provider?: BillingProvider;
+    stripe_customer_id?: string;
+    stripe_subscription_id?: string;
+    stripe_price_id?: string;
+    [key: string]: unknown;
+  } | null;
   created_at: string;
   updated_at: string;
-  // Deployment pool info from API
-  deployment_pool?: DeploymentPool;
 }
 
 export interface PlanConfig {
@@ -64,17 +62,16 @@ export interface PlanConfig {
   name: string;
   description: string;
   maxProjects: number;
-  maxLicensesPerProject: number; // Max licenses per project
-  maxDeploymentsPerMonth: number; // -1 = unlimited
+  maxLicensesPerProject: number; // Max total licenses an owner can create
   maxGithubAccounts: number; // -1 = unlimited
   platformFeePercent: number; // Platform fee percentage (e.g., 50 = 50%)
   customDomainEnabled: boolean;
   prioritySupport: boolean;
   analyticsEnabled: boolean;
+  aiAssistantEnabled: boolean;
   monthlyPrice: number;
   yearlyPrice: number;
-  paddlePriceIdMonthly?: string;
-  paddlePriceIdYearly?: string;
+  stripeReady?: boolean;
 }
 
 export interface CreateCheckoutSessionDto {
@@ -90,24 +87,20 @@ export interface UpdateSubscriptionDto {
   cancel_at_period_end?: boolean;
 }
 
-// Paddle checkout response (for Paddle.js overlay)
-export interface PaddleCheckoutResponse {
-  customerId: string;
-  priceId: string;
-  successUrl: string;
-  clientToken: string;
-  environment: string;
-  metadata: Record<string, string>;
-}
-
-// Legacy support for URL-based checkout (not used with Paddle)
 export interface CheckoutResponse {
+  provider: BillingProvider;
+  mode: CheckoutMode;
   url?: string;
-  // Paddle checkout data
   customerId?: string;
   priceId?: string;
   successUrl?: string;
-  clientToken?: string;
-  environment?: string;
   metadata?: Record<string, string>;
+  sessionId?: string;
+}
+
+export interface BillingPortalResponse {
+  provider: BillingProvider;
+  url?: string;
+  updatePaymentMethod?: string;
+  cancel?: string;
 }

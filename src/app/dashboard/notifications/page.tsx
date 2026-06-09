@@ -39,6 +39,23 @@ import {
     NotificationScope,
 } from "@/store/features/notifications"
 
+function NotificationSkeleton() {
+    return (
+        <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-start gap-4 p-4">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-2/3" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
 
 export default function NotificationsPage() {
     const [activeTab, setActiveTab] = useState<string>("all")
@@ -149,22 +166,6 @@ export default function NotificationsPage() {
         refetch()
         toast.success("Notifications refreshed")
     }
-
-    // Loading skeleton
-    const NotificationSkeleton = () => (
-        <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-start gap-4 p-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-1/3" />
-                        <Skeleton className="h-3 w-full" />
-                        <Skeleton className="h-3 w-2/3" />
-                    </div>
-                </div>
-            ))}
-        </div>
-    )
 
     return (
         <div className="mx-auto max-w-5xl py-6">

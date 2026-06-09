@@ -6,6 +6,7 @@ import {
   CreateCheckoutSessionDto,
   UpdateSubscriptionDto,
   CheckoutResponse,
+  BillingPortalResponse,
 } from "@/common/types/subscription";
 
 const SUBSCRIPTION_URL = "/subscriptions";
@@ -56,9 +57,30 @@ export const subscriptionService = {
   /**
    * Create a billing portal session
    */
-  async createPortalSession(): Promise<CheckoutResponse> {
-    const response = await AXIOS.post<{ data: CheckoutResponse }>(
+  async createPortalSession(returnUrl?: string): Promise<BillingPortalResponse> {
+    return this.openBillingPortal(returnUrl);
+  },
+
+  /**
+   * Get management URLs for updating payment method and cancellation
+   */
+  async getManagementUrls(): Promise<BillingPortalResponse> {
+    return this.getManagementUrlsWithReturn();
+  },
+
+  async getManagementUrlsWithReturn(returnUrl?: string): Promise<BillingPortalResponse> {
+    const response = await AXIOS.get<{
+      data: BillingPortalResponse;
+    }>(`${SUBSCRIPTION_URL}/management-urls`, {
+      params: returnUrl ? { return_url: returnUrl } : undefined,
+    });
+    return response.data.data || response.data;
+  },
+
+  async openBillingPortal(returnUrl?: string): Promise<BillingPortalResponse> {
+    const response = await AXIOS.post<{ data: BillingPortalResponse }>(
       `${SUBSCRIPTION_URL}/portal`,
+      returnUrl ? { return_url: returnUrl } : undefined,
     );
     return response.data.data || response.data;
   },
@@ -84,16 +106,11 @@ export const subscriptionService = {
     return response.data.data || response.data;
   },
 
-  /**
-   * Get management URLs for updating payment method and cancellation
-   */
-  async getManagementUrls(): Promise<{
-    updatePaymentMethod?: string;
-    cancel?: string;
-  }> {
-    const response = await AXIOS.get<{
-      data: { updatePaymentMethod?: string; cancel?: string };
-    }>(`${SUBSCRIPTION_URL}/management-urls`);
+  async syncCheckoutSession(sessionId: string): Promise<Subscription> {
+    const response = await AXIOS.post<{ data: Subscription }>(
+      `${SUBSCRIPTION_URL}/checkout/sync`,
+      { session_id: sessionId },
+    );
     return response.data.data || response.data;
   },
 };

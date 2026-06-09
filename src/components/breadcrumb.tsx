@@ -3,16 +3,20 @@ import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
 
 export interface BreadcrumbItem {
-    label: string;
-    href?: string;
+    readonly label: string;
+    readonly href?: string;
 }
 
 interface BreadcrumbProps {
-    items: BreadcrumbItem[];
-    homeHref?: string;
+    readonly items: readonly BreadcrumbItem[];
+    readonly homeHref?: string;
 }
 
 export default function Breadcrumb({ items, homeHref = '/dashboard' }: BreadcrumbProps) {
+    const breadcrumbItems = items[0]?.label === 'Dashboard' && (!items[0]?.href || items[0].href === homeHref)
+        ? items.slice(1)
+        : items;
+
     return (
         <nav className="flex mb-4" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 md:space-x-2">
@@ -26,10 +30,10 @@ export default function Breadcrumb({ items, homeHref = '/dashboard' }: Breadcrum
                     </Link>
                 </li>
 
-                {items.map((item, index) => (
-                    <li key={index} className="flex items-center">
+                {breadcrumbItems.map((item, index) => (
+                    <li key={item.href ?? item.label} className="flex items-center">
                         <ChevronRight className="h-4 w-4 text-muted-foreground mx-1" />
-                        {item.href && index !== items.length - 1 ? (
+                        {item.href && index !== breadcrumbItems.length - 1 ? (
                             <Link
                                 href={item.href}
                                 className="text-sm font-medium text-muted-foreground hover:text-foreground ml-1"

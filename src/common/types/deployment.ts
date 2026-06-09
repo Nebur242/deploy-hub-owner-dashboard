@@ -22,13 +22,6 @@ export interface DeploymentGitHubAccount {
   last_used?: string;
 }
 
-// Webhook info for deployment
-export interface DeploymentWebhookInfo {
-  hook_id: number;
-  repository_owner: string;
-  repository_name: string;
-}
-
 // Environment variable value for deployment
 export interface DeploymentEnvironmentVariable extends EnvironmentVariable {
   value?: string;
@@ -56,7 +49,6 @@ export interface Deployment extends BaseEntity {
   github_account?: DeploymentGitHubAccount;
   error_message?: string;
   retry_count: number;
-  webhook_info?: DeploymentWebhookInfo;
   completed_at?: string;
   // Permission flags (inherited from license or all true for owner)
   can_submit_support_ticket: boolean;

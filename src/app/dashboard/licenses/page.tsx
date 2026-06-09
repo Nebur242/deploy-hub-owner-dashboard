@@ -6,6 +6,7 @@ import {
     useDeleteLicenseMutation,
 } from "@/store/features/licenses";
 import { useGetProjectsQuery } from "@/store/features/projects";
+import { useGetSubscriptionQuery } from "@/store/features/subscription";
 import {
     Table,
     TableBody,
@@ -51,7 +52,8 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LicenseOption } from "@/common/types";
-import { formatCurrency, formatPeriod } from "@/utils/format";
+import { getLicenseBillingIntervals } from "@/common/types/license";
+import { formatLicensePriceSummary } from "@/utils/format";
 import {
     Tooltip,
     TooltipContent,
@@ -78,6 +80,7 @@ export default function LicensesPage() {
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
         limit: 1, // We only need to check if any projects exist
     });
+    const { data: subscription, isLoading: isLoadingSubscription } = useGetSubscriptionQuery();
 
     const hasProjects = (projectsData?.items?.length || 0) > 0;
 
@@ -87,6 +90,9 @@ export default function LicensesPage() {
     const licenses = data?.items || [];
     const totalLicenses = data?.meta?.totalItems || 0;
     const totalPages = data?.meta?.totalPages || 1;
+    const licenseLimit = subscription?.max_licenses_per_project ?? -1;
+    const isLicenseLimitReached = licenseLimit !== -1 && totalLicenses >= licenseLimit;
+    const canCreateLicense = hasProjects && !isLicenseLimitReached;
 
     // For handling delete confirmation
     const handleDeleteClick = (license: LicenseOption) => {
@@ -147,21 +153,32 @@ export default function LicensesPage() {
                 {isFetching ? "Refreshing..." : "Refresh"}
             </Button>
 
-            {/* Conditionally render the Create License button based on projects existence */}
+            {/* Conditionally render the Create License button based on projects and plan limits */}
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span>
-                            <Button asChild disabled={!hasProjects && !isLoadingProjects}>
-                                <Link href={hasProjects ? "/dashboard/licenses/create" : "#"}>
+                            {canCreateLicense ? (
+                                <Button asChild>
+                                    <Link href="/dashboard/licenses/create">
+                                        <IconPlus className="h-4 w-4 mr-2" /> Create License
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <Button disabled>
                                     <IconPlus className="h-4 w-4 mr-2" /> Create License
-                                </Link>
-                            </Button>
+                                </Button>
+                            )}
                         </span>
                     </TooltipTrigger>
-                    {!hasProjects && (
+                    {!isLoadingProjects && !hasProjects && (
                         <TooltipContent className="max-w-xs">
                             <p>You need to create at least one project before creating a license</p>
+                        </TooltipContent>
+                    )}
+                    {!isLoadingSubscription && hasProjects && isLicenseLimitReached && (
+                        <TooltipContent className="max-w-xs">
+                            <p>Your current plan allows {licenseLimit} total license{licenseLimit === 1 ? "" : "s"}.</p>
                         </TooltipContent>
                     )}
                 </Tooltip>
@@ -189,6 +206,21 @@ export default function LicensesPage() {
                                 <Link href="/dashboard/projects/create">
                                     <IconPlus className="h-4 w-4 mr-2" /> Create Project
                                 </Link>
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {!isLoadingSubscription && hasProjects && isLicenseLimitReached && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4 flex items-start">
+                        <IconInfoCircle className="h-5 w-5 text-yellow-500 mr-3 mt-0.5" />
+                        <div>
+                            <h4 className="font-medium text-yellow-800">License limit reached</h4>
+                            <p className="text-yellow-700 text-sm mt-1">
+                                Your current plan allows {licenseLimit} total license{licenseLimit === 1 ? "" : "s"}. Upgrade to create more.
+                            </p>
+                            <Button variant="outline" size="sm" className="mt-2" asChild>
+                                <Link href="/dashboard/billing">View Billing</Link>
                             </Button>
                         </div>
                     </div>
@@ -231,9 +263,9 @@ export default function LicensesPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>License</TableHead>
-                                    <TableHead>Price</TableHead>
-                                    <TableHead>Deployments</TableHead>
-                                    <TableHead>Period</TableHead>
+                                    <TableHead>Pricing</TableHead>
+                                    <TableHead>Deployments per Purchase</TableHead>
+                                    <TableHead>Billing</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -246,7 +278,7 @@ export default function LicensesPage() {
                                                 <Skeleton className="h-3 w-48" />
                                             </div>
                                         </TableCell>
-                                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                         <TableCell className="text-right">
@@ -294,9 +326,9 @@ export default function LicensesPage() {
                                     <TableRow>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Description</TableHead>
-                                        <TableHead>Price</TableHead>
-                                        <TableHead>Deployments</TableHead>
-                                        <TableHead>Period</TableHead>
+                                        <TableHead>Pricing</TableHead>
+                                        <TableHead>Deployments per Purchase</TableHead>
+                                        <TableHead>Billing</TableHead>
                                         <TableHead>Projects</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
@@ -311,7 +343,7 @@ export default function LicensesPage() {
                                                 {license.description}
                                             </TableCell>
                                             <TableCell>
-                                                {formatCurrency(license.currency, license.price)}
+                                                {formatLicensePriceSummary(license)}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline">
@@ -319,7 +351,17 @@ export default function LicensesPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                {formatPeriod(license.period)}
+                                                <div className="flex flex-wrap gap-1">
+                                                    {getLicenseBillingIntervals(license).length > 0 ? (
+                                                        getLicenseBillingIntervals(license).map((interval) => (
+                                                            <Badge key={interval} variant="outline" className="capitalize">
+                                                                {interval}
+                                                            </Badge>
+                                                        ))
+                                                    ) : (
+                                                        <Badge variant="secondary">Free</Badge>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary">

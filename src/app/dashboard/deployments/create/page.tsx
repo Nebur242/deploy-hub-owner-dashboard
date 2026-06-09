@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DeploymentFormValues } from "../components/deployment-form";
@@ -29,17 +29,8 @@ export default function CreateDeploymentPage() {
   const [currentConfigId, setCurrentConfigId] = useState<string | undefined>(initialConfigurationId);
   // State for tracking environment variable values entered by users
   const [envVarValues, setEnvVarValues] = useState<Record<string, string>>({});
-  // State for project versions
-  const [projectVersions, setProjectVersions] = useState<string[]>(['main']);
   // State for submission error feedback
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-
-  // Set initial project ID from URL on component mount
-  useEffect(() => {
-    if (initialProjectId) {
-      setCurrentProjectId(initialProjectId);
-    }
-  }, [initialProjectId]);
 
   // RTK Query hooks
   const [createDeployment, { isLoading, error, isSuccess }] = useCreateDeploymentMutation();
@@ -69,28 +60,21 @@ export default function CreateDeploymentPage() {
     skip: !currentProjectId
   });
 
-  // Update versions when data is loaded
-  useEffect(() => {
-    // Get the default branch from the selected configuration
+  const projectVersions = useMemo(() => {
     const selectedConfig = configurationsData?.find(c => c.id === currentConfigId);
     const defaultBranch = selectedConfig?.github_accounts?.[0]?.default_branch || 'main';
-    
-    if (versionsData && Array.isArray(versionsData)) {
-      // Use the branch field from versions (validated against GitHub)
-      // instead of the version number
-      const branches = [defaultBranch];
-      versionsData.forEach(({ branch }) => {
-        // Only add if branch exists and is not already in the list
-        if (branch && branch !== defaultBranch && !branches.includes(branch)) {
-          branches.push(branch);
-        }
-      });
-      setProjectVersions(branches);
-    } else {
-      // Default to just the default branch if no versions were returned
-      setProjectVersions([defaultBranch]);
+
+    if (!versionsData || !Array.isArray(versionsData)) {
+      return [defaultBranch];
     }
-  }, [versionsData, configurationsData, currentConfigId]);
+
+    return versionsData.reduce<string[]>((branches, { branch }) => {
+      if (branch && !branches.includes(branch)) {
+        branches.push(branch);
+      }
+      return branches;
+    }, [defaultBranch]);
+  }, [configurationsData, currentConfigId, versionsData]);
 
   // Handler for project change
   const handleProjectChange = (selectedProjectId: string) => {
@@ -136,7 +120,7 @@ export default function CreateDeploymentPage() {
   const configurations = configurationsData?.map(config => ({
     ...config,
     id: config.id,
-    name: config.name || `Configuration ${config.id.substring(0, 4)} (${config.deployment_option.provider})`
+    name: config.name || `Setup ${config.id.substring(0, 4)} (${config.deployment_option.provider})`
   })) || [];
 
   // Handle form submission
@@ -201,7 +185,7 @@ export default function CreateDeploymentPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>No Projects Available</AlertTitle>
           <AlertDescription>
-            You need to create a project with at least one configuration before you can deploy.
+            You need to create a project with at least one deployment setup before you can deploy.
             <div className="mt-4">
               <Button asChild>
                 <Link href="/dashboard/projects/create">Create Project</Link>

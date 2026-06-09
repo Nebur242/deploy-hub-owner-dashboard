@@ -259,7 +259,7 @@ export default function DeploymentDetailPage() {
             <IconFlask className="h-4 w-4 text-orange-500" />
             <AlertTitle className="text-orange-600 dark:text-orange-400">Test Deployment</AlertTitle>
             <AlertDescription className="text-orange-700 dark:text-orange-300">
-              This is a <strong className="text-orange-800 dark:text-orange-200">test deployment</strong> used to verify your configuration. Test deployments don&apos;t count against your deployment limits and are useful for testing before making your project public.
+              This is a <strong className="text-orange-800 dark:text-orange-200">test deployment</strong> used to verify your configuration before making your project public.
             </AlertDescription>
           </Alert>
         )}
@@ -347,7 +347,7 @@ export default function DeploymentDetailPage() {
               <IconListDetails className="h-4 w-4 mr-1" /> Overview
             </TabsTrigger>
             <TabsTrigger value="configuration">
-              <IconCode className="h-4 w-4 mr-1" /> Configuration
+              <IconCode className="h-4 w-4 mr-1" /> Setup
             </TabsTrigger>
             <TabsTrigger value="logs">
               <IconTerminal className="h-4 w-4 mr-1" /> Logs
@@ -458,11 +458,11 @@ export default function DeploymentDetailPage() {
             </Card>
           </TabsContent>
 
-          {/* Configuration Tab */}
+          {/* Setup Tab */}
           <TabsContent value="configuration" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Deployment Configuration</CardTitle>
+                <CardTitle>Deployment Setup</CardTitle>
                 <CardDescription>
                   Technical details about this deployment
                 </CardDescription>

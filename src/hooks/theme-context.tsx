@@ -18,30 +18,25 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const [theme, setTheme] = useState<Theme>("system");
-    const [isInitialized, setIsInitialized] = useState(false);
+    const [storedTheme, setStoredTheme] = useState<Theme>(() => {
+        if (typeof window === "undefined") {
+            return "system";
+        }
+
+        const savedTheme = localStorage.getItem("theme");
+        return savedTheme === "light" || savedTheme === "dark" || savedTheme === "system"
+            ? savedTheme
+            : "system";
+    });
+    const [themeOverride, setThemeOverride] = useState<Theme | null>(null);
     const { infos: user } = useAppSelector((state) => state.auth);
 
     // Get user data using RTK Query if authenticated
     const { data: userData } = useGetUserQuery(user?.uid || '', {
         skip: !user?.uid
     });
-
-    useEffect(() => {
-        // First check if we have user preferences from the API
-        if (userData?.preferences?.theme) {
-            setTheme(userData.preferences.theme);
-            setIsInitialized(true);
-            return;
-        }
-
-        // If no user preferences, fall back to localStorage
-        const savedTheme = localStorage.getItem("theme") as Theme | null;
-        const initialTheme = savedTheme || "system";
-
-        setTheme(initialTheme);
-        setIsInitialized(true);
-    }, [userData?.preferences?.theme]);
+    const theme = themeOverride ?? userData?.preferences?.theme ?? storedTheme;
+    const isInitialized = true;
 
     useEffect(() => {
         if (isInitialized) {
@@ -87,13 +82,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     }, [theme]);
 
+    const updateTheme = (nextTheme: Theme) => {
+        setStoredTheme(nextTheme);
+        setThemeOverride(nextTheme);
+    };
+
     const toggleTheme = () => {
         const nextTheme = theme === "light" ? "dark" : (theme === "dark" ? "system" : "light");
-        setTheme(nextTheme);
+        updateTheme(nextTheme);
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme, setTheme: updateTheme }}>
             {children}
         </ThemeContext.Provider>
     );

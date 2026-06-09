@@ -181,7 +181,7 @@ export default function DeploymentForm({
       const err = configFetchError as { data?: { message?: string } };
       setConfigError(
         err?.data?.message ||
-        "Failed to load configuration details. Please try again."
+        "Failed to load deployment setup details. Please try again."
       );
     } else {
       setConfigError(null);
@@ -311,6 +311,7 @@ export default function DeploymentForm({
                 form={form}
                 isLoading={isLoading}
                 success={success}
+                configurationNote={configData?.note}
                 configEnvVars={configEnvVars}
                 envVarValues={envVarValues}
                 onEnvVarChange={handleEnvVarChange}

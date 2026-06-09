@@ -18,7 +18,6 @@ import {
   IconReceipt,
   IconWallet,
   IconUsers,
-  IconShieldCheck,
   IconTicket,
   IconStar,
   IconMessageCircle,
@@ -72,7 +71,7 @@ const data = {
       icon: IconRocket,
     },
     {
-      title: "Buyer Deployments",
+      title: "Customer Deployments",
       url: "/dashboard/license-buyer-deployments",
       icon: IconUserCheck,
     },
@@ -117,16 +116,14 @@ const data = {
       icon: IconWallet,
     },
     {
+      title: "Payouts",
+      url: "/dashboard/payouts",
+      icon: IconCreditCard,
+    },
+    {
       title: "Billing",
       url: "/dashboard/billing",
       icon: IconCreditCard,
-    },
-  ],
-  navAdmin: [
-    {
-      title: "Moderation",
-      url: "/dashboard/admin/moderation",
-      icon: IconShieldCheck,
     },
   ],
   navSecondary: [
@@ -193,7 +190,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
         <SidebarContent>
           <NavMain items={data.navMain} />
-          <NavMain items={data.navAdmin} showQuickCreate={false} />
           {/* <NavDocuments items={data.documents} /> */}
           <NavSecondary items={data.navSecondary} className="mt-auto" />
           <div className="px-2 py-2">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -47,7 +47,7 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export function NavUser() {
-  const { infos: user, logout: { loading, status, error } } = useAppSelector((state) => state.auth);
+  const { infos: user, logout: { loading } } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { isMobile } = useSidebar();
@@ -81,22 +81,6 @@ export function NavUser() {
       setLogoutDialogOpen(false);
     }
   };
-
-
-  useEffect(() => {
-    if (status === "success") {
-      router.push("/auth/login");
-    }
-    if (status === "error") {
-      toast.error(error, {
-        description: "Could not log out. Please try again.",
-        duration: 5000,
-      });
-      setLogoutDialogOpen(false);
-    }
-  }, [status, error, router]);
-
-
   if (!user) return null;
 
 

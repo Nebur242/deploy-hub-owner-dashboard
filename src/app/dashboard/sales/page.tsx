@@ -47,7 +47,6 @@ import { formatCurrency, formatDate } from "@/utils/format";
 import { OrderStatus } from "@/common/types/order";
 
 const breadcrumbItems: BreadcrumbItem[] = [
-  { label: "Dashboard", href: "/dashboard" },
   { label: "Sales", href: "/dashboard/sales" },
 ];
 

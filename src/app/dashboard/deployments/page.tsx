@@ -67,7 +67,6 @@ export default function DeploymentsPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [deploymentToRetry, setDeploymentToRetry] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
 
   // Fetch projects for the filter dropdown
   const {
@@ -75,18 +74,15 @@ export default function DeploymentsPage() {
     isLoading: isLoadingProjects
   } = useGetProjectsQuery({ limit: 50 });
 
-  // Update projects list when data is loaded
-  useEffect(() => {
-    if (projectsData?.items) {
-      setProjects([
+  const projects = projectsData?.items
+    ? [
         { id: "all", name: "All Projects" },
         ...projectsData.items.map(project => ({
           id: project.id,
-          name: project.name
-        }))
-      ]);
-    }
-  }, [projectsData]);
+          name: project.name,
+        })),
+      ]
+    : [];
 
   // Main deployments query
   const { data, isLoading, isFetching, error, refetch } = useGetDeploymentsQuery({

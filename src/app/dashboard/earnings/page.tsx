@@ -136,6 +136,19 @@ const breadcrumbItems: BreadcrumbItem[] = [
   { label: "Earnings", href: "/dashboard/earnings" },
 ];
 
+function ChangeIndicator({ value }: { value: number }) {
+  if (value === 0) return <span className="text-muted-foreground">No change</span>;
+
+  const isPositive = value > 0;
+
+  return (
+    <span className={`flex items-center gap-1 text-sm ${isPositive ? "text-green-600" : "text-red-600"}`}>
+      {isPositive ? <IconArrowUp className="h-4 w-4" /> : <IconArrowDown className="h-4 w-4" />}
+      {Math.abs(value).toFixed(1)}%
+    </span>
+  );
+}
+
 export default function EarningsPage() {
   const [period, setPeriod] = useState<Period>("30d");
 
@@ -222,17 +235,6 @@ export default function EarningsPage() {
   const topLicensesTotal = useMemo(() => {
     return topLicenses?.reduce((sum, l) => sum + l.revenue, 0) || 0;
   }, [topLicenses]);
-
-  const ChangeIndicator = ({ value }: { value: number }) => {
-    if (value === 0) return <span className="text-muted-foreground">No change</span>;
-    const isPositive = value > 0;
-    return (
-      <span className={`flex items-center gap-1 text-sm ${isPositive ? "text-green-600" : "text-red-600"}`}>
-        {isPositive ? <IconArrowUp className="h-4 w-4" /> : <IconArrowDown className="h-4 w-4" />}
-        {Math.abs(value).toFixed(1)}%
-      </span>
-    );
-  };
 
   return (
     <DashboardLayout breadcrumbItems={breadcrumbItems}>

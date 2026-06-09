@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -102,22 +102,20 @@ export function CategorySelector({
     return true;
   });
 
-  // Reset search and pagination when dropdown is opened
-  useEffect(() => {
-    if (dropdownOpen) {
+  const handleDropdownOpenChange = (open: boolean) => {
+    setDropdownOpen(open);
+
+    if (open) {
       setSearchQuery("");
       setCurrentPage(1);
       refetch();
     }
-  }, [dropdownOpen, refetch]);
+  };
 
-  // Update search results when debounced query changes
-  useEffect(() => {
-    if (dropdownOpen) {
-      setCurrentPage(1);
-      refetch();
-    }
-  }, [debouncedSearch, refetch, dropdownOpen]);
+  const handleSearchQueryChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
 
   // Handle load more categories
   const handleLoadMore = () => {
@@ -327,7 +325,7 @@ export function CategorySelector({
         <FormItem className="flex flex-col">
           <FormLabel>{label}</FormLabel>
           <div className="flex flex-col">
-            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenu open={dropdownOpen} onOpenChange={handleDropdownOpenChange}>
               <DropdownMenuTrigger asChild>
                 <FormControl>
                   <Button
@@ -361,7 +359,7 @@ export function CategorySelector({
                   <Input
                     placeholder="Search categories..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchQueryChange(e.target.value)}
                     className="h-8 mb-2"
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => e.stopPropagation()}

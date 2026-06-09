@@ -83,11 +83,11 @@ export default function ConfigurationDeploymentsPage() {
     { label: "Projects", href: "/dashboard/projects" },
     { label: "Project Details", href: `/dashboard/projects/${projectId}` },
     {
-      label: "Configurations",
+      label: "Deployment Setup",
       href: `/dashboard/projects/${projectId}/configurations`
     },
     {
-      label: "Configuration Details",
+      label: "Setup Details",
       href: `/dashboard/projects/${projectId}/configurations/${configId}`
     },
     { label: "Deployments" },
@@ -96,7 +96,7 @@ export default function ConfigurationDeploymentsPage() {
   return (
     <DashboardLayout
       breadcrumbItems={breadcrumbItems}
-      title="Configuration Deployments"
+      title="Setup Deployments"
       actions={
         <>
           <Button
@@ -104,7 +104,7 @@ export default function ConfigurationDeploymentsPage() {
             asChild
           >
             <Link href={`/dashboard/projects/${projectId}/configurations/${configId}`}>
-              <IconChevronLeft className="h-4 w-4 mr-2" /> Back to Configuration
+              <IconChevronLeft className="h-4 w-4 mr-2" /> Back to Setup
             </Link>
           </Button>
           <Button
@@ -152,13 +152,13 @@ export default function ConfigurationDeploymentsPage() {
           <CardHeader>
             <CardTitle>No Deployments Found</CardTitle>
             <CardDescription>
-              This configuration doesn&apos;t have any deployments yet.
+              This deployment setup doesn&apos;t have any deployments yet.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6">
               <p className="text-muted-foreground mb-4">
-                Deploy this configuration to see the deployment history.
+                Deploy this setup to see the deployment history.
               </p>
               <Button asChild>
                 <Link href={`/dashboard/deployments/create?projectId=${projectId}&configurationId=${configId}`}>
@@ -173,7 +173,7 @@ export default function ConfigurationDeploymentsPage() {
           <CardHeader>
             <CardTitle>Deployment History</CardTitle>
             <CardDescription>
-              View all deployments for this configuration
+              View all deployments for this setup
             </CardDescription>
           </CardHeader>
           <CardContent>

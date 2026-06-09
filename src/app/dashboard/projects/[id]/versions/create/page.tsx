@@ -86,10 +86,10 @@ export default function CreateVersionPage() {
 
     // Submit handler
     const onSubmit = async (values: VersionFormValues) => {
-        // Block version creation if no configurations exist
+        // Block version creation if no deployment setup exists
         if (!hasConfigurations) {
-            toast.error("Configuration required", {
-                description: "You need to create a configuration before creating a version.",
+            toast.error("Deployment setup required", {
+                description: "You need to create a deployment setup before creating a version.",
             });
             return;
         }
@@ -173,13 +173,13 @@ export default function CreateVersionPage() {
                 {!isLoading_Data && !hasConfigurations && (
                     <Alert variant="destructive">
                         <IconAlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Configuration Required</AlertTitle>
+                        <AlertTitle>Deployment Setup Required</AlertTitle>
                         <AlertDescription>
-                            You cannot create a version without a configuration.
+                            You cannot create a version without a deployment setup.
                             <div className="mt-2">
                                 <Button variant="outline" asChild>
                                     <Link href={`/dashboard/projects/${projectId}/configurations/create`}>
-                                        Create Configuration
+                                        Create Deployment Setup
                                     </Link>
                                 </Button>
                             </div>

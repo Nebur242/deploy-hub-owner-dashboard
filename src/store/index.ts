@@ -12,6 +12,7 @@ import { supportApi } from "./features/support";
 import { userApi } from "./features/users";
 import { reviewsApi } from "./features/reviews";
 import { subscriptionApi, publicPlansApi } from "./features/subscription";
+import { payoutsApi } from "./features/payouts";
 
 export const makeStore = () => {
   return configureStore({
@@ -30,6 +31,7 @@ export const makeStore = () => {
       [reviewsApi.reducerPath]: reviewsApi.reducer,
       [subscriptionApi.reducerPath]: subscriptionApi.reducer,
       [publicPlansApi.reducerPath]: publicPlansApi.reducer,
+      [payoutsApi.reducerPath]: payoutsApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware()
@@ -45,7 +47,8 @@ export const makeStore = () => {
         .concat(userApi.middleware)
         .concat(reviewsApi.middleware)
         .concat(subscriptionApi.middleware)
-        .concat(publicPlansApi.middleware),
+        .concat(publicPlansApi.middleware)
+        .concat(payoutsApi.middleware),
     devTools: process.env.NODE_ENV !== "production",
   });
 };

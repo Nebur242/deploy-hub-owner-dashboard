@@ -23,9 +23,6 @@ export default function EditConfigurationPage() {
   const projectId = params?.id || "";
   const configId = params?.configId || "";
 
-  const [initialValues, setInitialValues] = useState<
-    CreateConfigurationDto | undefined
-  >(undefined);
   const [maxGithubAccounts, setMaxGithubAccounts] = useState<number>(2);
 
   // Fetch subscription to get max GitHub accounts limit
@@ -68,7 +65,7 @@ export default function EditConfigurationPage() {
       label: project?.name || "Project",
       href: `/dashboard/projects/${projectId}/edit`,
     },
-    { label: "Edit Configuration" },
+    { label: "Edit Deployment Setup" },
   ];
 
   // Action buttons
@@ -84,16 +81,14 @@ export default function EditConfigurationPage() {
     </Button>
   );
 
-  // Set the initial values when the configuration data is loaded
-  useEffect(() => {
-    if (configuration) {
-      setInitialValues({
+  const initialValues: CreateConfigurationDto | undefined = configuration
+    ? {
         name: configuration.name || "",
+        note: configuration.note || "",
         github_accounts: configuration.github_accounts || [],
         deployment_option: configuration.deployment_option,
-      });
-    }
-  }, [configuration, projectId]);
+      }
+    : undefined;
 
   // Clean up when component unmounts
   useEffect(() => {
@@ -106,7 +101,7 @@ export default function EditConfigurationPage() {
   useEffect(() => {
     if (isSuccess) {
       // Show success toast
-      toast.success("Configuration updated successfully");
+      toast.success("Deployment setup updated successfully");
 
       // Set a short timeout before redirecting
       const timer = setTimeout(() => {
@@ -136,15 +131,15 @@ export default function EditConfigurationPage() {
     return (
       <DashboardLayout
         breadcrumbItems={breadcrumbItems}
-        title="Edit Configuration"
+        title="Edit Deployment Setup"
         actions={actionButtons}
       >
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
             <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-lg font-medium">Loading configuration data...</p>
+            <p className="text-lg font-medium">Loading deployment setup data...</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Please wait while we retrieve the configuration information.
+              Please wait while we retrieve the deployment setup information.
             </p>
           </div>
         </div>
@@ -157,17 +152,17 @@ export default function EditConfigurationPage() {
     return (
       <DashboardLayout
         breadcrumbItems={breadcrumbItems}
-        title="Edit Configuration"
+        title="Edit Deployment Setup"
         actions={actionButtons}
       >
         <Alert variant="destructive" className="mb-6">
           <AlertTitle className="text-lg font-semibold">
-            Failed to load configuration
+            Failed to load deployment setup
           </AlertTitle>
           <AlertDescription className="mt-2">
             <p>
-              We couldn&apos;t load the configuration information. This might be
-              due to a network issue or the configuration may no longer exist.
+              We couldn&apos;t load the deployment setup information. This might be
+              due to a network issue or the setup may no longer exist.
             </p>
             <div className="mt-4">
               <Button onClick={handleRetryFetch} className="mr-2">
@@ -196,7 +191,7 @@ export default function EditConfigurationPage() {
   return (
     <DashboardLayout
       breadcrumbItems={breadcrumbItems}
-      title={`Edit Configuration for ${project?.name || "Project"}`}
+      title={`Edit Deployment Setup for ${project?.name || "Project"}`}
       actions={actionButtons}
     >
       <ConfigurationForm

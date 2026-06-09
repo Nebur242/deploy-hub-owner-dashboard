@@ -1479,7 +1479,7 @@ function LeftColumnWithTabs({
   );
 }
 
-// Main Configuration Form component
+// Main deployment setup form component
 export default function ConfigurationForm({
   isEditing,
   initialData,
@@ -1531,6 +1531,7 @@ export default function ConfigurationForm({
     resolver: zodResolver(createConfigurationDtoSchema),
     defaultValues: initialData || {
       name: "",
+      note: "",
       github_accounts: [
         {
           username: "",
@@ -1621,7 +1622,7 @@ export default function ConfigurationForm({
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex items-center mb-2">
             <IconAlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-red-500" />
-            <h3 className="font-semibold text-sm sm:text-base">GitHub Configuration Validation Failed</h3>
+            <h3 className="font-semibold text-sm sm:text-base">GitHub Setup Validation Failed</h3>
           </div>
           <ul className="list-disc ml-6 mt-2 space-y-1">
             {githubValidationErrors.map((error, idx) => (
@@ -1639,28 +1640,52 @@ export default function ConfigurationForm({
       <FormProvider {...form}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 sm:space-y-8">
-            {/* Configuration Name - Top level field */}
+            {/* Deployment setup name - top level field */}
             <Card className="p-4 sm:p-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm sm:text-base">Configuration Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter a descriptive name for this configuration"
-                        className="text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs sm:text-sm">
-                      A unique name to identify this deployment configuration
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-5">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm sm:text-base">Deployment Setup Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter a descriptive name for this deployment setup"
+                          className="text-sm"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs sm:text-sm">
+                        A unique name to identify this deployment setup
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="note"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm sm:text-base">Setup Note</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Add extra deployment details, caveats, or instructions for this setup"
+                          className="min-h-[120px] text-sm"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs sm:text-sm">
+                        Optional details that help explain when and how this setup should be used
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
@@ -1692,8 +1717,8 @@ export default function ConfigurationForm({
                         {validatingGithub
                           ? "Validating GitHub..."
                           : isEditing
-                            ? "Update Configuration"
-                            : "Create Configuration"
+                            ? "Update Deployment Setup"
+                            : "Create Deployment Setup"
                         }
                       </span>
                       <span className="sm:hidden">
@@ -1719,7 +1744,7 @@ export default function ConfigurationForm({
                             href={`/dashboard/deployments/create?projectId=${initialData.projectId}&configurationId=${initialData.id}`}
                           >
                             <IconServer className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">Deploy Configuration</span>
+                            <span className="hidden sm:inline">Deploy Setup</span>
                             <span className="sm:hidden">Deploy</span>
                           </Link>
                         </Button>

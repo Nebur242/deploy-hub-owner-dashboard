@@ -24,7 +24,7 @@ This document outlines the feature analysis for the Deploy Hub Owner Dashboard, 
 | **Coupons**                   | `/dashboard/coupons`                      | Create/edit discount coupons, usage tracking                                    |
 | **Reviews**                   | `/dashboard/reviews`                      | Approve/reject reviews, reply to customers                                      |
 | **Support Tickets**           | `/dashboard/support-tickets`              | License-related customer support system                                         |
-| **Billing/Subscription**      | `/dashboard/billing`                      | Paddle integration, plan management                                             |
+| **Billing/Subscription**      | `/dashboard/billing`                      | Stripe billing, plan management                                                 |
 | **Settings**                  | `/dashboard/settings`                     | Profile, preferences, notifications, security                                   |
 | **Notifications**             | `/dashboard/notifications`                | In-app notifications with filters                                               |
 | **Help Center**               | `/dashboard/help`                         | FAQs, contact support form                                                      |
@@ -119,7 +119,7 @@ This document outlines the feature analysis for the Deploy Hub Owner Dashboard, 
 - Well-organized RTK Query API structure
 - Consistent component patterns
 - Good separation of concerns
-- Paddle subscription integration
+- Stripe subscription integration
 
 ### Areas for Improvement
 

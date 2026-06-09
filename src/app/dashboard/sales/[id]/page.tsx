@@ -39,7 +39,6 @@ export default function SaleDetailPage({
   const { data: order, isLoading, error } = useGetOwnerOrderByIdQuery(id);
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "Dashboard", href: "/dashboard" },
     { label: "Sales", href: "/dashboard/sales" },
     { label: order?.reference_number || "Order Details", href: `/dashboard/sales/${id}` },
   ];

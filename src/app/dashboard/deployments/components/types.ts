@@ -44,7 +44,7 @@ export interface FormSectionProps {
 // For project details section
 export interface ProjectDetailsSectionProps extends FormSectionProps {
   projects: Array<Project>;
-  configurations: Array<{ id: string; name: string }>;
+  configurations: Array<ProjectConfiguration>;
   initialProjectId?: string;
   initialConfigurationId?: string;
   onConfigChange?: (configId: string) => void;
@@ -53,6 +53,7 @@ export interface ProjectDetailsSectionProps extends FormSectionProps {
 
 // For environment variables section
 export interface EnvironmentVariablesSectionProps extends FormSectionProps {
+  configurationNote?: string | null;
   configEnvVars: EnvironmentVariable[];
   envVarValues: Record<string, string>;
   onEnvVarChange: (key: string, value: string) => void;

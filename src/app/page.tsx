@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useGetPublicPlansQuery, useCreateCheckoutSessionMutation } from "@/store/features/subscription";
-import { BillingInterval, PlanConfig, SubscriptionPlan } from "@/common/types/subscription";
+import { BillingInterval, CheckoutResponse, PlanConfig, SubscriptionPlan } from "@/common/types/subscription";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { authenticateUser } from "@/store/features/auth";
 import { toast } from "sonner";
-import { usePaddle } from "@/hooks/use-paddle";
+import { buildPublicAppUrl } from "@/lib/public-app-url";
 import {
   IconRocket,
   IconCode,
@@ -39,7 +39,7 @@ import {
 const features = [
   {
     icon: IconCode,
-    title: "Sell Your Projects",
+    title: "List Your Projects",
     description: "Transform your templates, boilerplates, and SaaS starters into a recurring revenue stream. List once, earn forever.",
   },
   {
@@ -102,9 +102,8 @@ const defaultPricingPlans = [
     description: "Perfect for trying out the platform",
     features: [
       "Up to 1 project",
-      "1 license per project",
+      "1 license",
       "2 GitHub accounts per project",
-      "Unlimited deployments",
     ],
     cta: "Get Started Free",
     popular: false,
@@ -119,9 +118,8 @@ const defaultPricingPlans = [
     description: "For growing businesses",
     features: [
       "Up to 10 projects",
-      "3 licenses per project",
+      "3 licenses",
       "Unlimited GitHub accounts",
-      "Unlimited deployments",
       "Advanced analytics",
     ],
     cta: "Start Starter",
@@ -137,9 +135,8 @@ const defaultPricingPlans = [
     description: "For professional teams",
     features: [
       "Up to 50 projects",
-      "Unlimited licenses per project",
+      "Unlimited licenses",
       "Unlimited GitHub accounts",
-      "Unlimited deployments",
       "Priority support",
       "Advanced analytics",
     ],
@@ -153,7 +150,7 @@ const defaultPricingPlans = [
 
 // Stats
 const stats = [
-  { value: "5K+", label: "Active Sellers" },
+  { value: "5K+", label: "Active Owners" },
   { value: "$1M+", label: "Paid to Creators" },
   { value: "25K+", label: "Licenses Sold" },
   { value: "99.9%", label: "Uptime" },
@@ -192,9 +189,9 @@ const buildFeatures = (plan: PlanConfig): string[] => {
   }
 
   if (plan.maxLicensesPerProject === -1) {
-    features.push("Unlimited licenses per project");
+    features.push("Unlimited licenses");
   } else {
-    features.push(`${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''} per project`);
+    features.push(`${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}`);
   }
 
   if (plan.maxGithubAccounts === -1) {
@@ -202,8 +199,6 @@ const buildFeatures = (plan: PlanConfig): string[] => {
   } else {
     features.push(`${plan.maxGithubAccounts} GitHub account${plan.maxGithubAccounts > 1 ? 's' : ''} per project`);
   }
-
-  features.push("Unlimited deployments");
 
   if (plan.prioritySupport) {
     features.push("Priority support");
@@ -226,9 +221,15 @@ export default function LandingPage() {
   // RTK Query hooks
   const { data: apiPlans, isLoading: loadingPlans } = useGetPublicPlansQuery();
   const [createCheckoutSession, { isLoading: isCreatingCheckout }] = useCreateCheckoutSessionMutation();
-  
-  // Paddle checkout
-  const { openCheckout } = usePaddle();
+
+  const launchCheckout = async (checkoutData: CheckoutResponse) => {
+    if (checkoutData.url) {
+      window.location.assign(checkoutData.url);
+      return;
+    }
+
+    throw new Error("Hosted checkout URL was missing from the billing provider response.");
+  };
 
   // Trigger authentication check on mount
   useEffect(() => {
@@ -277,17 +278,15 @@ export default function LandingPage() {
       return;
     }
 
-    // Create checkout session and open Paddle overlay
     try {
       const checkoutData = await createCheckoutSession({
         plan: plan.plan.toLowerCase() as SubscriptionPlan,
         billing_interval: billingPeriod as BillingInterval,
-        success_url: `${window.location.origin}/dashboard/billing?success=true`,
-        cancel_url: `${window.location.origin}/#pricing`,
+        success_url: buildPublicAppUrl("/dashboard/billing?success=true"),
+        cancel_url: buildPublicAppUrl("/#pricing"),
       }).unwrap();
 
-      // Open Paddle checkout overlay
-      await openCheckout(checkoutData);
+      await launchCheckout(checkoutData);
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Failed to start checkout. Please try again.");
@@ -358,13 +357,13 @@ export default function LandingPage() {
             Turn Your Code Into Passive Income
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            List your software projects on our marketplace and sell licenses to developers worldwide.
-            We handle licensing, payments, and deployments — you focus on building.
+            List your software projects on our marketplace and earn royalties from licenses sold
+            by Deploy Hub worldwide. We handle licensing, payments, and deployments — you focus on building.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link href="/auth/register">
               <Button size="lg" className="w-full sm:w-auto">
-                Start Selling Today
+                Start Listing Today
                 <IconArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -393,7 +392,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Features</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Everything You Need to Sell Your Software
+              Everything You Need to Monetize Your Software
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               From project listing to payment processing, we provide all the tools you need to build a successful software business.
@@ -427,7 +426,7 @@ export default function LandingPage() {
               From Project to Sales in 4 Steps
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Get your projects listed and start selling in minutes. Our streamlined process makes it easy to reach customers.
+              Get your projects listed and start earning in minutes. Our streamlined process makes it easy to reach customers.
             </p>
           </div>
 
@@ -454,10 +453,10 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Why Deploy Hub</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Built for Software Sellers
+              Built for Software Creators
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We understand the challenges of selling software. That&apos;s why we built the marketplace we wished existed.
+              We understand the challenges of publishing and monetizing software. That&apos;s why we built the marketplace we wished existed.
             </p>
           </div>
 
@@ -583,7 +582,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Testimonials</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Trusted by Sellers Worldwide
+              Trusted by Creators Worldwide
             </h2>
           </div>
 
@@ -720,16 +719,16 @@ export default function LandingPage() {
             <CardContent className="text-center py-12">
               <IconWorld className="h-16 w-16 mx-auto mb-6 opacity-80" />
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Ready to Start Selling?
+                Ready to Start Earning Royalties?
               </h2>
               <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
                 Join our marketplace and reach developers looking for software solutions.
-                Create your seller account today — it&apos;s free to get started.
+                Create your owner account today — it&apos;s free to get started.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/auth/register">
                   <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                    Create Seller Account
+                    Create Owner Account
                     <IconArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -754,7 +753,7 @@ export default function LandingPage() {
                 <span className="font-bold text-lg">Deploy Hub</span>
               </Link>
               <p className="text-sm text-muted-foreground mb-4">
-                The marketplace for selling software licenses and deployable projects.
+                The marketplace for licensing software projects and paying creators royalties.
               </p>
               <div className="flex items-center gap-3">
                 <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">

@@ -1,4 +1,10 @@
-import { LicensePeriod } from "@/common/types/license";
+import {
+  LicenseBillingInterval,
+  LicenseOption,
+  LicensePeriod,
+  getLicenseBillingIntervals,
+  getLicensePriceForInterval,
+} from "@/common/types/license";
 
 /**
  * Format currency display
@@ -34,6 +40,24 @@ export const formatPeriod = (period: LicensePeriod) => {
     default:
       return period;
   }
+};
+
+export const formatBillingInterval = (interval: LicenseBillingInterval) => {
+  return interval === LicenseBillingInterval.YEARLY ? "Yearly" : "Monthly";
+};
+
+export const formatLicensePriceSummary = (license: LicenseOption) => {
+  const intervals = getLicenseBillingIntervals(license);
+  if (intervals.length === 0) {
+    return "Free";
+  }
+
+  return intervals
+    .map((interval) => {
+      const price = getLicensePriceForInterval(license, interval);
+      return `${formatCurrency(license.currency, price || 0)}/${interval === LicenseBillingInterval.YEARLY ? "year" : "month"}`;
+    })
+    .join(" • ");
 };
 
 /**

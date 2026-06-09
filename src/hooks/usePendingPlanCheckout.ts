@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { subscriptionService } from "@/services/subscription";
 import { BillingInterval, SubscriptionPlan } from "@/common/types/subscription";
+import { buildPublicAppUrl } from "@/lib/public-app-url";
 
 interface PendingPlan {
   plan: string;
@@ -45,8 +46,8 @@ export function usePendingPlanCheckout() {
         const response = await subscriptionService.createCheckoutSession({
           plan: pendingPlan.plan.toLowerCase() as SubscriptionPlan,
           billing_interval: pendingPlan.billingInterval as BillingInterval,
-          success_url: `${window.location.origin}/dashboard/billing?success=true`,
-          cancel_url: `${window.location.origin}/dashboard/billing`,
+          success_url: buildPublicAppUrl("/dashboard/billing?success=true"),
+          cancel_url: buildPublicAppUrl("/dashboard/billing"),
         });
 
         if (response.url) {

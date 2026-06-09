@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -186,6 +186,8 @@ export default function RegisterForm() {
     const isLoading = requestCodeLoading || verifyCodeLoading || registerLoading;
     const error = requestCodeError || verifyCodeError || registerError;
 
+    const pendingResetTimeoutRef = useRef<number | null>(null);
+
     // Handle token expiration errors - reset to email step
     useEffect(() => {
         if (registerError) {
@@ -200,12 +202,22 @@ export default function RegisterForm() {
             ) {
                 // Token expired, clear storage and reset to email step
                 clearStorage();
-                setStep("email");
-                setOtpValue("");
-                setTermsAccepted(false);
                 dispatch(clearOtpState());
+
+                pendingResetTimeoutRef.current = window.setTimeout(() => {
+                    setStep("email");
+                    setOtpValue("");
+                    setTermsAccepted(false);
+                }, 0);
             }
         }
+
+        return () => {
+            if (pendingResetTimeoutRef.current !== null) {
+                window.clearTimeout(pendingResetTimeoutRef.current);
+                pendingResetTimeoutRef.current = null;
+            }
+        };
     }, [registerError, dispatch]);
 
     // Email form
@@ -246,11 +258,11 @@ export default function RegisterForm() {
     });
 
     // Track if forms have been synced to avoid re-syncing
-    const [formsSynced, setFormsSynced] = useState(false);
+    const formsSyncedRef = useRef(false);
 
     // Sync forms with restored formData (only once after restore)
     useEffect(() => {
-        if (!isRestored || formsSynced) return;
+        if (!isRestored || formsSyncedRef.current) return;
 
         if (formData.email) {
             emailForm.reset({ email: formData.email });
@@ -271,8 +283,8 @@ export default function RegisterForm() {
             });
         }
 
-        setFormsSynced(true);
-    }, [isRestored, formsSynced, formData, emailForm, profileForm, businessForm]);
+        formsSyncedRef.current = true;
+    }, [isRestored, formData, emailForm, profileForm, businessForm]);
 
     // Handle email submission
     const handleRequestCode = (data: EmailFormData) => {
@@ -430,7 +442,7 @@ export default function RegisterForm() {
 
                 <div className="flex flex-col items-center gap-2 text-center">
                     <h1 className="text-2xl font-bold">
-                        {step === "email" && "Create your seller account"}
+                        {step === "email" && "Create your owner account"}
                         {step === "code" && "Verify your email"}
                         {step === "profile" && "Tell us about yourself"}
                         {step === "business" && "Business information"}
@@ -741,14 +753,14 @@ export default function RegisterForm() {
                 {step === "terms" && (
                     <div className="grid gap-6">
                         <div className="border rounded-lg p-4 max-h-48 overflow-y-auto text-sm text-muted-foreground space-y-4">
-                            <h3 className="font-semibold text-foreground">Seller Terms of Service</h3>
+                            <h3 className="font-semibold text-foreground">Owner Terms of Service</h3>
                             <p>
-                                By registering as a seller on Deploy Hub, you agree to the following terms:
+                                By registering as an owner on Deploy Hub, you agree to the following terms:
                             </p>
                             <ul className="list-disc list-inside space-y-2">
                                 <li>You will provide accurate information about yourself and your products.</li>
-                                <li>You are responsible for the quality and support of products you sell.</li>
-                                <li>Deploy Hub takes a platform fee on each transaction.</li>
+                                <li>You are responsible for the quality and support of the products you publish.</li>
+                                <li>Deploy Hub sells customer licenses and calculates royalties owed to you.</li>
                                 <li>You agree to our content guidelines and prohibited items policy.</li>
                                 <li>Your account may be reviewed before being fully activated.</li>
                                 <li>Deploy Hub reserves the right to suspend accounts that violate terms.</li>
@@ -773,7 +785,7 @@ export default function RegisterForm() {
                                 htmlFor="terms"
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                                I accept the Seller Terms of Service
+                                I accept the Owner Terms of Service
                             </label>
                         </div>
 
@@ -810,7 +822,7 @@ export default function RegisterForm() {
                             <FileText className="h-4 w-4" />
                             <AlertTitle>Review Required</AlertTitle>
                             <AlertDescription>
-                                Your seller account will be reviewed before full activation.
+                                Your owner account will be reviewed before full activation.
                                 You&apos;ll receive an email once approved.
                             </AlertDescription>
                         </Alert>

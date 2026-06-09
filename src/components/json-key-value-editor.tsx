@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -94,39 +94,20 @@ export function JsonKeyValueEditor({
   variableKey,
   hasError = false,
 }: JsonKeyValueEditorProps) {
-  // Parse the default JSON to get the schema
-  const schemaFields = useMemo(() => parseJsonToFields(defaultJson), [defaultJson]);
-
-  // Initialize fields from current value or default
-  const [fields, setFields] = useState<JsonField[]>(() => {
+  const fields = useMemo(() => {
     if (value && value.trim()) {
       return parseJsonToFields(value);
     }
-    return schemaFields;
-  });
 
-  // Update fields when default JSON changes (new configuration selected)
-  useEffect(() => {
-    if (!value || value.trim() === "") {
-      setFields(schemaFields);
-    }
-  }, [schemaFields, value]);
-
-  // Update parent when fields change
-  useEffect(() => {
-    const json = fieldsToJson(fields);
-    if (json !== value) {
-      onChange(json);
-    }
-  }, [fields, onChange, value]);
+    return parseJsonToFields(defaultJson);
+  }, [defaultJson, value]);
 
   // Update a field value
   const updateFieldValue = (index: number, newValue: string) => {
-    setFields(
-      fields.map((field, i) =>
-        i === index ? { ...field, value: newValue } : field
-      )
+    const nextFields = fields.map((field, i) =>
+      i === index ? { ...field, value: newValue } : field
     );
+    onChange(fieldsToJson(nextFields));
   };
 
   if (fields.length === 0) {

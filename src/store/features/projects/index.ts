@@ -22,26 +22,8 @@ export interface ProjectSearchParams {
   sortDirection?: "ASC" | "DESC";
 }
 
-// Moderation types
-export interface ModerationStats {
-  pending: number;
-  approved: number;
-  rejected: number;
-  draft: number;
-  changes_pending: number;
-}
-
 export interface SubmitForReviewDto {
   message?: string;
-}
-
-export interface ModerationActionDto {
-  status: "approved" | "rejected";
-  note?: string;
-}
-
-export interface AdminProjectSearchParams extends ProjectSearchParams {
-  moderationStatus?: string;
 }
 
 // Define base API with auth header
@@ -54,7 +36,6 @@ export const projectsApi = createApi({
     "Configuration",
     "Deployment",
     "Category",
-    "Moderation",
   ],
   endpoints: (builder) => ({
     // PROJECTS
@@ -365,124 +346,6 @@ export const projectsApi = createApi({
       invalidatesTags: (result, error, { projectId }) => [
         { type: "Project", id: projectId },
         { type: "Project", id: "LIST" },
-        { type: "Moderation", id: "STATS" },
-        { type: "Moderation", id: "PENDING" },
-      ],
-    }),
-
-    // ADMIN MODERATION
-    getModerationStats: builder.query<ModerationStats, void>({
-      query: () => ({
-        url: "admin/projects/moderation/stats",
-        method: "GET",
-      }),
-      providesTags: [{ type: "Moderation", id: "STATS" }],
-    }),
-
-    getPendingModeration: builder.query<
-      PaginatedResponse<Project>,
-      ProjectSearchParams | void
-    >({
-      query: (params = {}) => {
-        const queryParams = new URLSearchParams();
-
-        if (params) {
-          if (params.limit)
-            queryParams.append("limit", params.limit.toString());
-          if (params.page) queryParams.append("page", params.page.toString());
-          if (params.search) queryParams.append("search", params.search);
-        }
-
-        return {
-          url: `admin/projects/moderation/pending?${queryParams.toString()}`,
-          method: "GET",
-        };
-      },
-      providesTags: [{ type: "Moderation", id: "PENDING" }],
-    }),
-
-    getAdminProjects: builder.query<
-      PaginatedResponse<Project>,
-      AdminProjectSearchParams | void
-    >({
-      query: (params = {}) => {
-        const queryParams = new URLSearchParams();
-
-        if (params) {
-          if (params.limit)
-            queryParams.append("limit", params.limit.toString());
-          if (params.page) queryParams.append("page", params.page.toString());
-          if (params.search) queryParams.append("search", params.search);
-          if (params.moderationStatus)
-            queryParams.append("moderationStatus", params.moderationStatus);
-          if (params.visibility)
-            queryParams.append("visibility", params.visibility);
-        }
-
-        return {
-          url: `admin/projects?${queryParams.toString()}`,
-          method: "GET",
-        };
-      },
-      providesTags: [{ type: "Moderation", id: "ADMIN_LIST" }],
-    }),
-
-    moderateProject: builder.mutation<
-      Project,
-      { projectId: string; body: ModerationActionDto }
-    >({
-      query: ({ projectId, body }) => ({
-        url: `admin/projects/${projectId}/moderate`,
-        method: "POST",
-        data: body,
-      }),
-      invalidatesTags: (result, error, { projectId }) => [
-        { type: "Project", id: projectId },
-        { type: "Project", id: "LIST" },
-        { type: "Moderation", id: "STATS" },
-        { type: "Moderation", id: "PENDING" },
-        { type: "Moderation", id: "ADMIN_LIST" },
-      ],
-    }),
-
-    // Pending changes moderation (for already approved projects with edits)
-    getPendingChanges: builder.query<
-      PaginatedResponse<Project>,
-      ProjectSearchParams | void
-    >({
-      query: (params = {}) => {
-        const queryParams = new URLSearchParams();
-
-        if (params) {
-          if (params.limit)
-            queryParams.append("limit", params.limit.toString());
-          if (params.page) queryParams.append("page", params.page.toString());
-          if (params.search) queryParams.append("search", params.search);
-        }
-
-        return {
-          url: `admin/projects/moderation/pending-changes?${queryParams.toString()}`,
-          method: "GET",
-        };
-      },
-      providesTags: [{ type: "Moderation", id: "PENDING_CHANGES" }],
-    }),
-
-    moderatePendingChanges: builder.mutation<
-      Project,
-      { projectId: string; body: ModerationActionDto }
-    >({
-      query: ({ projectId, body }) => ({
-        url: `admin/projects/${projectId}/moderate-changes`,
-        method: "POST",
-        data: body,
-      }),
-      invalidatesTags: (result, error, { projectId }) => [
-        { type: "Project", id: projectId },
-        { type: "Project", id: "LIST" },
-        { type: "Moderation", id: "STATS" },
-        { type: "Moderation", id: "PENDING_CHANGES" },
-        { type: "Moderation", id: "ADMIN_LIST" },
       ],
     }),
   }),
@@ -524,14 +387,6 @@ export const {
 
   // Moderation (Owner)
   useSubmitForReviewMutation,
-
-  // Admin Moderation
-  useGetModerationStatsQuery,
-  useGetPendingModerationQuery,
-  useGetAdminProjectsQuery,
-  useModerateProjectMutation,
-  useGetPendingChangesQuery,
-  useModeratePendingChangesMutation,
 } = projectsApi;
 
 // Additional alias for useGetVersionsQuery to make the intent clearer

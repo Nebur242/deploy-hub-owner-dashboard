@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { authenticateUser } from "@/store/features/auth";
@@ -62,7 +62,6 @@ export default function AuthGuard({
 }: AuthGuardProps) {
     const router = useRouter();
     const dispatch = useAppDispatch();
-    const [isInitialized, setIsInitialized] = useState(false);
 
     const {
         authenticate: { loading, status },
@@ -71,14 +70,11 @@ export default function AuthGuard({
     } = useAppSelector((state) => state.auth);
 
     useEffect(() => {
-        if (!isInitialized) {
-            dispatch(authenticateUser());
-            setIsInitialized(true);
-        }
-    }, [dispatch, isInitialized]);
+        dispatch(authenticateUser());
+    }, [dispatch]);
 
     useEffect(() => {
-        if (!loading && isInitialized) {
+        if (!loading && status !== "pending") {
             if (status === "error") {
                 // Not authenticated, redirect to login
                 router.push("/auth/login");
@@ -93,11 +89,15 @@ export default function AuthGuard({
                 }
             }
         }
-    }, [loading, status, isLoggedIn, infos, requireEmailVerification, router, isInitialized]);
+    }, [loading, status, isLoggedIn, infos, requireEmailVerification, router]);
 
     // Show loading while authenticating
-    if (!isInitialized || loading) {
+    if (loading || status === "pending") {
         return <AppLoadingScreen />;
+    }
+
+    if (status === "error") {
+        return <AppLoadingScreen message="Redirecting to login..." />;
     }
 
     // Loading during email verification redirect

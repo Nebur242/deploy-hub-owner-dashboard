@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Currency } from "@/common/enums/project";
-import { LicenseStatus, LicensePeriod } from "@/common/types/license";
+import { LicenseStatus } from "@/common/types/license";
 import {
     Form,
     FormControl,
@@ -43,6 +43,42 @@ interface LicenseFormProps {
     error: { message: string } | null;
 }
 
+const licensePresets = [
+    {
+        name: "Starter License",
+        description: "A low-budget entry license for customers who need a small number of deployments.",
+        monthly_price: 19,
+        yearly_price: null,
+        deployment_limit: 5,
+        features: ["Production deployment", "Basic redeploys", "Standard support"],
+        can_update: false,
+        has_priority_support: false,
+        popular: false,
+    },
+    {
+        name: "Growth License",
+        description: "A balanced license for customers who expect to iterate and deploy more often.",
+        monthly_price: 49,
+        yearly_price: 490,
+        deployment_limit: 15,
+        features: ["Production deployment", "More deployments", "Branch updates", "Standard support"],
+        can_update: true,
+        has_priority_support: false,
+        popular: true,
+    },
+    {
+        name: "Business License",
+        description: "A higher-touch license for customers who need more deployments and faster help.",
+        monthly_price: 99,
+        yearly_price: 990,
+        deployment_limit: 40,
+        features: ["Production deployment", "High deployment allowance", "Branch updates", "Priority support"],
+        can_update: true,
+        has_priority_support: true,
+        popular: false,
+    },
+];
+
 export default function LicenseForm({
     isEditing,
     initialData,
@@ -54,6 +90,11 @@ export default function LicenseForm({
     const [submitAttempted, setSubmitAttempted] = useState(false);
     const [features, setFeatures] = useState<string[]>(initialData?.features || []);
     const [featureInput, setFeatureInput] = useState("");
+    const parsePriceInput = (value: string) => {
+        if (!value.trim()) return null;
+        const parsed = parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
 
     // Fetch projects for the multi-select
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
@@ -66,10 +107,10 @@ export default function LicenseForm({
         defaultValues: initialData || {
             name: "",
             description: "",
-            price: 0,
+            monthly_price: null,
+            yearly_price: null,
             currency: Currency.USD,
             deployment_limit: 5, // Minimum deployment limit
-            period: LicensePeriod.FOREVER, // Default one-time purchase
             features: [],
             project_ids: [], // Will store project IDs
             status: LicenseStatus.DRAFT, // Default status
@@ -105,6 +146,22 @@ export default function LicenseForm({
         form.setValue("features", newFeatures, { shouldValidate: true });
     };
 
+    const handleApplyPreset = (preset: typeof licensePresets[number]) => {
+        form.setValue("name", preset.name, { shouldDirty: true, shouldValidate: true });
+        form.setValue("description", preset.description, { shouldDirty: true, shouldValidate: true });
+        form.setValue("monthly_price", preset.monthly_price, { shouldDirty: true, shouldValidate: true });
+        form.setValue("yearly_price", preset.yearly_price, { shouldDirty: true, shouldValidate: true });
+        form.setValue("deployment_limit", preset.deployment_limit, { shouldDirty: true, shouldValidate: true });
+        form.setValue("status", LicenseStatus.DRAFT, { shouldDirty: true, shouldValidate: true });
+        form.setValue("can_submit_support_ticket", true, { shouldDirty: true, shouldValidate: true });
+        form.setValue("can_redeploy", true, { shouldDirty: true, shouldValidate: true });
+        form.setValue("can_update", preset.can_update, { shouldDirty: true, shouldValidate: true });
+        form.setValue("has_priority_support", preset.has_priority_support, { shouldDirty: true, shouldValidate: true });
+        form.setValue("popular", preset.popular, { shouldDirty: true, shouldValidate: true });
+        setFeatures(preset.features);
+        form.setValue("features", preset.features, { shouldDirty: true, shouldValidate: true });
+    };
+
     // Handle form submission
     const handleSubmit = async (values: CreateLicenseDto) => {
         setSubmitAttempted(true);
@@ -138,6 +195,34 @@ export default function LicenseForm({
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Basic Information */}
                         <Card className="p-6 col-span-2">
+                            {!isEditing && (
+                                <div className="mb-6 rounded-md border bg-muted/30 p-4">
+                                    <div className="mb-3">
+                                        <h3 className="text-sm font-semibold">License presets</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Start with a simple tier, then adjust the price, deployments, and features.
+                                        </p>
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        {licensePresets.map((preset) => (
+                                            <Button
+                                                key={preset.name}
+                                                type="button"
+                                                variant="outline"
+                                                className="h-auto justify-start px-3 py-3 text-left"
+                                                onClick={() => handleApplyPreset(preset)}
+                                            >
+                                                <span className="block">
+                                                    <span className="block font-medium">{preset.name.replace(" License", "")}</span>
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        {preset.deployment_limit} deployments - ${preset.monthly_price}/month
+                                                    </span>
+                                                </span>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <h3 className="text-lg font-semibold mb-4">License Information</h3>
                             <div className="space-y-6">
                                 <FormField
@@ -185,21 +270,49 @@ export default function LicenseForm({
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="price"
+                                        name="monthly_price"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Price</FormLabel>
+                                                <FormLabel>Monthly Price</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
                                                         min="0"
                                                         step="0.01"
-                                                        placeholder="29.99"
+                                                        placeholder="19.99"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                                        value={field.value}
+                                                        onChange={(e) => field.onChange(parsePriceInput(e.target.value))}
+                                                        value={field.value ?? ""}
                                                     />
                                                 </FormControl>
+                                                <FormDescription>
+                                                    Leave empty to disable monthly billing.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="yearly_price"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Yearly Price</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        placeholder="199.99"
+                                                        {...field}
+                                                        onChange={(e) => field.onChange(parsePriceInput(e.target.value))}
+                                                        value={field.value ?? ""}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Leave empty to disable yearly billing.
+                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -236,7 +349,7 @@ export default function LicenseForm({
                                         name="deployment_limit"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Deployment Limit</FormLabel>
+                                                <FormLabel>Deployments per Purchase</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
@@ -248,7 +361,7 @@ export default function LicenseForm({
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
-                                                    Minimum 5 deployments per license
+                                                    Each customer purchase of this license includes this many deployments.
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
@@ -256,39 +369,9 @@ export default function LicenseForm({
                                     />
                                 </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="period"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Billing Period</FormLabel>
-                                            <Select
-                                                onValueChange={(value) => field.onChange(value as LicensePeriod)}
-                                                defaultValue={field.value}
-                                                value={field.value}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select period" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value={LicensePeriod.FOREVER}>One-time (Forever)</SelectItem>
-                                                    <SelectItem value={LicensePeriod.WEEKLY}>Weekly</SelectItem>
-                                                    <SelectItem value={LicensePeriod.BIWEEKLY}>Bi-weekly</SelectItem>
-                                                    <SelectItem value={LicensePeriod.MONTHLY}>Monthly</SelectItem>
-                                                    <SelectItem value={LicensePeriod.YEARLY}>Yearly</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormDescription>
-                                                {field.value === LicensePeriod.FOREVER
-                                                    ? "Customer pays once and owns forever"
-                                                    : "Customer subscribes and pays recurring"}
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+                                    One license creates one Stripe product. If you set both prices, buyers can choose monthly or yearly in Stripe Checkout. If both are empty, the license stays free.
+                                </div>
 
                                 <FormField
                                     control={form.control}

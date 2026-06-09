@@ -5,6 +5,7 @@ import {
   useGetProjectsQuery,
   useDeleteProjectMutation,
 } from "@/store/features/projects";
+import { useGetSubscriptionQuery } from "@/store/features/subscription";
 import {
   Table,
   TableBody,
@@ -47,6 +48,7 @@ import {
   IconCircleX,
   IconFileDescription,
   IconLoader,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard-layout";
@@ -54,6 +56,12 @@ import { BreadcrumbItem } from "@/components/breadcrumb";
 import { toast } from "sonner";
 import { Project } from "@/common/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,6 +79,7 @@ export default function ProjectsPage() {
     page: currentPage,
     limit: itemsPerPage,
   });
+  const { data: subscription, isLoading: isLoadingSubscription } = useGetSubscriptionQuery();
 
   // Delete project mutation
   const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
@@ -78,6 +87,8 @@ export default function ProjectsPage() {
   const projects = data?.items || [];
   const totalProjects = data?.meta?.totalItems || 0;
   const totalPages = data?.meta?.totalPages || 1;
+  const projectLimit = subscription?.max_projects ?? -1;
+  const isProjectLimitReached = projectLimit !== -1 && totalProjects >= projectLimit;
 
   // For handling delete confirmation
   const handleDeleteClick = (project: Project) => {
@@ -142,11 +153,30 @@ export default function ProjectsPage() {
         />
         {isFetching ? "Refreshing..." : "Refresh"}
       </Button>
-      <Button asChild>
-        <Link href="/dashboard/projects/create">
-          <IconPlus className="h-4 w-4 mr-2" /> Create Project
-        </Link>
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              {isProjectLimitReached ? (
+                <Button disabled>
+                  <IconPlus className="h-4 w-4 mr-2" /> Create Project
+                </Button>
+              ) : (
+                <Button asChild>
+                  <Link href="/dashboard/projects/create">
+                    <IconPlus className="h-4 w-4 mr-2" /> Create Project
+                  </Link>
+                </Button>
+              )}
+            </span>
+          </TooltipTrigger>
+          {!isLoadingSubscription && isProjectLimitReached && (
+            <TooltipContent className="max-w-xs">
+              <p>Your current plan allows {projectLimit} total project{projectLimit === 1 ? "" : "s"}.</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
     </>
   );
 
@@ -157,6 +187,21 @@ export default function ProjectsPage() {
       actions={actionButtons}
     >
       <div className="flex flex-col gap-6">
+        {!isLoadingSubscription && isProjectLimitReached && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4 flex items-start">
+            <IconInfoCircle className="h-5 w-5 text-yellow-500 mr-3 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-yellow-800">Project limit reached</h4>
+              <p className="text-yellow-700 text-sm mt-1">
+                Your current plan allows {projectLimit} total project{projectLimit === 1 ? "" : "s"}. Upgrade to create more.
+              </p>
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link href="/dashboard/billing">View Billing</Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-4 flex-col sm:flex-row mb-4">
           <div className="relative w-full sm:w-1/3">
             <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
