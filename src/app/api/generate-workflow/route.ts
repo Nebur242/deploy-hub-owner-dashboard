@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         {
           error: "Project description is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +97,7 @@ Return ONLY the YAML content without any markdown formatting or code blocks. The
     if (!workflowContent) {
       return NextResponse.json(
         { error: "Failed to generate workflow content" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -108,13 +108,13 @@ Return ONLY the YAML content without any markdown formatting or code blocks. The
     if (error instanceof Error) {
       return NextResponse.json(
         { error: `Failed to generate workflow: ${error.message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     return NextResponse.json(
       { error: "An unexpected error occurred while generating the workflow" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
