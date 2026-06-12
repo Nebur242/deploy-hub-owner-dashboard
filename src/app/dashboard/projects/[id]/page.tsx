@@ -1022,7 +1022,7 @@ export default function ProjectPreviewPage() {
                         <AlertDialogTitle>Submit for Review</AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to submit &quot;{project?.name}&quot; for review?
-                            Once submitted, our team will review your project before it can be displayed on the marketplace.
+                            Once submitted, our team will review your project before it can be displayed on the marketplace. Public projects now need at least one successful test deployment before review.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
