@@ -12,12 +12,20 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { authService } from "@/services/auth-service";
 import {
     requestOtpCode,
     verifyOtpCode,
     loginOwnerWithOtp,
     clearOtpState,
 } from "@/store/features/auth";
+import {
+    firebaseSignInWithCustomToken,
+    getUser,
+    loginWithVerification as loginWithVerificationRequest,
+    requestCode as requestCodeRequest,
+    verifyCode as verifyCodeRequest,
+} from "@/services/users";
 import { z } from "zod";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { emailOnlySchema } from "@/common/dtos";
@@ -32,6 +40,10 @@ type EmailFormData = z.infer<typeof emailOnlySchema>;
 
 type Step = "email" | "code";
 
+const TEST_OWNER_EMAIL = "test-owner@example.com";
+const TEST_AUTH_CODE = "111111";
+const SHOW_TEST_LOGIN = process.env.NODE_ENV !== "production";
+
 export default function LoginPage() {
     const form = useForm();
     const router = useRouter();
@@ -39,6 +51,8 @@ export default function LoginPage() {
     const [step, setStep] = useState<Step>("email");
     const [otpValue, setOtpValue] = useState("");
     const [resendCountdown, setResendCountdown] = useState(0);
+    const [testLoginLoading, setTestLoginLoading] = useState(false);
+    const [testError, setTestError] = useState<string | null>(null);
 
     // Countdown timer for resend
     useEffect(() => {
@@ -53,11 +67,10 @@ export default function LoginPage() {
         verifyCode: { loading: verifyCodeLoading, error: verifyCodeError },
         loginWithOtp: { loading: loginLoading, error: loginError },
         otpEmail,
-        verificationToken,
     } = useAppSelector((state) => state.auth);
 
-    const isLoading = requestCodeLoading || verifyCodeLoading || loginLoading;
-    const error = requestCodeError || verifyCodeError || loginError;
+    const isLoading = requestCodeLoading || verifyCodeLoading || loginLoading || testLoginLoading;
+    const error = testError || requestCodeError || verifyCodeError || loginError;
 
     const {
         register,
@@ -72,6 +85,7 @@ export default function LoginPage() {
     });
 
     const handleRequestCode = (data: EmailFormData) => {
+        setTestError(null);
         dispatch(
             requestOtpCode({
                 email: data.email,
@@ -85,6 +99,7 @@ export default function LoginPage() {
     };
 
     const handleVerifyCode = () => {
+        setTestError(null);
         const email = otpEmail || getValues("email");
         if (otpValue.length !== 6 || !email) return;
 
@@ -114,6 +129,7 @@ export default function LoginPage() {
     };
 
     const handleResendCode = () => {
+        setTestError(null);
         const email = getValues("email");
         if (email && resendCountdown === 0) {
             dispatch(
@@ -125,6 +141,56 @@ export default function LoginPage() {
             );
         }
     };
+
+    const handleTestLogin = async () => {
+        setTestError(null);
+        setTestLoginLoading(true);
+
+        try {
+            await requestCodeRequest(TEST_OWNER_EMAIL, "login");
+            const verification = await verifyCodeRequest(
+                TEST_OWNER_EMAIL,
+                TEST_AUTH_CODE,
+                "login",
+            );
+            const response = await loginWithVerificationRequest(
+                TEST_OWNER_EMAIL,
+                verification.verificationToken,
+            );
+            const firebaseUser = await firebaseSignInWithCustomToken(response.token);
+            const idToken = await firebaseUser.user.getIdToken(true);
+
+            authService.setToken(idToken);
+
+            const sessionResponse = await fetch("/api/auth/session", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ idToken }),
+            });
+
+            if (!sessionResponse.ok) {
+                throw new Error("Failed to create session");
+            }
+
+            await getUser(firebaseUser.user.uid, idToken);
+            router.push("/dashboard");
+        } catch (err) {
+            setTestError(
+                err instanceof Error ? err.message : "Test owner login failed",
+            );
+        } finally {
+            setTestLoginLoading(false);
+        }
+    };
+
+    let verifyButtonLabel = "Verify & Login";
+    if (verifyCodeLoading) {
+        verifyButtonLabel = "Verifying...";
+    } else if (loginLoading) {
+        verifyButtonLabel = "Logging in...";
+    }
 
     return (
         <Form {...form}>
@@ -162,6 +228,25 @@ export default function LoginPage() {
                             {requestCodeLoading && <Loader2 className="animate-spin mr-2" />}
                             {requestCodeLoading ? "Sending code..." : "Send verification code"}
                         </Button>
+
+                        {SHOW_TEST_LOGIN && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                disabled={isLoading}
+                                onClick={handleTestLogin}
+                            >
+                                {testLoginLoading && <Loader2 className="animate-spin mr-2" />}
+                                {testLoginLoading ? "Signing in..." : "Use test owner account"}
+                            </Button>
+                        )}
+
+                        {SHOW_TEST_LOGIN && (
+                            <p className="text-center text-xs text-muted-foreground">
+                                Uses {TEST_OWNER_EMAIL} with fixed code {TEST_AUTH_CODE}.
+                            </p>
+                        )}
 
                         {error && (
                             <Alert variant="destructive">
@@ -212,11 +297,7 @@ export default function LoginPage() {
                                 {(verifyCodeLoading || loginLoading) && (
                                     <Loader2 className="animate-spin mr-2" />
                                 )}
-                                {verifyCodeLoading
-                                    ? "Verifying..."
-                                    : loginLoading
-                                        ? "Logging in..."
-                                        : "Verify & Login"}
+                                {verifyButtonLabel}
                             </Button>
 
                             <div className="flex items-center gap-4 text-sm">
