@@ -14,7 +14,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { BreadcrumbItem } from "@/components/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ConfigurationForm from "../../components/configuration-form";
-import { CreateConfigurationDto } from "@/common/dtos";
+import { CreateConfigurationDto, GithubAccountDto } from "@/common/dtos";
 import { subscriptionService } from "@/services/subscription";
 
 export default function EditConfigurationPage() {
@@ -85,7 +85,18 @@ export default function EditConfigurationPage() {
     ? {
         name: configuration.name || "",
         note: configuration.note || "",
-        github_accounts: configuration.github_accounts || [],
+        github_accounts: (configuration.github_accounts || []).map(
+          (account): GithubAccountDto => ({
+            connection_mode: "github_app",
+            username: account.username || "",
+            access_token: account.access_token || "",
+            repository: account.repository || "",
+            workflow_file: account.workflow_file || "",
+            default_branch: account.default_branch,
+            github_app_installation_id: account.github_app_installation_id,
+            github_app_connection_token: account.github_app_connection_token,
+          }),
+        ),
         deployment_option: configuration.deployment_option,
       }
     : undefined;

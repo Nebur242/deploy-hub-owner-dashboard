@@ -2,13 +2,18 @@ import { BaseEntity } from "./base";
 import { DeploymentProvider } from "../enums/project";
 import { Project } from "./project";
 
+export type GithubConnectionMode = "github_app";
+
 // GitHub Account entity
 export interface GithubAccount {
+  connection_mode: GithubConnectionMode;
   username: string;
-  access_token: string;
+  access_token?: string;
   repository: string;
   workflow_file: string;
   default_branch?: string;
+  github_app_installation_id?: number;
+  github_app_connection_token?: string;
 }
 
 // Environment Variable entity

@@ -6,9 +6,27 @@ import {
 } from "firebase/messaging";
 import app from "@/config/firebase";
 import { authService } from "./auth-service";
+import { registerFCMServiceWorker } from "@/utils/firebase-sw-register";
 
 // Store for our FCM token
 const FCM_TOKEN_KEY = "fcm_token";
+const FCM_PUSH_PERMISSION_DENIED_KEY = "fcm_push_permission_denied";
+
+function isPushPermissionDeniedError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const errorName = error.name.toLowerCase();
+  const errorMessage = error.message.toLowerCase();
+
+  return (
+    errorName === "aborterror" ||
+    errorName === "notallowederror" ||
+    errorMessage.includes("permission denied") ||
+    errorMessage.includes("registration failed")
+  );
+}
 
 /**
  * Firebase Cloud Messaging Service for push notifications
@@ -21,7 +39,7 @@ class NotificationService {
    */
   initialize() {
     try {
-      if (typeof window !== "undefined") {
+      if (globalThis.window !== undefined) {
         this.messaging = getMessaging(app);
         console.log("📱 Firebase Cloud Messaging initialized");
         this.onMessage();
@@ -42,13 +60,60 @@ class NotificationService {
       console.log(
         `🔔 Notification permission ${
           permission === "granted" ? "granted ✅" : "denied ❌"
-        }`
+        }`,
       );
+
+      if (permission === "granted") {
+        sessionStorage.removeItem(FCM_PUSH_PERMISSION_DENIED_KEY);
+      }
+
       return permission === "granted";
     } catch (error) {
       console.error("❌ Error requesting notification permission:", error);
       return false;
     }
+  }
+
+  private async canSubscribeToPush(
+    serviceWorkerRegistration: ServiceWorkerRegistration,
+    forceRefresh: boolean,
+  ): Promise<boolean> {
+    if (
+      !forceRefresh &&
+      sessionStorage.getItem(FCM_PUSH_PERMISSION_DENIED_KEY) === "true"
+    ) {
+      console.warn(
+        "⚠️ Skipping FCM token registration because push permission was denied earlier in this session",
+      );
+      return false;
+    }
+
+    if (!("PushManager" in globalThis.window)) {
+      console.warn("⚠️ Push messaging is not supported in this browser");
+      return false;
+    }
+
+    if (
+      typeof serviceWorkerRegistration.pushManager.permissionState !==
+      "function"
+    ) {
+      return true;
+    }
+
+    const permissionState =
+      await serviceWorkerRegistration.pushManager.permissionState({
+        userVisibleOnly: true,
+      });
+
+    if (permissionState === "denied") {
+      sessionStorage.setItem(FCM_PUSH_PERMISSION_DENIED_KEY, "true");
+      console.warn(
+        "⚠️ Push subscription is denied at the browser level, skipping FCM token registration",
+      );
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -75,11 +140,37 @@ class NotificationService {
 
       // Get VAPID key for web push
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) {
+        console.warn(
+          "⚠️ Missing Firebase VAPID key, skipping FCM token registration",
+        );
+        return null;
+      }
+
+      const serviceWorkerRegistration = await registerFCMServiceWorker();
+      if (!serviceWorkerRegistration) {
+        console.warn(
+          "⚠️ Firebase messaging service worker is not ready, skipping FCM token registration",
+        );
+        return null;
+      }
 
       // Request notification permission
-      const hasPermission = await this.requestPermission();
+      const hasPermission =
+        Notification.permission === "granted"
+          ? true
+          : await this.requestPermission();
       if (!hasPermission) {
         console.warn("⚠️ Notification permission not granted");
+        return null;
+      }
+
+      const canSubscribeToPush = await this.canSubscribeToPush(
+        serviceWorkerRegistration,
+        forceRefresh,
+      );
+
+      if (!canSubscribeToPush) {
         return null;
       }
 
@@ -87,12 +178,13 @@ class NotificationService {
       console.log("🔄 Getting FCM token...");
       const currentToken = await getToken(this.messaging, {
         vapidKey,
+        serviceWorkerRegistration,
       });
 
       if (currentToken) {
         console.log(
           "✅ FCM token obtained:",
-          currentToken.substring(0, 10) + "..."
+          currentToken.substring(0, 10) + "...",
         );
         // Store the token in localStorage
         localStorage.setItem(FCM_TOKEN_KEY, currentToken);
@@ -104,6 +196,14 @@ class NotificationService {
         return null;
       }
     } catch (error) {
+      if (isPushPermissionDeniedError(error)) {
+        sessionStorage.setItem(FCM_PUSH_PERMISSION_DENIED_KEY, "true");
+        console.warn(
+          "⚠️ Browser denied push subscription, skipping FCM token registration for this session",
+        );
+        return null;
+      }
+
       console.error("❌ Error getting FCM token:", error);
       return null;
     }
@@ -138,7 +238,7 @@ class NotificationService {
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             },
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -177,7 +277,7 @@ class NotificationService {
             timestamp: new Date().toISOString(),
           },
         });
-        window.dispatchEvent(event);
+        globalThis.window.dispatchEvent(event);
 
         // Display a native browser notification if the browser supports it
         if (Notification.permission === "granted") {
@@ -187,7 +287,7 @@ class NotificationService {
             icon: "/favicon.png", // Use your app's favicon or logo
             badge: "/favicon.png",
             data: payload.data,
-            timestamp: new Date().getTime(),
+            timestamp: Date.now(),
           };
 
           const browserNotification = new Notification(title, options);
@@ -195,13 +295,13 @@ class NotificationService {
           // Handle click on notification
           browserNotification.onclick = () => {
             console.log("🖱️ Notification clicked");
-            window.focus();
+            globalThis.window.focus();
             browserNotification.close();
 
             // Handle routing based on notification data
             if (payload.data?.url) {
               console.log("🔗 Navigating to:", payload.data.url);
-              window.location.href = payload.data.url;
+              globalThis.window.location.href = payload.data.url;
             }
           };
         }

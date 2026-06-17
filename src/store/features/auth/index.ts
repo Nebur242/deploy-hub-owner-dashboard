@@ -255,13 +255,13 @@ export const registerOwnerWithOtp = createAsyncThunk(
     }: {
       email: string;
       verification_token: string;
-      first_name: string;
-      last_name: string;
+      first_name?: string;
+      last_name?: string;
       company_name?: string;
-      developer_type: DeveloperType;
-      country: string;
+      developer_type?: DeveloperType;
+      country?: string;
       website_url?: string;
-      github_url: string;
+      github_url?: string;
       terms_accepted: boolean;
       onSuccess?: () => void;
       onFailed?: () => void;
@@ -307,6 +307,8 @@ export const registerOwnerWithOtp = createAsyncThunk(
 
       // Get user from backend - pass token directly to avoid race condition
       const user = await getUser(firebaseUser.user.uid, idToken);
+
+      if (onSuccess) onSuccess();
 
       return fulfillWithValue({
         ...user,

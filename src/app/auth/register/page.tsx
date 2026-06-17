@@ -6,15 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Form } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import Link from "next/link";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,26 +20,18 @@ import {
 } from "@/store/features/auth";
 import { validateToken } from "@/services/users";
 import { z } from "zod";
-import { AlertCircle, Loader2, CheckCircle2, Building2, User, FileText } from "lucide-react";
-import {
-    emailOnlySchema,
-    profileSchema,
-    businessInfoSchema,
-} from "@/common/dtos";
+import { AlertCircle, Loader2, CheckCircle2, FileText } from "lucide-react";
+import { emailOnlySchema } from "@/common/dtos";
 import {
     InputOTP,
     InputOTPGroup,
     InputOTPSeparator,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { DeveloperType } from "@/common/types";
-import { CountrySelect } from "@/components/country-select";
 
 type EmailFormData = z.infer<typeof emailOnlySchema>;
-type ProfileFormData = z.infer<typeof profileSchema>;
-type BusinessFormData = z.infer<typeof businessInfoSchema>;
 
-type Step = "email" | "code" | "profile" | "business" | "terms";
+type Step = "email" | "code" | "terms";
 
 export default function RegisterForm() {
     const form = useForm();
@@ -72,18 +57,11 @@ export default function RegisterForm() {
     // Form data for multi-step
     const [formData, setFormData] = useState({
         email: "",
-        first_name: "",
-        last_name: "",
-        company_name: "",
-        developer_type: "individual" as DeveloperType,
-        country: "",
-        website_url: "",
-        github_url: "",
     });
 
     // Restore state from sessionStorage on mount
     useEffect(() => {
-        if (typeof window === "undefined" || isRestored) return;
+        if (globalThis.window === undefined || isRestored) return;
 
         const restoreState = async () => {
             const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -166,7 +144,7 @@ export default function RegisterForm() {
 
     // Save state to sessionStorage when it changes
     useEffect(() => {
-        if (!isRestored || typeof window === "undefined") return;
+        if (!isRestored || globalThis.window === undefined) return;
 
         const stateToSave = {
             step,
@@ -186,7 +164,7 @@ export default function RegisterForm() {
     const isLoading = requestCodeLoading || verifyCodeLoading || registerLoading;
     const error = requestCodeError || verifyCodeError || registerError;
 
-    const pendingResetTimeoutRef = useRef<number | null>(null);
+    const pendingResetTimeoutRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
 
     // Handle token expiration errors - reset to email step
     useEffect(() => {
@@ -204,7 +182,7 @@ export default function RegisterForm() {
                 clearStorage();
                 dispatch(clearOtpState());
 
-                pendingResetTimeoutRef.current = window.setTimeout(() => {
+                pendingResetTimeoutRef.current = globalThis.setTimeout(() => {
                     setStep("email");
                     setOtpValue("");
                     setTermsAccepted(false);
@@ -214,7 +192,7 @@ export default function RegisterForm() {
 
         return () => {
             if (pendingResetTimeoutRef.current !== null) {
-                window.clearTimeout(pendingResetTimeoutRef.current);
+                globalThis.clearTimeout(pendingResetTimeoutRef.current);
                 pendingResetTimeoutRef.current = null;
             }
         };
@@ -224,37 +202,6 @@ export default function RegisterForm() {
     const emailForm = useForm<EmailFormData>({
         resolver: zodResolver(emailOnlySchema),
         defaultValues: { email: "" },
-    });
-
-    // Profile form
-    const profileForm = useForm<ProfileFormData>({
-        resolver: zodResolver(profileSchema),
-        defaultValues: { first_name: "", last_name: "" },
-    });
-
-    // Business form
-    const businessForm = useForm<BusinessFormData>({
-        resolver: zodResolver(businessInfoSchema),
-        defaultValues: {
-            company_name: "",
-            developer_type: "individual",
-            country: "",
-            website_url: "",
-            github_url: "",
-        },
-    });
-
-    // Use useWatch for React Compiler compatibility
-    const watchedDeveloperType = useWatch({
-        control: businessForm.control,
-        name: "developer_type",
-        defaultValue: "individual",
-    });
-
-    const watchedCountry = useWatch({
-        control: businessForm.control,
-        name: "country",
-        defaultValue: "",
     });
 
     // Track if forms have been synced to avoid re-syncing
@@ -267,24 +214,9 @@ export default function RegisterForm() {
         if (formData.email) {
             emailForm.reset({ email: formData.email });
         }
-        if (formData.first_name || formData.last_name) {
-            profileForm.reset({
-                first_name: formData.first_name || "",
-                last_name: formData.last_name || ""
-            });
-        }
-        if (formData.company_name || formData.developer_type || formData.country) {
-            businessForm.reset({
-                company_name: formData.company_name || "",
-                developer_type: formData.developer_type || "individual",
-                country: formData.country || "",
-                website_url: formData.website_url || "",
-                github_url: formData.github_url || "",
-            });
-        }
 
         formsSyncedRef.current = true;
-    }, [isRestored, formData, emailForm, profileForm, businessForm]);
+    }, [isRestored, formData, emailForm]);
 
     // Handle email submission
     const handleRequestCode = (data: EmailFormData) => {
@@ -309,32 +241,9 @@ export default function RegisterForm() {
                 email: formData.email,
                 code: otpValue,
                 purpose: "register",
-                onSuccess: () => setStep("profile"),
+                onSuccess: () => setStep("terms"),
             })
         );
-    };
-
-    // Handle profile submission
-    const handleProfileSubmit = (data: ProfileFormData) => {
-        setFormData(prev => ({
-            ...prev,
-            first_name: data.first_name || "",
-            last_name: data.last_name || "",
-        }));
-        setStep("business");
-    };
-
-    // Handle business info submission
-    const handleBusinessSubmit = (data: BusinessFormData) => {
-        setFormData(prev => ({
-            ...prev,
-            company_name: data.company_name || "",
-            developer_type: data.developer_type,
-            country: data.country,
-            website_url: data.website_url || "",
-            github_url: data.github_url || "",
-        }));
-        setStep("terms");
     };
 
     // Handle final registration
@@ -347,13 +256,6 @@ export default function RegisterForm() {
                 registerOwnerWithOtp({
                     email: formData.email,
                     verification_token: verificationToken,
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
-                    company_name: formData.company_name,
-                    developer_type: formData.developer_type,
-                    country: formData.country,
-                    website_url: formData.website_url,
-                    github_url: formData.github_url,
                     terms_accepted: true,
                 })
             ).unwrap();
@@ -377,18 +279,8 @@ export default function RegisterForm() {
                 dispatch(clearOtpState());
                 clearStorage();
                 break;
-            case "profile":
-                // From profile step, go back to email (skip code step)
-                setStep("email");
-                setOtpValue("");
-                dispatch(clearOtpState());
-                clearStorage();
-                break;
-            case "business":
-                setStep("profile");
-                break;
             case "terms":
-                setStep("business");
+                setStep("code");
                 break;
         }
     };
@@ -409,12 +301,17 @@ export default function RegisterForm() {
     const steps = [
         { key: "email", label: "Email", icon: "1" },
         { key: "code", label: "Verify", icon: "2" },
-        { key: "profile", label: "Profile", icon: "3" },
-        { key: "business", label: "Business", icon: "4" },
-        { key: "terms", label: "Terms", icon: "5" },
+        { key: "terms", label: "Terms", icon: "3" },
     ];
 
     const currentStepIndex = steps.findIndex(s => s.key === step);
+    const getStepClassName = (stepIndex: number) => {
+        if (stepIndex <= currentStepIndex) {
+            return "bg-primary text-primary-foreground";
+        }
+
+        return "bg-muted text-muted-foreground";
+    };
 
     return (
         <Form {...form}>
@@ -424,12 +321,7 @@ export default function RegisterForm() {
                     {steps.map((s, i) => (
                         <div
                             key={s.key}
-                            className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors ${i < currentStepIndex
-                                ? "bg-primary text-primary-foreground"
-                                : i === currentStepIndex
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
+                            className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors ${getStepClassName(i)}`}
                         >
                             {i < currentStepIndex ? (
                                 <CheckCircle2 className="h-4 w-4" />
@@ -444,16 +336,12 @@ export default function RegisterForm() {
                     <h1 className="text-2xl font-bold">
                         {step === "email" && "Create your owner account"}
                         {step === "code" && "Verify your email"}
-                        {step === "profile" && "Tell us about yourself"}
-                        {step === "business" && "Business information"}
                         {step === "terms" && "Terms of Service"}
                     </h1>
                     <p className="text-balance text-sm text-muted-foreground">
                         {step === "email" && "Enter your email to get started"}
                         {step === "code" && `Enter the 6-digit code sent to ${otpEmail || formData.email}`}
-                        {step === "profile" && "This helps us personalize your experience"}
-                        {step === "business" && "Tell us about your business or projects"}
-                        {step === "terms" && "Please review and accept our terms"}
+                        {step === "terms" && "Accept the terms now. We’ll collect payout and profile details during Stripe setup."}
                     </p>
                 </div>
 
@@ -567,191 +455,17 @@ export default function RegisterForm() {
                     </div>
                 )}
 
-                {/* Step 3: Profile */}
-                {step === "profile" && (
-                    <form
-                        className="grid gap-6"
-                        onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
-                    >
-                        <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="firstName">First Name</Label>
-                                <Input
-                                    {...profileForm.register("first_name")}
-                                    id="firstName"
-                                    placeholder="John"
-                                    disabled={isLoading}
-                                />
-                                {profileForm.formState.errors.first_name && (
-                                    <p className="text-sm text-red-500">
-                                        {profileForm.formState.errors.first_name.message}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="lastName">Last Name</Label>
-                                <Input
-                                    {...profileForm.register("last_name")}
-                                    id="lastName"
-                                    placeholder="Doe"
-                                    disabled={isLoading}
-                                />
-                                {profileForm.formState.errors.last_name && (
-                                    <p className="text-sm text-red-500">
-                                        {profileForm.formState.errors.last_name.message}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex-1"
-                                onClick={handleBack}
-                                disabled={isLoading}
-                            >
-                                Back
-                            </Button>
-                            <Button type="submit" className="flex-1" disabled={isLoading}>
-                                Continue
-                            </Button>
-                        </div>
-                    </form>
-                )}
-
-                {/* Step 4: Business Info */}
-                {step === "business" && (
-                    <form
-                        className="grid gap-6 w-full"
-                        onSubmit={businessForm.handleSubmit(handleBusinessSubmit)}
-                    >
-                        <div className="grid gap-4 w-full">
-                            <div className="grid gap-2 w-full">
-                                <Label htmlFor="developerType">Developer Type</Label>
-                                <Select
-                                    value={watchedDeveloperType}
-                                    onValueChange={(value) =>
-                                        businessForm.setValue("developer_type", value as DeveloperType)
-                                    }
-                                    disabled={isLoading}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="individual">
-                                            <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4" />
-                                                Individual Developer
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="company">
-                                            <div className="flex items-center gap-2">
-                                                <Building2 className="h-4 w-4" />
-                                                Company
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="agency">
-                                            <div className="flex items-center gap-2">
-                                                <Building2 className="h-4 w-4" />
-                                                Agency
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {businessForm.formState.errors.developer_type && (
-                                    <p className="text-sm text-red-500">
-                                        {businessForm.formState.errors.developer_type.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            {(watchedDeveloperType === "company" ||
-                                watchedDeveloperType === "agency") && (
-                                    <div className="grid gap-2 w-full">
-                                        <Label htmlFor="companyName">Company Name</Label>
-                                        <Input
-                                            {...businessForm.register("company_name")}
-                                            id="companyName"
-                                            placeholder="Acme Inc"
-                                            disabled={isLoading}
-                                            className="w-full"
-                                        />
-                                    </div>
-                                )}
-
-                            <div className="grid gap-2 w-full">
-                                <Label htmlFor="country">Country</Label>
-                                <CountrySelect
-                                    value={watchedCountry}
-                                    onValueChange={(value) =>
-                                        businessForm.setValue("country", value)
-                                    }
-                                    disabled={isLoading}
-                                    placeholder="Select country..."
-                                />
-                                {businessForm.formState.errors.country && (
-                                    <p className="text-sm text-red-500">
-                                        {businessForm.formState.errors.country.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="grid gap-2 w-full">
-                                <Label htmlFor="websiteUrl">Website (optional)</Label>
-                                <Input
-                                    {...businessForm.register("website_url")}
-                                    id="websiteUrl"
-                                    placeholder="https://example.com"
-                                    disabled={isLoading}
-                                    className="w-full"
-                                />
-                                {businessForm.formState.errors.website_url && (
-                                    <p className="text-sm text-red-500">
-                                        {businessForm.formState.errors.website_url.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="grid gap-2 w-full">
-                                <Label htmlFor="githubUrl">GitHub Profile</Label>
-                                <Input
-                                    {...businessForm.register("github_url")}
-                                    id="githubUrl"
-                                    placeholder="https://github.com/username"
-                                    disabled={isLoading}
-                                    className="w-full"
-                                />
-                                {businessForm.formState.errors.github_url && (
-                                    <p className="text-sm text-red-500">
-                                        {businessForm.formState.errors.github_url.message}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex-1"
-                                onClick={handleBack}
-                                disabled={isLoading}
-                            >
-                                Back
-                            </Button>
-                            <Button type="submit" className="flex-1" disabled={isLoading}>
-                                Continue
-                            </Button>
-                        </div>
-                    </form>
-                )}
-
-                {/* Step 5: Terms */}
+                {/* Step 3: Terms */}
                 {step === "terms" && (
                     <div className="grid gap-6">
+                        <Alert>
+                            <FileText className="h-4 w-4" />
+                            <AlertTitle>Finish setup later</AlertTitle>
+                            <AlertDescription>
+                                You can create your owner account now. We&apos;ll ask for payout and business details when you set up Stripe.
+                            </AlertDescription>
+                        </Alert>
+
                         <div className="border rounded-lg p-4 max-h-48 overflow-y-auto text-sm text-muted-foreground space-y-4">
                             <h3 className="font-semibold text-foreground">Owner Terms of Service</h3>
                             <p>
@@ -817,15 +531,6 @@ export default function RegisterForm() {
                                 <AlertDescription>{error}</AlertDescription>
                             </Alert>
                         )}
-
-                        <Alert>
-                            <FileText className="h-4 w-4" />
-                            <AlertTitle>Review Required</AlertTitle>
-                            <AlertDescription>
-                                Your owner account will be reviewed before full activation.
-                                You&apos;ll receive an email once approved.
-                            </AlertDescription>
-                        </Alert>
                     </div>
                 )}
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Clock, XCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, Clock, XCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -258,7 +258,7 @@ export function OwnerStatusBanner() {
                     Account Pending Approval
                 </AlertTitle>
                 <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                    Your account is being reviewed. Some features may be limited until approval.
+                    Your account is being reviewed. You can keep building in the dashboard, but approval and Stripe setup are required before projects or licenses go public.
                 </AlertDescription>
             </Alert>
         );

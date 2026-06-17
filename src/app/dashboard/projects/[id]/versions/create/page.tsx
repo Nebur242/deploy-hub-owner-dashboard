@@ -48,9 +48,9 @@ export default function CreateVersionPage() {
     const allGithubAccounts = useMemo(() => configurations.flatMap(config =>
         (config.github_accounts || []).map(account => ({
             username: account.username,
-            access_token: account.access_token,
+            access_token: account.access_token || "",
             repository: account.repository,
-            workflow_file: account.workflow_file
+            workflowFile: account.workflow_file
         }))
     ), [configurations]);
 

@@ -11,7 +11,7 @@ import { registerFCMServiceWorker } from "@/utils/firebase-sw-register";
 import { useNotifications } from "@/providers/NotificationProvider";
 import { usePendingPlanCheckout } from "@/hooks/usePendingPlanCheckout";
 import AuthGuard from "@/components/auth-guard";
-import OwnerStatusGuard from "@/components/owner-status-guard";
+import { OwnerStatusBanner } from "@/components/owner-status-guard";
 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -38,7 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 await registerFCMServiceWorker();
 
                 // Only ask for permission if not already granted
-                if (Notification.permission !== 'granted' && !hasShownNotificationToast) {
+                if (Notification.permission === 'default' && !hasShownNotificationToast) {
                     // Ask for notification permission after a short delay
                     setTimeout(() => {
                         requestPermission().then(granted => {
@@ -86,9 +86,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <SiteHeader />
                     <div className="flex flex-1 flex-col">
                         <div className="@container/main py-4 md:py-6 px-4 lg:px-6">
-                            <OwnerStatusGuard>
-                                {children}
-                            </OwnerStatusGuard>
+                            <OwnerStatusBanner />
+                            {children}
                         </div>
                     </div>
                 </SidebarInset>

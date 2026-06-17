@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { DeploymentProvider } from "../enums/project";
 
+export const githubConnectionModeSchema = z.literal("github_app");
+
 // Environment variable schema
 export const environmentVariableDtoSchema = z.object({
   key: z.string().min(1, "Key is required"),
@@ -13,17 +15,30 @@ export const environmentVariableDtoSchema = z.object({
 });
 
 // GitHub account schema
-export const githubAccountDtoSchema = z.object({
-  username: z.string().min(1, "GitHub username is required"),
-  access_token: z.string().min(1, "Access token is required"),
-  repository: z.string().min(1, "Repository name is required"),
-  // must contain .yaml or .yml
-  workflow_file: z
-    .string()
-    .min(1, "Workflow file name is required")
-    .regex(/\.(yaml|yml)$/, "Workflow file must be a .yaml or .yml file"),
-  default_branch: z.string().optional(),
-});
+export const githubAccountDtoSchema = z
+  .object({
+    connection_mode: githubConnectionModeSchema.default("github_app"),
+    username: z.string().min(1, "GitHub username is required"),
+    access_token: z.string().optional().default(""),
+    repository: z.string().min(1, "Repository name is required"),
+    // must contain .yaml or .yml
+    workflow_file: z
+      .string()
+      .min(1, "Workflow file name is required")
+      .regex(/\.(yaml|yml)$/, "Workflow file must be a .yaml or .yml file"),
+    default_branch: z.string().optional(),
+    github_app_installation_id: z.number().optional(),
+    github_app_connection_token: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.github_app_installation_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["github_app_installation_id"],
+        message: "GitHub App connection is required",
+      });
+    }
+  });
 
 // Deployment option schema
 export const deploymentOptionDtoSchema = z.object({
@@ -37,7 +52,10 @@ export const createConfigurationDtoSchema = z.object({
     .string()
     .min(3, "Name must be at least 3 characters")
     .max(50, "Name must be less than 50 characters"),
-  note: z.string().max(2000, "Note must be less than 2000 characters").optional(),
+  note: z
+    .string()
+    .max(2000, "Note must be less than 2000 characters")
+    .optional(),
   github_accounts: z.array(githubAccountDtoSchema),
   deployment_option: deploymentOptionDtoSchema,
 });
@@ -51,7 +69,10 @@ export const updateConfigurationDtoSchema = z.object({
     .min(3, "Name must be at least 3 characters")
     .max(50, "Name must be less than 50 characters")
     .optional(),
-  note: z.string().max(2000, "Note must be less than 2000 characters").optional(),
+  note: z
+    .string()
+    .max(2000, "Note must be less than 2000 characters")
+    .optional(),
   github_accounts: z.array(githubAccountDtoSchema).optional(),
   deployment_option: deploymentOptionDtoSchema.optional(),
 });
@@ -60,6 +81,7 @@ export const updateConfigurationDtoSchema = z.object({
 export type EnvironmentVariableDto = z.infer<
   typeof environmentVariableDtoSchema
 >;
+export type GithubConnectionMode = z.infer<typeof githubConnectionModeSchema>;
 export type GithubAccountDto = z.infer<typeof githubAccountDtoSchema>;
 export type DeploymentOptionDto = z.infer<typeof deploymentOptionDtoSchema>;
 export type CreateConfigurationDto = z.infer<

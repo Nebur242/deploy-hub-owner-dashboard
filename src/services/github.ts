@@ -1,8 +1,27 @@
 import axios from "axios";
 
+import { AXIOS } from "@/config/api";
+
 interface GithubValidationResponse {
   isValid: boolean;
   message: string;
+}
+
+export interface GitHubAppRepository {
+  id: number;
+  name: string;
+  fullName: string;
+  owner: string;
+  defaultBranch?: string;
+  private: boolean;
+}
+
+function unwrapApiPayload<T>(payload: T | { data: T }): T {
+  if (typeof payload === "object" && payload !== null && "data" in payload) {
+    return payload.data;
+  }
+
+  return payload;
 }
 
 /**
@@ -909,5 +928,147 @@ function logApiCall(method: string, args: unknown): void {
     console.log(`[GitHub API] ${method} called:`, args);
     // Uncomment to see full call stack for debugging
     // console.trace(`[GitHub API] ${method} call stack`);
+  }
+}
+
+export async function getGitHubAppStatus(): Promise<{
+  enabled: boolean;
+  appSlug?: string;
+}> {
+  const response = await AXIOS.get("/github/app/status");
+  return unwrapApiPayload(response.data);
+}
+
+export async function getGitHubAppInstallUrl(
+  redirectTo: string,
+): Promise<string> {
+  const response = await AXIOS.get("/github/app/install-url", {
+    params: { redirectTo },
+  });
+  return unwrapApiPayload<{ installUrl: string }>(response.data).installUrl;
+}
+
+export async function getGitHubAppManageUrl(
+  connectionToken: string,
+): Promise<string> {
+  const response = await AXIOS.get("/github/app/manage-url", {
+    params: { connectionToken },
+  });
+  return unwrapApiPayload<{ manageUrl: string }>(response.data).manageUrl;
+}
+
+export async function getGitHubAppRepositories(
+  connectionToken: string,
+): Promise<{ repositories: GitHubAppRepository[]; error?: string }> {
+  try {
+    const response = await AXIOS.get("/github/app/repositories", {
+      params: { connectionToken },
+    });
+    const payload = unwrapApiPayload<{ repositories?: GitHubAppRepository[] }>(
+      response.data,
+    );
+
+    return { repositories: payload.repositories || [] };
+  } catch (err) {
+    const error = err as {
+      response?: { data?: { message?: string } };
+      message: string;
+    };
+    return {
+      repositories: [],
+      error: error.response?.data?.message || error.message,
+    };
+  }
+}
+
+export async function getGitHubAppBranches(
+  connectionToken: string,
+  owner: string,
+  repository: string,
+): Promise<{ branches: string[]; defaultBranch?: string; error?: string }> {
+  try {
+    const response = await AXIOS.get("/github/app/branches", {
+      params: {
+        connectionToken,
+        owner,
+        repository,
+      },
+    });
+    const payload = unwrapApiPayload<{
+      branches?: string[];
+      defaultBranch?: string;
+    }>(response.data);
+
+    return {
+      branches: payload.branches || [],
+      defaultBranch: payload.defaultBranch,
+    };
+  } catch (err) {
+    const error = err as {
+      response?: { data?: { message?: string } };
+      message: string;
+    };
+    return {
+      branches: [],
+      error: error.response?.data?.message || error.message,
+    };
+  }
+}
+
+export async function getGitHubAppWorkflowFiles(
+  connectionToken: string,
+  owner: string,
+  repository: string,
+): Promise<{ files: string[]; error?: string }> {
+  try {
+    const response = await AXIOS.get("/github/app/workflows", {
+      params: {
+        connectionToken,
+        owner,
+        repository,
+      },
+    });
+    const payload = unwrapApiPayload<{ files?: string[] }>(response.data);
+
+    return { files: payload.files || [] };
+  } catch (err) {
+    const error = err as {
+      response?: { data?: { message?: string } };
+      message: string;
+    };
+    return {
+      files: [],
+      error: error.response?.data?.message || error.message,
+    };
+  }
+}
+
+export async function getGitHubAppWorkflowContent(
+  connectionToken: string,
+  owner: string,
+  repository: string,
+  workflowFile: string,
+): Promise<{ content: string; error?: string }> {
+  try {
+    const response = await AXIOS.get("/github/app/workflow-content", {
+      params: {
+        connectionToken,
+        owner,
+        repository,
+        workflowFile,
+      },
+    });
+    const payload = unwrapApiPayload<{ content?: string }>(response.data);
+
+    return { content: payload.content || "" };
+  } catch (err) {
+    const error = err as {
+      response?: { data?: { message?: string } };
+      message: string;
+    };
+    return {
+      content: "",
+      error: error.response?.data?.message || error.message,
+    };
   }
 }

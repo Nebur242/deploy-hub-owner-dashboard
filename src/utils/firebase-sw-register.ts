@@ -5,65 +5,89 @@ declare global {
   }
 }
 
+let firebaseMessagingRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null =
+  null;
+
+function getFirebaseMessagingConfig() {
+  return {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_REST_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGE_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  };
+}
+
+function hasRequiredFirebaseMessagingConfig(
+  config: Record<string, string | undefined>,
+) {
+  return Boolean(
+    config.apiKey &&
+    config.projectId &&
+    config.messagingSenderId &&
+    config.appId,
+  );
+}
+
 /**
  * Registers the Firebase messaging service worker and passes configuration to it
  */
 export async function registerFCMServiceWorker() {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+  if (
+    globalThis.window === undefined ||
+    !("serviceWorker" in globalThis.navigator)
+  ) {
     console.warn("Service workers are not supported in this environment");
     return;
   }
 
-  try {
-    // Firebase config from environment variables
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_REST_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGE_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-    };
+  if (firebaseMessagingRegistrationPromise) {
+    return firebaseMessagingRegistrationPromise;
+  }
 
-    // Create a message channel to communicate with the service worker
-    const messageChannel = new MessageChannel();
+  firebaseMessagingRegistrationPromise = (async () => {
+    try {
+      const firebaseConfig = getFirebaseMessagingConfig();
 
-    // Register the service worker
-    const registration = await navigator.serviceWorker.register(
-      "/firebase-messaging-sw.js"
-    );
+      if (!hasRequiredFirebaseMessagingConfig(firebaseConfig)) {
+        console.warn(
+          "Skipping Firebase messaging service worker registration because config is incomplete",
+        );
+        return null;
+      }
 
-    console.log("Firebase messaging service worker registered");
-
-    // Wait for the service worker to be ready
-    await navigator.serviceWorker.ready;
-
-    // Pass Firebase config to the service worker
-    if (registration.active) {
-      // Make Firebase config available to the service worker
-      navigator.serviceWorker.controller?.postMessage(
-        {
-          type: "FIREBASE_CONFIG",
-          config: firebaseConfig,
-        },
-        [messageChannel.port2]
+      const registration = await globalThis.navigator.serviceWorker.register(
+        "/firebase-messaging-sw.js",
       );
 
-      // Make config globally available to the service worker
-      // This is used as a fallback in case message passing doesn't work
-      window.FIREBASE_CONFIG = firebaseConfig;
+      console.log("Firebase messaging service worker registered");
 
-      // Define a global setter for the service worker to access
-      Object.defineProperty(window, "__FIREBASE_CONFIG__", {
+      await globalThis.navigator.serviceWorker.ready;
+
+      const worker =
+        registration.active || registration.waiting || registration.installing;
+
+      globalThis.window.FIREBASE_CONFIG = firebaseConfig;
+
+      Object.defineProperty(globalThis.window, "__FIREBASE_CONFIG__", {
         get: () => firebaseConfig,
         configurable: true,
       });
-    }
 
-    return registration;
-  } catch (error) {
-    console.error("Error registering Firebase service worker:", error);
-    return null;
-  }
+      worker?.postMessage({
+        type: "FIREBASE_CONFIG",
+        config: firebaseConfig,
+      });
+
+      return registration;
+    } catch (error) {
+      console.error("Error registering Firebase service worker:", error);
+      firebaseMessagingRegistrationPromise = null;
+      return null;
+    }
+  })();
+
+  return firebaseMessagingRegistrationPromise;
 }

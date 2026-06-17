@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useForm, useFieldArray, useFormContext, useWatch, FormProvider, FieldArrayWithId, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { validateGithubConfig, getWorkflowFiles, getWorkflowFileContent, getBranches } from "@/services/github";
+import {
+  getGitHubAppBranches,
+  getGitHubAppInstallUrl,
+  getGitHubAppManageUrl,
+  getGitHubAppRepositories,
+  getGitHubAppStatus,
+  getGitHubAppWorkflowContent,
+  getGitHubAppWorkflowFiles,
+  GitHubAppRepository,
+} from "@/services/github";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/hooks/theme-context";
 import { WorkflowAssistant } from "@/components/workflow-assistant";
@@ -66,10 +76,74 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { DeploymentProvider } from "@/common/enums/project";
 import { DeploymentOption } from "@/common/types";
-import { CreateConfigurationDto, createConfigurationDtoSchema, EnvironmentVariableDto, GithubAccountDto } from "@/common/dtos";
+import {
+  CreateConfigurationDto,
+  createConfigurationDtoSchema,
+  EnvironmentVariableDto,
+  GithubAccountDto,
+} from "@/common/dtos";
 import { Textarea } from "@/components/ui/textarea";
+
+const GITHUB_APP_MODE = "github_app" as const;
+function buildEmptyGitHubAccount(): GithubAccountDto {
+  return {
+    connection_mode: GITHUB_APP_MODE,
+    username: "",
+    access_token: "",
+    repository: "",
+    workflow_file: "",
+    default_branch: "",
+    github_app_installation_id: undefined,
+    github_app_connection_token: undefined,
+  };
+}
+function isGithubAccountMeaningful(account?: Partial<GithubAccountDto>): boolean {
+  if (!account) {
+    return false;
+  }
+
+  return Boolean(
+    account.username ||
+    account.repository ||
+    account.workflow_file ||
+    account.default_branch ||
+    account.access_token ||
+    account.github_app_installation_id ||
+    account.github_app_connection_token,
+  );
+}
+
+function countMeaningfulGithubAccounts(accounts?: Partial<GithubAccountDto>[]): number {
+  return (accounts || []).filter(account => isGithubAccountMeaningful(account)).length;
+}
+
+function normalizeGithubAccounts(accounts?: GithubAccountDto[]): GithubAccountDto[] {
+  const normalizedAccounts: GithubAccountDto[] = (accounts || []).map(account => ({
+    ...account,
+    connection_mode: GITHUB_APP_MODE,
+    access_token: "",
+    github_app_connection_token: undefined,
+  }));
+
+  while (
+    normalizedAccounts.length > 1 &&
+    !isGithubAccountMeaningful(normalizedAccounts[normalizedAccounts.length - 1])
+  ) {
+    normalizedAccounts.pop();
+  }
+
+  return normalizedAccounts.length > 0
+    ? normalizedAccounts
+    : [buildEmptyGitHubAccount()];
+}
 
 interface ConfigurationFormProps {
   isEditing: boolean;
@@ -139,8 +213,11 @@ function ConfirmationDialog({
 
 // GitHub Account Fields
 function GithubAccountFields({ index }: { index: number }) {
-  const form = useFormContext();
+  const form = useFormContext<CreateConfigurationDto>();
   const { theme } = useTheme();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const connectionStorageKey = `owner-github-app-connection:${pathname}:${index}`;
 
   const [workflowFiles, setWorkflowFiles] = useState<string[]>([]);
   const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false);
@@ -157,13 +234,22 @@ function GithubAccountFields({ index }: { index: number }) {
   const [repoDefaultBranch, setRepoDefaultBranch] = useState<string | undefined>(undefined);
   const [branchPopoverOpen, setBranchPopoverOpen] = useState(false);
   const [workflowPopoverOpen, setWorkflowPopoverOpen] = useState(false);
+  const [githubAppEnabled, setGitHubAppEnabled] = useState(false);
+  const [isLoadingGithubAppStatus, setIsLoadingGithubAppStatus] = useState(true);
+  const [repositories, setRepositories] = useState<GitHubAppRepository[]>([]);
+  const [isLoadingRepositories, setIsLoadingRepositories] = useState(false);
+  const [repositoryError, setRepositoryError] = useState<string | null>(null);
 
   // Watch for changes in username, token, and repository to reload workflows
+  const connectionMode =
+    form.watch(`github_accounts.${index}.connection_mode`) || GITHUB_APP_MODE;
   const username = form.watch(`github_accounts.${index}.username`);
-  const accessToken = form.watch(`github_accounts.${index}.access_token`);
   const repository = form.watch(`github_accounts.${index}.repository`);
   const selectedWorkflow = form.watch(`github_accounts.${index}.workflow_file`);
-  const selectedBranch = form.watch(`github_accounts.${index}.default_branch`);
+  const connectionToken = form.watch(`github_accounts.${index}.github_app_connection_token`);
+  const installationId = form.watch(`github_accounts.${index}.github_app_installation_id`);
+  const isGitHubAppConnection = connectionMode === GITHUB_APP_MODE;
+  const hasRepositoryAccess = Boolean(username && repository && connectionToken);
 
   // Determine Monaco Editor theme based on app theme
   const getEditorTheme = () => {
@@ -176,9 +262,197 @@ function GithubAccountFields({ index }: { index: number }) {
     return 'vs-light'; // fallback
   };
 
+  useEffect(() => {
+    if (form.getValues(`github_accounts.${index}.connection_mode`) !== GITHUB_APP_MODE) {
+      form.setValue(`github_accounts.${index}.connection_mode`, GITHUB_APP_MODE);
+    }
+
+    if (form.getValues(`github_accounts.${index}.access_token`)) {
+      form.setValue(`github_accounts.${index}.access_token`, "");
+    }
+  }, [form, index]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGitHubAppStatus = async () => {
+      try {
+        const status = await getGitHubAppStatus();
+        if (isMounted) {
+          setGitHubAppEnabled(status.enabled);
+        }
+      } catch {
+        if (isMounted) {
+          setGitHubAppEnabled(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingGithubAppStatus(false);
+        }
+      }
+    };
+
+    void loadGitHubAppStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const connectIndex = searchParams.get("githubConnectIndex");
+    const returnedToken = searchParams.get("github_connection_token");
+    const returnedInstallationId = searchParams.get("github_installation_id");
+
+    if (
+      connectIndex === `${index}` &&
+      returnedToken &&
+      returnedInstallationId
+    ) {
+      form.setValue(`github_accounts.${index}.connection_mode`, GITHUB_APP_MODE);
+      form.setValue(`github_accounts.${index}.access_token`, "");
+      form.setValue(
+        `github_accounts.${index}.github_app_installation_id`,
+        Number(returnedInstallationId),
+      );
+      form.setValue(`github_accounts.${index}.github_app_connection_token`, returnedToken);
+
+      globalThis.window.localStorage.setItem(
+        connectionStorageKey,
+        JSON.stringify({
+          installationId: Number(returnedInstallationId),
+          connectionToken: returnedToken,
+        }),
+      );
+
+      const cleanedParams = new URLSearchParams(searchParams.toString());
+      cleanedParams.delete("githubConnectIndex");
+      cleanedParams.delete("github_connection_token");
+      cleanedParams.delete("github_installation_id");
+
+      const cleanedQuery = cleanedParams.toString();
+      const cleanedUrl = cleanedQuery ? `${pathname}?${cleanedQuery}` : pathname;
+
+      globalThis.window.history.replaceState(null, "", cleanedUrl);
+    }
+  }, [connectionStorageKey, form, index, pathname, searchParams]);
+
+  useEffect(() => {
+    const existingToken = form.getValues(`github_accounts.${index}.github_app_connection_token`);
+    const existingInstallationId = form.getValues(`github_accounts.${index}.github_app_installation_id`);
+
+    if (existingToken && existingInstallationId) {
+      return;
+    }
+
+    const storedConnection = globalThis.window.localStorage.getItem(connectionStorageKey);
+
+    if (!storedConnection) {
+      return;
+    }
+
+    try {
+      const parsedConnection = JSON.parse(storedConnection) as {
+        installationId?: number;
+        connectionToken?: string;
+      };
+
+      if (!parsedConnection.connectionToken || !parsedConnection.installationId) {
+        return;
+      }
+
+      form.setValue(`github_accounts.${index}.connection_mode`, GITHUB_APP_MODE);
+      form.setValue(`github_accounts.${index}.access_token`, "");
+      form.setValue(
+        `github_accounts.${index}.github_app_installation_id`,
+        parsedConnection.installationId,
+      );
+      form.setValue(
+        `github_accounts.${index}.github_app_connection_token`,
+        parsedConnection.connectionToken,
+      );
+    } catch {
+      globalThis.window.localStorage.removeItem(connectionStorageKey);
+    }
+  }, [connectionStorageKey, form, index]);
+
+  useEffect(() => {
+    if (!connectionToken || !installationId) {
+      return;
+    }
+
+    globalThis.window.localStorage.setItem(
+      connectionStorageKey,
+      JSON.stringify({
+        installationId,
+        connectionToken,
+      }),
+    );
+  }, [connectionStorageKey, connectionToken, installationId]);
+
+  const handleConnectGitHub = useCallback(async () => {
+    if (connectionToken && installationId) {
+      const manageUrl = await getGitHubAppManageUrl(connectionToken);
+      window.location.assign(manageUrl);
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("githubConnectIndex");
+    params.delete("github_connection_token");
+    params.delete("github_installation_id");
+    params.delete("github_setup_action");
+    params.set("githubConnectIndex", `${index}`);
+    const redirectTo = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    const installUrl = await getGitHubAppInstallUrl(redirectTo);
+    window.location.assign(installUrl);
+  }, [connectionToken, index, installationId, pathname, searchParams]);
+
+  const loadRepositories = useCallback(async () => {
+    if (!connectionToken) {
+      setRepositories([]);
+      setRepositoryError(null);
+      return;
+    }
+
+    setIsLoadingRepositories(true);
+    setRepositoryError(null);
+
+    try {
+      const result = await getGitHubAppRepositories(connectionToken);
+      if (result.error) {
+        setRepositories([]);
+        setRepositoryError(result.error);
+      } else {
+        setRepositories(result.repositories);
+        if (result.repositories.length === 0) {
+          setRepositoryError("No repositories are available for this GitHub App installation");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading GitHub App repositories:", error);
+      setRepositories([]);
+      setRepositoryError("Failed to load repositories");
+    } finally {
+      setIsLoadingRepositories(false);
+    }
+  }, [connectionToken]);
+
+  useEffect(() => {
+    if (!isGitHubAppConnection) {
+      setRepositories([]);
+      setRepositoryError(null);
+      return;
+    }
+
+    if (connectionToken) {
+      void loadRepositories();
+    }
+  }, [connectionToken, isGitHubAppConnection, loadRepositories]);
+
   // Load workflow files when credentials are available
   const loadWorkflowFiles = useCallback(async () => {
-    if (!username || !accessToken || !repository) {
+    if (!username || !repository || !connectionToken) {
       setWorkflowFiles([]);
       setWorkflowError(null);
       return;
@@ -188,7 +462,7 @@ function GithubAccountFields({ index }: { index: number }) {
     setWorkflowError(null);
 
     try {
-      const result = await getWorkflowFiles(username, accessToken, repository);
+      const result = await getGitHubAppWorkflowFiles(connectionToken, username, repository);
 
       if (result.error) {
         setWorkflowError(result.error);
@@ -206,7 +480,7 @@ function GithubAccountFields({ index }: { index: number }) {
     } finally {
       setIsLoadingWorkflows(false);
     }
-  }, [username, accessToken, repository]);
+  }, [connectionToken, repository, username]);
 
   // Load workflow files when dependencies change
   useEffect(() => {
@@ -219,7 +493,7 @@ function GithubAccountFields({ index }: { index: number }) {
 
   // Load branches when credentials are available
   const loadBranches = useCallback(async () => {
-    if (!username || !accessToken || !repository) {
+    if (!username || !repository || !connectionToken) {
       setBranches([]);
       setBranchError(null);
       setRepoDefaultBranch(undefined);
@@ -230,7 +504,7 @@ function GithubAccountFields({ index }: { index: number }) {
     setBranchError(null);
 
     try {
-      const result = await getBranches(username, accessToken, repository);
+      const result = await getGitHubAppBranches(connectionToken, username, repository);
 
       if (result.error) {
         setBranchError(result.error);
@@ -258,7 +532,7 @@ function GithubAccountFields({ index }: { index: number }) {
     } finally {
       setIsLoadingBranches(false);
     }
-  }, [username, accessToken, repository, form, index]);
+  }, [connectionToken, form, index, repository, username]);
 
   // Load branches when dependencies change
   useEffect(() => {
@@ -271,14 +545,24 @@ function GithubAccountFields({ index }: { index: number }) {
 
   // Load workflow content for preview
   const loadWorkflowContent = async () => {
-    if (!username || !accessToken || !repository || !selectedWorkflow) {
+    if (
+      !username ||
+      !repository ||
+      !selectedWorkflow ||
+      !connectionToken
+    ) {
       return;
     }
 
     setIsLoadingContent(true);
 
     try {
-      const result = await getWorkflowFileContent(username, accessToken, repository, selectedWorkflow);
+      const result = await getGitHubAppWorkflowContent(
+        connectionToken,
+        username,
+        repository,
+        selectedWorkflow,
+      );
 
       if (result.error) {
         setWorkflowContent(`# Error loading workflow file\n# ${result.error}`);
@@ -301,63 +585,144 @@ function GithubAccountFields({ index }: { index: number }) {
   return (
     <>
       <div className="space-y-4">
-        <FormField
-          control={form.control}
-          name={`github_accounts.${index}.username`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>GitHub Username</FormLabel>
-              <FormControl>
-                <Input placeholder="github-username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">GitHub Connection</p>
+                <p className="text-sm text-muted-foreground">
+                  Connect your GitHub account through the GitHub App, then pick a repository without pasting tokens.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handleConnectGitHub()}
+                disabled={!githubAppEnabled}
+              >
+                {connectionToken ? "Manage GitHub Access" : "Connect GitHub"}
+              </Button>
+            </div>
+
+            {installationId && (
+              <p className="text-xs text-muted-foreground">
+                Connected installation: {installationId}
+              </p>
+            )}
+
+            <p className="text-sm text-muted-foreground">
+              {isLoadingGithubAppStatus
+                ? "Checking GitHub App availability..."
+                : githubAppEnabled
+                  ? "GitHub App is enabled for this deployment setup."
+                  : "GitHub App setup is not configured yet."}
+            </p>
+
+            {connectionToken && (
+              <p className="text-xs text-muted-foreground">
+                Use GitHub to adjust repository access for this installation. Your current connection stays available when you return here.
+              </p>
+            )}
+
+            {connectionToken ? (
+              <FormField
+                control={form.control}
+                name={`github_accounts.${index}.repository`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                      <span className="text-sm font-medium">Repository</span>
+                      <div className="flex items-center gap-2">
+                        {isLoadingRepositories && (
+                          <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void loadRepositories()}
+                          disabled={isLoadingRepositories}
+                          className="h-7 px-2 text-xs lg:h-6"
+                        >
+                          <IconRefresh className="h-3 w-3 mr-1" />
+                          Refresh
+                        </Button>
+                      </div>
+                    </FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => {
+                          const selectedRepository = repositories.find(
+                            (item) => item.name === value || item.fullName === value,
+                          );
+
+                          field.onChange(selectedRepository?.name || value);
+                          form.setValue(
+                            `github_accounts.${index}.username`,
+                            selectedRepository?.owner || "",
+                          );
+                          form.setValue(
+                            `github_accounts.${index}.default_branch`,
+                            selectedRepository?.defaultBranch || "",
+                          );
+                        }}
+                        value={field.value || undefined}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a repository" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {repositories.map((item) => (
+                            <SelectItem key={item.id} value={item.name}>
+                              {item.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription>
+                      Choose a repository from your connected GitHub App installation.
+                    </FormDescription>
+                    {repositoryError && (
+                      <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+                        {repositoryError}
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <p className="text-sm text-amber-700">
+                Connect GitHub to browse repositories, branches, and workflow files.
+              </p>
+            )}
+
+            <FormField
+              control={form.control}
+              name={`github_accounts.${index}.username`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Repository Owner</FormLabel>
+                  <FormControl>
+                    <Input placeholder="github-owner" {...field} disabled />
+                  </FormControl>
+                  <FormDescription>
+                    This is filled automatically from the selected GitHub App repository.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
         <FormField
           control={form.control}
-          name={`github_accounts.${index}.access_token`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Access Token</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="GitHub personal access token"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                GitHub personal access token with repo scope
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name={`github_accounts.${index}.repository`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Repository</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="repo-name"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Enter repository name like on GitHub
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          name={`github_accounts.${index}.github_app_installation_id`}
+          render={() => <></>}
         />
 
         {/* Only show workflow file field when all prerequisite fields are provided */}
-        {username && accessToken && repository && (
+        {hasRepositoryAccess && (
           <FormField
             control={form.control}
             name={`github_accounts.${index}.workflow_file`}
@@ -373,8 +738,8 @@ function GithubAccountFields({ index }: { index: number }) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={loadWorkflowFiles}
-                      disabled={!username || !accessToken || !repository || isLoadingWorkflows}
+                      onClick={() => void loadWorkflowFiles()}
+                      disabled={!hasRepositoryAccess || isLoadingWorkflows}
                       className="h-7 px-2 text-xs lg:h-6"
                     >
                       <IconRefresh className="h-3 w-3 mr-1" />
@@ -442,7 +807,7 @@ function GithubAccountFields({ index }: { index: number }) {
                       type="button"
                       variant="outline"
                       onClick={handlePreviewClick}
-                      disabled={!username || !accessToken || !repository}
+                      disabled={!hasRepositoryAccess}
                       className="h-10 px-4 text-sm"
                     >
                       <IconEye className="h-4 w-4 mr-2" />
@@ -458,7 +823,7 @@ function GithubAccountFields({ index }: { index: number }) {
                 </FormDescription>
 
                 {/* AI Assistant Button - Always Available */}
-                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                <div className="hidden bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3">
                   <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
                     🤖 Need help creating a custom workflow? Let our AI assistant help you!
                   </p>
@@ -468,10 +833,14 @@ function GithubAccountFields({ index }: { index: number }) {
                     size="sm"
                     onClick={() => setAssistantOpen(true)}
                     className="w-full text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900"
+                    disabled={!connectionToken}
                   >
                     <IconRobot className="h-4 w-4 mr-2" />
                     Create Workflow with AI Assistant
                   </Button>
+                  <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                    The assistant can generate workflow YAML here. Saving it directly back to GitHub is currently unavailable for GitHub App connections.
+                  </p>
                 </div>
 
                 {workflowError && (
@@ -486,7 +855,7 @@ function GithubAccountFields({ index }: { index: number }) {
         )}
 
         {/* Default Branch Field - shown when credentials are provided */}
-        {username && accessToken && repository && (
+        {hasRepositoryAccess && (
           <FormField
             control={form.control}
             name={`github_accounts.${index}.default_branch`}
@@ -502,8 +871,8 @@ function GithubAccountFields({ index }: { index: number }) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={loadBranches}
-                      disabled={!username || !accessToken || !repository || isLoadingBranches}
+                      onClick={() => void loadBranches()}
+                      disabled={!hasRepositoryAccess || isLoadingBranches}
                       className="h-7 px-2 text-xs lg:h-6"
                     >
                       <IconRefresh className="h-3 w-3 mr-1" />
@@ -651,8 +1020,9 @@ function GithubAccountFields({ index }: { index: number }) {
         isOpen={assistantOpen}
         onClose={() => setAssistantOpen(false)}
         username={username}
-        accessToken={accessToken}
+        accessToken=""
         repository={repository}
+        canSaveToGithub={false}
         onWorkflowCreated={loadWorkflowFiles}
       />
     </>
@@ -935,15 +1305,29 @@ function ProviderFields() {
 function EnvironmentVariablesSection() {
   const form = useFormContext<CreateConfigurationDto>();
   const { control, watch, setValue } = form;
+  const didInitializeEditableEnvVarOpenState = useRef(false);
 
   const {
     fields: envVarFields,
-    append: appendEnvVar,
+    prepend: prependEnvVar,
     remove: removeEnvVar,
   } = useFieldArray({
     control,
     name: "deployment_option.environment_variables",
   });
+
+  const addEnvironmentVariable = () => {
+    prependEnvVar({
+      key: "",
+      default_value: "",
+      description: isCustomProvider ? "Custom environment variable" : "",
+      is_required: !isCustomProvider,
+      is_secret: false,
+      video: null,
+      type: "text",
+    });
+    setShouldOpenPrependedEnvVar(true);
+  };
 
   // Get the current provider to adjust UI behavior
   const currentProvider = watch("deployment_option.provider");
@@ -957,7 +1341,7 @@ function EnvironmentVariablesSection() {
     if (!watchedFields) return;
 
     watchedFields.forEach((field: EnvironmentVariableDto, index: number) => {
-      if (field && field.is_required === false && (!field.default_value || field.default_value.trim() === "")) {
+      if (field?.is_required === false && field.default_value == null) {
         setValue(`deployment_option.environment_variables.${index}.default_value`, "", {
           shouldValidate: true
         });
@@ -968,10 +1352,64 @@ function EnvironmentVariablesSection() {
   // Check for env var array level errors
   const envVarErrors = (form.formState.errors?.deployment_option)?.environment_variables?.message;
 
+  const isProviderDefaultVariable = (variableKey?: string) => {
+    if (!variableKey) {
+      return false;
+    }
+
+    if (currentProvider === DeploymentProvider.VERCEL) {
+      return ["VERCEL_TOKEN", "VERCEL_ORG_ID", "VERCEL_PROJECT_ID"].includes(variableKey);
+    }
+
+    if (currentProvider === DeploymentProvider.NETLIFY) {
+      return ["NETLIFY_TOKEN", "NETLIFY_SITE_NAME", "NETLIFY_SITE_ID"].includes(variableKey);
+    }
+
+    return false;
+  };
+
+  const getEnvironmentVariableLabel = (variableKey: string | undefined, fallbackIndex: number) => {
+    return `Variable: ${variableKey || fallbackIndex}`;
+  };
+
   // Function to clear video field
   const clearVideoField = (index: number) => {
     setValue(`deployment_option.environment_variables.${index}.video`, null);
   };
+
+  const orderedEnvVarEntries = envVarFields.map((field, index) => ({
+    field,
+    index,
+    isDefaultVar: isProviderDefaultVariable(field.key),
+  }));
+
+  const editableEnvVarEntries = orderedEnvVarEntries.filter(entry => !entry.isDefaultVar);
+  const defaultEnvVarEntries = orderedEnvVarEntries.filter(entry => entry.isDefaultVar);
+  const [openEditableEnvVarIds, setOpenEditableEnvVarIds] = useState<string[]>([]);
+  const [shouldOpenPrependedEnvVar, setShouldOpenPrependedEnvVar] = useState(false);
+
+  useEffect(() => {
+    if (!didInitializeEditableEnvVarOpenState.current && editableEnvVarEntries.length > 0) {
+      setOpenEditableEnvVarIds(editableEnvVarEntries.map(entry => entry.field.id));
+      didInitializeEditableEnvVarOpenState.current = true;
+      return;
+    }
+
+    if (!shouldOpenPrependedEnvVar) {
+      return;
+    }
+
+    const prependedEnvVarId = editableEnvVarEntries[0]?.field.id;
+    if (!prependedEnvVarId) {
+      return;
+    }
+
+    setOpenEditableEnvVarIds(previousIds => [
+      prependedEnvVarId,
+      ...previousIds.filter(id => id !== prependedEnvVarId),
+    ]);
+    setShouldOpenPrependedEnvVar(false);
+  }, [editableEnvVarEntries, shouldOpenPrependedEnvVar]);
 
   return (
     <div className="space-y-4">
@@ -990,284 +1428,9 @@ function EnvironmentVariablesSection() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
-        {envVarFields.map((field: EnvironmentVariableDto, index) => {
-          // Check if this is a default environment variable
-          const provider = watch("deployment_option.provider");
-          const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
-            (field.key === "VERCEL_TOKEN" || field.key === "VERCEL_ORG_ID" || field.key === "VERCEL_PROJECT_ID");
-          const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
-            (field.key === "NETLIFY_TOKEN" || field.key === "NETLIFY_SITE_NAME" || field.key === "NETLIFY_SITE_ID");
-          const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
-
-          return (
-            <div
-              key={field.key || index}
-              className="space-y-3 p-3 sm:p-4 border rounded-md dark:border-gray-700"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
-                <h6 className="font-medium text-sm sm:text-base">Variable {index + 1}</h6>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  {isDefaultVar && (
-                    <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
-                      Required
-                    </div>
-                  )}
-                  {envVarFields.length > 1 && !isDefaultVar && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeEnvVar(index)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 h-8 px-2 text-xs sm:text-sm"
-                    >
-                      <IconTrash className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      <span className="hidden xs:inline">Remove</span>
-                      <span className="xs:hidden">×</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <hr />
-
-              <FormField
-                control={control}
-                name={`deployment_option.environment_variables.${index}.key`}
-                render={({ field }) => {
-                  // Check if this is a default environment variable
-                  const provider = watch("deployment_option.provider");
-                  const isVercelDefaultVar = provider === DeploymentProvider.VERCEL &&
-                    (field.value === "VERCEL_TOKEN" || field.value === "VERCEL_ORG_ID" || field.value === "VERCEL_PROJECT_ID");
-                  const isNetlifyDefaultVar = provider === DeploymentProvider.NETLIFY &&
-                    (field.value === "NETLIFY_TOKEN" || field.value === "NETLIFY_SITE_NAME" || field.value === "NETLIFY_SITE_ID");
-                  const isDefaultVar = isVercelDefaultVar || isNetlifyDefaultVar;
-
-                  return (
-                    <FormItem>
-                      <FormLabel className="text-sm">Key</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
-                          className="text-sm"
-                          {...field}
-                          disabled={isDefaultVar}
-                        />
-                      </FormControl>
-                      {isVercelDefaultVar && (
-                        <FormDescription className="text-amber-500">
-                          This is a required Vercel variable and cannot be modified or removed
-                        </FormDescription>
-                      )}
-                      {isNetlifyDefaultVar && (
-                        <FormDescription className="text-amber-500">
-                          This is a required Netlify variable and cannot be modified or removed
-                        </FormDescription>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormField
-                control={control}
-                name={`deployment_option.environment_variables.${index}.default_value`}
-                render={({ field }) => {
-                  // Get isRequired value for this index
-                  const isRequired = watch(`deployment_option.environment_variables.${index}.is_required`);
-                  const varType = watch(`deployment_option.environment_variables.${index}.type`);
-                  const requiresDefaultValue = !isRequired && !isCustomProvider;
-
-                  return (
-                    <FormItem>
-                      <FormLabel className="text-sm">
-                        {varType === "json" ? "JSON Schema" : "Default Value"}
-                        {requiresDefaultValue ? " (Required)" : ""}
-                      </FormLabel>
-                      <FormControl>
-                        {varType === "json" ? (
-                          <JsonSchemaBuilder
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                          />
-                        ) : (
-                          <Input
-                            placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
-                            className="text-sm"
-                            {...field}
-                            value={field.value || ""}
-                          />
-                        )}
-                      </FormControl>
-                      {requiresDefaultValue && varType !== "json" && (
-                        <FormDescription className="text-amber-500 text-xs">
-                          A default value is required when variable is not required
-                        </FormDescription>
-                      )}
-                      {varType === "json" && (
-                        <FormDescription className="text-xs">
-                          Define the JSON structure. Users will fill in values for each field.
-                        </FormDescription>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormField
-                control={control}
-                name={`deployment_option.environment_variables.${index}.description`}
-                render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm">Description *</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Variable description (required)"
-                        className={`text-sm min-h-[80px] resize-none ${fieldState.error ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={control}
-                name={`deployment_option.environment_variables.${index}.video`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Explanation video</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input
-                          placeholder="Video url"
-                          {...field}
-                          value={field.value || ""}
-                          className="w-full"
-                        />
-                      </FormControl>
-                      {field.value && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => clearVideoField(index)}
-                          className="h-10 w-10"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <FormField
-                  control={control}
-                  name={`deployment_option.environment_variables.${index}.is_required`}
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            // Only enforce default value for non-custom providers
-                            if (checked === false && !isCustomProvider) {
-                              const currentDefaultValue = watch(`deployment_option.environment_variables.${index}.default_value`);
-                              if (!currentDefaultValue || currentDefaultValue.trim() === "") {
-                                setValue(`deployment_option.environment_variables.${index}.default_value`, "");
-                              }
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal text-sm">
-                        Required
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={control}
-                  name={`deployment_option.environment_variables.${index}.is_secret`}
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal text-sm">
-                        Secret
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={control}
-                name={`deployment_option.environment_variables.${index}.type`}
-                render={({ field }) => {
-                  // Ensure "text" is selected by default if no value is set
-                  if (!field.value) {
-                    field.onChange("text");
-                  }
-
-                  return (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm">Value Type</FormLabel>
-                      <FormControl>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
-                          <div className="flex items-center">
-                            <input
-                              type="radio"
-                              id={`text-type-${index}`}
-                              value="text"
-                              checked={field.value === "text"}
-                              onChange={() => field.onChange("text")}
-                              className="mr-2"
-                            />
-                            <label htmlFor={`text-type-${index}`} className="text-sm">Text</label>
-                          </div>
-                          <div className="flex items-center">
-                            <input
-                              type="radio"
-                              id={`json-type-${index}`}
-                              value="json"
-                              checked={field.value === "json"}
-                              onChange={() => field.onChange("json")}
-                              className="mr-2"
-                            />
-                            <label htmlFor={`json-type-${index}`} className="text-sm">JSON</label>
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        {field.value === "json"
-                          ? "JSON values will be parsed as JSON objects"
-                          : "Text values will be used as plain strings"}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Environment Variables</p>
           <p className="text-sm text-muted-foreground">
             <span className="font-medium">{envVarFields.length}</span> of <span className="font-medium">8</span> variables used
           </p>
@@ -1275,23 +1438,582 @@ function EnvironmentVariablesSection() {
         <Button
           type="button"
           variant="secondary"
-          onClick={() =>
-            appendEnvVar({
-              key: "",
-              default_value: "",
-              description: isCustomProvider ? "Custom environment variable" : "",
-              is_required: isCustomProvider ? false : true,
-              is_secret: false,
-              video: null,
-              type: "text",
-            })
-          }
+          onClick={addEnvironmentVariable}
           disabled={envVarFields.length >= 8}
-          className="w-full"
+          className="w-full sm:w-auto"
         >
           <IconPlus className="h-4 w-4 mr-2" />
           Add Environment Variable
         </Button>
+      </div>
+
+      {editableEnvVarEntries.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h5 className="text-sm font-medium">Custom Variables</h5>
+              <p className="text-xs text-muted-foreground">
+                Variables you add manually appear here first.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
+            {editableEnvVarEntries.map(({ field, index }, visualIndex) => {
+              const isDefaultVar = false;
+              const accordionValue = `env-var-${field.key || index}`;
+
+              return (
+                <div
+                  key={field.id}
+                  className="space-y-3 rounded-md border border-slate-200 bg-white p-3 sm:p-4 dark:border-gray-700 dark:bg-slate-950/30"
+                >
+                  <Accordion
+                    type="single"
+                    collapsible
+                    value={openEditableEnvVarIds.includes(field.id) ? accordionValue : ""}
+                    onValueChange={(value) => {
+                      setOpenEditableEnvVarIds(previousIds => {
+                        if (!value) {
+                          return previousIds.filter(id => id !== field.id);
+                        }
+
+                        return [field.id, ...previousIds.filter(id => id !== field.id)];
+                      });
+                    }}
+                    className="w-full"
+                  >
+                    <AccordionItem value={accordionValue} className="border-none">
+                      <div className="flex w-full items-start gap-2">
+                        <AccordionTrigger className="py-0 hover:no-underline flex-1 min-w-0">
+                          <div className="flex flex-1 flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between">
+                            <h6 className="font-medium text-sm sm:text-base">
+                              {getEnvironmentVariableLabel(field.key, visualIndex + 1)}
+                            </h6>
+                          </div>
+                        </AccordionTrigger>
+                        {envVarFields.length > 1 && !isDefaultVar && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeEnvVar(index)}
+                            className="ml-auto text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 h-8 px-2 text-xs sm:text-sm shrink-0"
+                          >
+                            <IconTrash className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden xs:inline">Remove</span>
+                            <span className="xs:hidden">×</span>
+                          </Button>
+                        )}
+                      </div>
+
+                      <AccordionContent className="space-y-4 pt-3">
+                        <FormField
+                          control={control}
+                          name={`deployment_option.environment_variables.${index}.key`}
+                          render={({ field }) => {
+                            const isDefaultField = isProviderDefaultVariable(field.value);
+                            const isVercelDefaultVar = currentProvider === DeploymentProvider.VERCEL && isDefaultField;
+                            const isNetlifyDefaultVar = currentProvider === DeploymentProvider.NETLIFY && isDefaultField;
+
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-sm">Key</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
+                                    className="text-sm"
+                                    {...field}
+                                    disabled={isDefaultField}
+                                  />
+                                </FormControl>
+                                {isVercelDefaultVar && (
+                                  <FormDescription className="text-amber-500">
+                                    This is a required Vercel variable and cannot be modified or removed
+                                  </FormDescription>
+                                )}
+                                {isNetlifyDefaultVar && (
+                                  <FormDescription className="text-amber-500">
+                                    This is a required Netlify variable and cannot be modified or removed
+                                  </FormDescription>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+
+                        <FormField
+                          control={control}
+                          name={`deployment_option.environment_variables.${index}.default_value`}
+                          render={({ field }) => {
+                            const isRequired = watch(`deployment_option.environment_variables.${index}.is_required`);
+                            const varType = watch(`deployment_option.environment_variables.${index}.type`);
+                            const requiresDefaultValue = !isRequired && !isCustomProvider;
+
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-sm">
+                                  {varType === "json" ? "JSON Schema" : "Default Value"}
+                                  {requiresDefaultValue ? " (Required)" : ""}
+                                </FormLabel>
+                                <FormControl>
+                                  {varType === "json" ? (
+                                    <JsonSchemaBuilder
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                    />
+                                  ) : (
+                                    <Input
+                                      placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
+                                      className="text-sm"
+                                      {...field}
+                                      value={field.value || ""}
+                                    />
+                                  )}
+                                </FormControl>
+                                {requiresDefaultValue && varType !== "json" && (
+                                  <FormDescription className="text-amber-500 text-xs">
+                                    A default value is required when variable is not required
+                                  </FormDescription>
+                                )}
+                                {varType === "json" && (
+                                  <FormDescription className="text-xs">
+                                    Define the JSON structure. Users will fill in values for each field.
+                                  </FormDescription>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+
+                        <FormField
+                          control={control}
+                          name={`deployment_option.environment_variables.${index}.description`}
+                          render={({ field, fieldState }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm">Description *</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Variable description (required)"
+                                  className={`text-sm min-h-[80px] resize-none ${fieldState.error ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={control}
+                          name={`deployment_option.environment_variables.${index}.video`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Explanation video</FormLabel>
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="Video url"
+                                    {...field}
+                                    value={field.value || ""}
+                                    className="w-full"
+                                  />
+                                </FormControl>
+                                {field.value && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => clearVideoField(index)}
+                                    className="h-10 w-10"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                          <FormField
+                            control={control}
+                            name={`deployment_option.environment_variables.${index}.is_required`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center space-x-2">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={(checked) => {
+                                      field.onChange(checked);
+                                      if (checked === false && !isCustomProvider) {
+                                        const currentDefaultValue = watch(`deployment_option.environment_variables.${index}.default_value`);
+                                        if (!currentDefaultValue || currentDefaultValue.trim() === "") {
+                                          setValue(`deployment_option.environment_variables.${index}.default_value`, "");
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">
+                                  Required
+                                </FormLabel>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={control}
+                            name={`deployment_option.environment_variables.${index}.is_secret`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center space-x-2">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">
+                                  Secret
+                                </FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={control}
+                          name={`deployment_option.environment_variables.${index}.type`}
+                          render={({ field }) => {
+                            if (!field.value) {
+                              field.onChange("text");
+                            }
+
+                            return (
+                              <FormItem className="space-y-2">
+                                <FormLabel className="text-sm">Value Type</FormLabel>
+                                <FormControl>
+                                  <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                                    <div className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        id={`text-type-${index}`}
+                                        value="text"
+                                        checked={field.value === "text"}
+                                        onChange={() => field.onChange("text")}
+                                        className="mr-2"
+                                      />
+                                      <label htmlFor={`text-type-${index}`} className="text-sm">Text</label>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        id={`json-type-${index}`}
+                                        value="json"
+                                        checked={field.value === "json"}
+                                        onChange={() => field.onChange("json")}
+                                        className="mr-2"
+                                      />
+                                      <label htmlFor={`json-type-${index}`} className="text-sm">JSON</label>
+                                    </div>
+                                  </div>
+                                </FormControl>
+                                <FormDescription>
+                                  {field.value === "json"
+                                    ? "JSON values will be parsed as JSON objects"
+                                    : "Text values will be used as plain strings"}
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {defaultEnvVarEntries.length > 0 && (
+        <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+          <div>
+            <h5 className="text-sm font-medium text-amber-900 dark:text-amber-100">Provider Default Variables</h5>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              These defaults are required by the selected deployment provider and are kept together at the bottom.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
+            {defaultEnvVarEntries.map(({ field, index }, visualIndex) => {
+          const accordionValue = `env-var-${field.key || index}`;
+
+          return (
+            <div
+                  key={field.id}
+                  className="space-y-3 rounded-md border border-amber-200 bg-white/80 p-3 sm:p-4 dark:border-amber-900/60 dark:bg-slate-950/40"
+                >
+                  <Accordion
+                    type="single"
+                    collapsible
+                    defaultValue={undefined}
+                    className="w-full"
+                  >
+                    <AccordionItem value={accordionValue} className="border-none">
+                      <AccordionTrigger className="py-0 hover:no-underline">
+                        <div className="flex flex-1 flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between">
+                          <h6 className="font-medium text-sm sm:text-base">
+                            {getEnvironmentVariableLabel(field.key, visualIndex + 1)}
+                          </h6>
+                          <div className="flex items-center gap-2 self-start sm:self-auto">
+                            <div className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium dark:bg-amber-900 dark:text-amber-200">
+                              Required
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+
+                      <AccordionContent className="space-y-4 pt-3">
+                    <FormField
+                      control={control}
+                      name={`deployment_option.environment_variables.${index}.key`}
+                      render={({ field }) => {
+                        const isDefaultField = isProviderDefaultVariable(field.value);
+                        const isVercelDefaultVar = currentProvider === DeploymentProvider.VERCEL && isDefaultField;
+                        const isNetlifyDefaultVar = currentProvider === DeploymentProvider.NETLIFY && isDefaultField;
+
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-sm">Key</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={isCustomProvider ? "Any variable name (e.g., API_KEY)" : "API_KEY"}
+                                className="text-sm"
+                                {...field}
+                                disabled={isDefaultField}
+                              />
+                            </FormControl>
+                            {isVercelDefaultVar && (
+                              <FormDescription className="text-amber-500">
+                                This is a required Vercel variable and cannot be modified or removed
+                              </FormDescription>
+                            )}
+                            {isNetlifyDefaultVar && (
+                              <FormDescription className="text-amber-500">
+                                This is a required Netlify variable and cannot be modified or removed
+                              </FormDescription>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={control}
+                      name={`deployment_option.environment_variables.${index}.default_value`}
+                      render={({ field }) => {
+                        const isRequired = watch(`deployment_option.environment_variables.${index}.is_required`);
+                        const varType = watch(`deployment_option.environment_variables.${index}.type`);
+                        const requiresDefaultValue = !isRequired && !isCustomProvider;
+
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-sm">
+                              {varType === "json" ? "JSON Schema" : "Default Value"}
+                              {requiresDefaultValue ? " (Required)" : ""}
+                            </FormLabel>
+                            <FormControl>
+                              {varType === "json" ? (
+                                <JsonSchemaBuilder
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                />
+                              ) : (
+                                <Input
+                                  placeholder={requiresDefaultValue ? "Default value is required" : "Default value"}
+                                  className="text-sm"
+                                  {...field}
+                                  value={field.value || ""}
+                                />
+                              )}
+                            </FormControl>
+                            {requiresDefaultValue && varType !== "json" && (
+                              <FormDescription className="text-amber-500 text-xs">
+                                A default value is required when variable is not required
+                              </FormDescription>
+                            )}
+                            {varType === "json" && (
+                              <FormDescription className="text-xs">
+                                Define the JSON structure. Users will fill in values for each field.
+                              </FormDescription>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={control}
+                      name={`deployment_option.environment_variables.${index}.description`}
+                      render={({ field, fieldState }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm">Description *</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Variable description (required)"
+                              className={`text-sm min-h-[80px] resize-none ${fieldState.error ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name={`deployment_option.environment_variables.${index}.video`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Explanation video</FormLabel>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input
+                                placeholder="Video url"
+                                {...field}
+                                value={field.value || ""}
+                                className="w-full"
+                              />
+                            </FormControl>
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => clearVideoField(index)}
+                                className="h-10 w-10"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                      <FormField
+                        control={control}
+                        name={`deployment_option.environment_variables.${index}.is_required`}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                  field.onChange(checked);
+                                  if (checked === false && !isCustomProvider) {
+                                    const currentDefaultValue = watch(`deployment_option.environment_variables.${index}.default_value`);
+                                    if (!currentDefaultValue || currentDefaultValue.trim() === "") {
+                                      setValue(`deployment_option.environment_variables.${index}.default_value`, "");
+                                    }
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">
+                              Required
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={control}
+                        name={`deployment_option.environment_variables.${index}.is_secret`}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">
+                              Secret
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={control}
+                      name={`deployment_option.environment_variables.${index}.type`}
+                      render={({ field }) => {
+                        if (!field.value) {
+                          field.onChange("text");
+                        }
+
+                        return (
+                          <FormItem className="space-y-2">
+                            <FormLabel className="text-sm">Value Type</FormLabel>
+                            <FormControl>
+                              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                                <div className="flex items-center">
+                                  <input
+                                    type="radio"
+                                    id={`text-type-${index}`}
+                                    value="text"
+                                    checked={field.value === "text"}
+                                    onChange={() => field.onChange("text")}
+                                    className="mr-2"
+                                  />
+                                  <label htmlFor={`text-type-${index}`} className="text-sm">Text</label>
+                                </div>
+                                <div className="flex items-center">
+                                  <input
+                                    type="radio"
+                                    id={`json-type-${index}`}
+                                    value="json"
+                                    checked={field.value === "json"}
+                                    onChange={() => field.onChange("json")}
+                                    className="mr-2"
+                                  />
+                                  <label htmlFor={`json-type-${index}`} className="text-sm">JSON</label>
+                                </div>
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              {field.value === "json"
+                                ? "JSON values will be parsed as JSON objects"
+                                : "Text values will be used as plain strings"}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
         {envVarFields.length >= 8 ? (
           <p className="text-xs text-amber-500 mt-2 text-center">
             Maximum of 8 environment variables allowed.
@@ -1314,7 +2036,7 @@ function LeftColumnWithTabs({
   maxGithubAccounts,
   isUnlimitedAccounts,
 }: {
-  githubFields: GithubAccountDto[];
+  githubFields: FieldArrayWithId<CreateConfigurationDto, "github_accounts", "id">[];
   appendGithub: (value: GithubAccountDto) => void;
   removeGithub: (index: number) => void;
   maxGithubAccounts: number;
@@ -1322,10 +2044,17 @@ function LeftColumnWithTabs({
 }) {
   const [activeTab, setActiveTab] = useState("github");
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const form = useFormContext();
+  const form = useFormContext<CreateConfigurationDto>();
+  const githubAccounts = useWatch({
+    control: form.control,
+    name: "github_accounts",
+  }) || [];
+  const usedGithubAccounts = countMeaningfulGithubAccounts(githubAccounts);
+  const hasEmptyGithubDraft = githubAccounts.some(account => !isGithubAccountMeaningful(account));
 
   // Check if can add more accounts
-  const canAddMoreAccounts = isUnlimitedAccounts || githubFields.length < maxGithubAccounts;
+  const canAddMoreAccounts = isUnlimitedAccounts || usedGithubAccounts < maxGithubAccounts;
+  const canAppendGithubRow = canAddMoreAccounts && !hasEmptyGithubDraft;
 
   // Determine if there are errors in either section
   const hasGithubErrors = !!form.formState.errors.github_accounts;
@@ -1341,8 +2070,8 @@ function LeftColumnWithTabs({
             value="github"
             className={`${hasGithubErrors ? "border-destructive text-destructive" : ""} text-xs sm:text-sm`}
           >
-            <span className="hidden sm:inline">GitHub Accounts ({githubFields.length})</span>
-            <span className="sm:hidden">GitHub ({githubFields.length})</span>
+            <span className="hidden sm:inline">GitHub Accounts ({usedGithubAccounts})</span>
+            <span className="sm:hidden">GitHub ({usedGithubAccounts})</span>
             {hasGithubErrors && <span className="ml-1 sm:ml-2 text-destructive">⚠️</span>}
           </TabsTrigger>
           <TabsTrigger
@@ -1361,7 +2090,7 @@ function LeftColumnWithTabs({
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 {githubFields.map((field, index) => (
-                  <Card className="p-3 sm:p-4 lg:p-6" key={field.username}>
+                  <Card className="p-3 sm:p-4 lg:p-6" key={field.id}>
                     <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-4">
                       <h6 className="font-medium text-sm sm:text-base">Account {index + 1}</h6>
                       {githubFields.length > 1 && (
@@ -1389,17 +2118,15 @@ function LeftColumnWithTabs({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() =>
-                  appendGithub({
-                    username: "",
-                    access_token: "",
-                    repository: "",
-                    workflow_file: "",
-                    default_branch: "",
-                  })
-                }
+                onClick={() => {
+                  if (!canAppendGithubRow) {
+                    return;
+                  }
+
+                  appendGithub(buildEmptyGitHubAccount());
+                }}
                 className="w-full"
-                disabled={!canAddMoreAccounts}
+                disabled={!canAppendGithubRow}
               >
                 <IconPlus className="h-4 w-4 mr-2" />
                 Add GitHub Account
@@ -1411,10 +2138,15 @@ function LeftColumnWithTabs({
                   "Unlimited GitHub accounts (Enterprise plan)"
                 ) : (
                   <>
-                    {githubFields.length} / {maxGithubAccounts} accounts used
+                    {usedGithubAccounts} / {maxGithubAccounts} accounts used
                     {!canAddMoreAccounts && (
                       <span className="block text-amber-600 dark:text-amber-400 mt-1">
                         Upgrade your plan to add more GitHub accounts
+                      </span>
+                    )}
+                    {canAddMoreAccounts && hasEmptyGithubDraft && (
+                      <span className="block mt-1">
+                        Finish the current GitHub account before adding another.
                       </span>
                     )}
                   </>
@@ -1433,7 +2165,7 @@ function LeftColumnWithTabs({
               </Card>
 
               {/* AI Assistant for Workflow Creation */}
-              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3 sm:p-4">
+              <div className="hidden bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3 sm:p-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex-1">
                     <h4 className="font-medium text-blue-800 dark:text-blue-200 text-sm sm:text-base">
@@ -1465,11 +2197,12 @@ function LeftColumnWithTabs({
         isOpen={assistantOpen}
         onClose={() => setAssistantOpen(false)}
         username={githubFields[0]?.username || ""}
-        accessToken={githubFields[0]?.access_token || ""}
+        accessToken=""
         repository={githubFields[0]?.repository || ""}
+        canSaveToGithub={false}
         onWorkflowCreated={() => {
           // Refresh workflow files for the first GitHub account if it exists
-          if (githubFields[0]?.username && githubFields[0]?.access_token && githubFields[0]?.repository) {
+          if (githubFields[0]?.username && githubFields[0]?.repository) {
             // This would trigger a refresh in the GithubAccountFields component
             // The actual refresh logic is handled within that component
           }
@@ -1489,6 +2222,8 @@ export default function ConfigurationForm({
   error,
   maxGithubAccounts = 2,
 }: ConfigurationFormProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [validatingGithub, setValidatingGithub] = useState(false);
   const [githubValidationErrors, setGithubValidationErrors] = useState<{ index: number, message: string }[]>([]);
@@ -1528,35 +2263,158 @@ export default function ConfigurationForm({
   ];
 
   const form = useForm<CreateConfigurationDto>({
-    resolver: zodResolver(createConfigurationDtoSchema),
-    defaultValues: initialData || {
-      name: "",
-      note: "",
-      github_accounts: [
-        {
-          username: "",
-          access_token: "",
-          repository: "",
-          workflow_file: "",
-          default_branch: "",
+    resolver: zodResolver(createConfigurationDtoSchema) as Resolver<CreateConfigurationDto>,
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          github_accounts: normalizeGithubAccounts(initialData.github_accounts || []),
+        }
+      : {
+          name: "",
+          note: "",
+          github_accounts: [buildEmptyGitHubAccount()],
+          deployment_option: {
+            provider: DeploymentProvider.VERCEL,
+            environment_variables: defaultVercelVariables,
+          } as DeploymentOption,
         },
-      ],
-      deployment_option: {
-        provider: DeploymentProvider.VERCEL,
-        environment_variables: defaultVercelVariables,
-      } as DeploymentOption,
-    },
     mode: "onChange", // Validate on change for better UX
   });
 
   const {
     fields: githubFields,
     append: appendGithub,
-    remove: removeGithub,
+    remove: removeGithubField,
   } = useFieldArray({
     control: form.control,
     name: "github_accounts",
   });
+
+  const isGithubAccountMeaningful = useCallback((account?: Partial<GithubAccountDto>) => {
+    if (!account) {
+      return false;
+    }
+
+    return Boolean(
+      account.username ||
+      account.repository ||
+      account.workflow_file ||
+      account.default_branch ||
+      account.access_token ||
+      account.github_app_installation_id ||
+      account.github_app_connection_token,
+    );
+  }, []);
+
+  const removeGithub = useCallback((index: number) => {
+    const storagePrefix = `owner-github-app-connection:${pathname}:`;
+
+    globalThis.window.localStorage.removeItem(`${storagePrefix}${index}`);
+
+    for (let storageIndex = index + 1; storageIndex < githubFields.length; storageIndex += 1) {
+      const currentKey = `${storagePrefix}${storageIndex}`;
+      const nextValue = globalThis.window.localStorage.getItem(currentKey);
+
+      if (nextValue) {
+        globalThis.window.localStorage.setItem(`${storagePrefix}${storageIndex - 1}`, nextValue);
+        globalThis.window.localStorage.removeItem(currentKey);
+      }
+    }
+
+    removeGithubField(index);
+  }, [githubFields.length, pathname, removeGithubField]);
+
+  useEffect(() => {
+    const connectIndexValue = searchParams.get("githubConnectIndex");
+    const returnedToken = searchParams.get("github_connection_token");
+    const returnedInstallationId = searchParams.get("github_installation_id");
+    const requestedIndex = connectIndexValue
+      ? Number.parseInt(connectIndexValue, 10)
+      : Number.NaN;
+
+    let requiredAccountCount =
+      Number.isInteger(requestedIndex) && requestedIndex >= 0 && returnedToken && returnedInstallationId
+        ? requestedIndex + 1
+        : 0;
+
+    const storagePrefix = `owner-github-app-connection:${pathname}:`;
+    let highestStoredIndex = -1;
+
+    for (let storageIndex = 0; storageIndex < globalThis.window.localStorage.length; storageIndex += 1) {
+      const storageKey = globalThis.window.localStorage.key(storageIndex);
+      if (!storageKey?.startsWith(storagePrefix)) {
+        continue;
+      }
+
+      const accountIndex = Number.parseInt(storageKey.slice(storagePrefix.length), 10);
+      if (!Number.isInteger(accountIndex) || accountIndex < 0) {
+        continue;
+      }
+
+      const storedValue = globalThis.window.localStorage.getItem(storageKey);
+
+      if (!storedValue) {
+        globalThis.window.localStorage.removeItem(storageKey);
+        continue;
+      }
+
+      try {
+        const parsedValue = JSON.parse(storedValue) as {
+          installationId?: number;
+          connectionToken?: string;
+        };
+
+        if (!parsedValue.installationId || !parsedValue.connectionToken) {
+          globalThis.window.localStorage.removeItem(storageKey);
+          continue;
+        }
+
+        highestStoredIndex = Math.max(highestStoredIndex, accountIndex);
+      } catch {
+        globalThis.window.localStorage.removeItem(storageKey);
+      }
+    }
+
+    requiredAccountCount = Math.max(requiredAccountCount, highestStoredIndex + 1);
+
+    if (!isUnlimitedAccounts) {
+      requiredAccountCount = Math.min(requiredAccountCount, maxGithubAccounts);
+    }
+
+    const currentAccountsLength = (form.getValues("github_accounts") || []).length;
+
+    if (requiredAccountCount <= currentAccountsLength) {
+      return;
+    }
+
+    for (let accountCount = currentAccountsLength; accountCount < requiredAccountCount; accountCount += 1) {
+      appendGithub(buildEmptyGitHubAccount());
+    }
+  }, [appendGithub, form, githubFields.length, isUnlimitedAccounts, maxGithubAccounts, pathname, searchParams]);
+
+  useEffect(() => {
+    const accounts = form.getValues("github_accounts") || [];
+
+    if (isUnlimitedAccounts || accounts.length <= maxGithubAccounts) {
+      return;
+    }
+
+    const removableIndexes: number[] = [];
+
+    for (let index = accounts.length - 1; index >= maxGithubAccounts; index -= 1) {
+      if (isGithubAccountMeaningful(accounts[index])) {
+        break;
+      }
+
+      removableIndexes.push(index);
+    }
+
+    if (removableIndexes.length === 0) {
+      return;
+    }
+
+    removableIndexes.forEach(index => removeGithub(index));
+  }, [form, githubFields.length, isGithubAccountMeaningful, isUnlimitedAccounts, maxGithubAccounts, removeGithub]);
 
   const handleSubmit = async (values: CreateConfigurationDto) => {
     setSubmitAttempted(true);
@@ -1568,16 +2426,10 @@ export default function ConfigurationForm({
     try {
       // Validate all GitHub configurations
       const validationPromises = values.github_accounts.map(async (account, index) => {
-        const result = await validateGithubConfig(
-          account.username,
-          account.access_token,
-          account.repository,
-          account.workflow_file
-        );
-
-        if (!result.isValid) {
-          return { index, message: result.message };
+        if (!account.github_app_installation_id) {
+          return { index, message: 'Connect GitHub before submitting this configuration' };
         }
+
         return null;
       });
 
@@ -1632,7 +2484,7 @@ export default function ConfigurationForm({
             ))}
           </ul>
           <p className="text-xs sm:text-sm mt-3">
-            Please check your GitHub credentials, repository names, and workflow file paths before submitting again.
+            Please make sure each account is connected through the GitHub App and has a repository and workflow selected.
           </p>
         </div>
       )}

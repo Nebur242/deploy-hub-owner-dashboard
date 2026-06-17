@@ -75,16 +75,17 @@ export const termsSchema = z.object({
 export const registerOwnerSchema = z.object({
   email: z.string().email("Invalid email address"),
   verification_token: z.string().min(1, "Verification token is required"),
-  first_name: z.string().min(1, "First name is required").max(50),
-  last_name: z.string().min(1, "Last name is required").max(50),
+  first_name: z.string().min(1, "First name is required").max(50).optional(),
+  last_name: z.string().min(1, "Last name is required").max(50).optional(),
   company_name: z.string().max(100).optional(),
-  developer_type: z.enum(["individual", "company", "agency"]),
-  country: z.string().min(1, "Country is required"),
+  developer_type: z.enum(["individual", "company", "agency"]).optional(),
+  country: z.string().min(1, "Country is required").optional(),
   website_url: z.string().url().optional().or(z.literal("")),
   github_url: z
     .string()
     .min(1, "GitHub profile is required")
-    .url("Invalid GitHub URL"),
+    .url("Invalid GitHub URL")
+    .optional(),
   terms_accepted: z.boolean().refine((val) => val === true, {
     message: "You must accept the terms of service",
   }),

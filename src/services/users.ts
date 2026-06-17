@@ -14,7 +14,7 @@ import {
   UserCredential,
 } from "firebase/auth";
 import { API_ROUTES, AXIOS } from "../config/api";
-import { Role, RoleName, User } from "@/common/types";
+import { Role, User } from "@/common/types";
 import { LoginDto, RegisterDto } from "@/common/dtos";
 
 export const createUser = async (createUserDto: {
@@ -268,11 +268,11 @@ export type DeveloperType = "individual" | "company" | "agency";
 export interface RegisterOwnerData {
   email: string;
   verification_token: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   company_name?: string;
-  developer_type: DeveloperType;
-  country: string;
+  developer_type?: DeveloperType;
+  country?: string;
   website_url?: string;
   github_url?: string;
   terms_accepted: boolean;

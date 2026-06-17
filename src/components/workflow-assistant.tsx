@@ -31,6 +31,7 @@ interface WorkflowAssistantProps {
     accessToken: string;
     repository: string;
     onWorkflowCreated: () => void;
+    canSaveToGithub?: boolean;
 }
 
 interface ChatMessage {
@@ -64,6 +65,7 @@ export function WorkflowAssistant({
     accessToken,
     repository,
     onWorkflowCreated,
+    canSaveToGithub = true,
 }: WorkflowAssistantProps) {
     const { theme } = useTheme();
     const [currentStep, setCurrentStep] = useState<"chat" | "preview" | "saving">("chat");
@@ -136,7 +138,7 @@ export function WorkflowAssistant({
     };
 
     const handleSaveWorkflow = async () => {
-        if (!generatedWorkflow.trim() || !workflowFileName.trim()) {
+        if (!generatedWorkflow.trim() || !workflowFileName.trim() || !canSaveToGithub) {
             return;
         }
 
@@ -346,13 +348,18 @@ export function WorkflowAssistant({
                                 </Button>
                                 <Button
                                     onClick={handleSaveWorkflow}
-                                    disabled={!generatedWorkflow.trim() || !workflowFileName.trim()}
+                                    disabled={!generatedWorkflow.trim() || !workflowFileName.trim() || !canSaveToGithub}
                                     className="flex-1"
                                 >
                                     <IconCheck className="mr-2 h-4 w-4" />
                                     Save to GitHub
                                 </Button>
                             </div>
+                            {!canSaveToGithub && (
+                                <p className="text-sm text-amber-600">
+                                    Save-to-GitHub from the assistant is currently unavailable for GitHub App connections. Generate the workflow here, then add it to the repository manually if needed.
+                                </p>
+                            )}
                         </div>
                     )}
 
