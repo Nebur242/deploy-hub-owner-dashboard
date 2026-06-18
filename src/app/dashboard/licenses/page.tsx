@@ -6,7 +6,6 @@ import {
     useDeleteLicenseMutation,
 } from "@/store/features/licenses";
 import { useGetProjectsQuery } from "@/store/features/projects";
-import { useGetSubscriptionQuery } from "@/store/features/subscription";
 import {
     Table,
     TableBody,
@@ -80,8 +79,6 @@ export default function LicensesPage() {
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
         limit: 1, // We only need to check if any projects exist
     });
-    const { data: subscription, isLoading: isLoadingSubscription } = useGetSubscriptionQuery();
-
     const hasProjects = (projectsData?.items?.length || 0) > 0;
 
     // Delete license mutation
@@ -90,9 +87,7 @@ export default function LicensesPage() {
     const licenses = data?.items || [];
     const totalLicenses = data?.meta?.totalItems || 0;
     const totalPages = data?.meta?.totalPages || 1;
-    const licenseLimit = subscription?.max_licenses_per_project ?? -1;
-    const isLicenseLimitReached = licenseLimit !== -1 && totalLicenses >= licenseLimit;
-    const canCreateLicense = hasProjects && !isLicenseLimitReached;
+    const canCreateLicense = hasProjects;
 
     // For handling delete confirmation
     const handleDeleteClick = (license: LicenseOption) => {
@@ -153,7 +148,7 @@ export default function LicensesPage() {
                 {isFetching ? "Refreshing..." : "Refresh"}
             </Button>
 
-            {/* Conditionally render the Create License button based on projects and plan limits */}
+            {/* Conditionally render the Create License button based on whether projects exist */}
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -174,11 +169,6 @@ export default function LicensesPage() {
                     {!isLoadingProjects && !hasProjects && (
                         <TooltipContent className="max-w-xs">
                             <p>You need to create at least one project before creating a license</p>
-                        </TooltipContent>
-                    )}
-                    {!isLoadingSubscription && hasProjects && isLicenseLimitReached && (
-                        <TooltipContent className="max-w-xs">
-                            <p>Your current plan allows {licenseLimit} total license{licenseLimit === 1 ? "" : "s"}.</p>
                         </TooltipContent>
                     )}
                 </Tooltip>
@@ -206,21 +196,6 @@ export default function LicensesPage() {
                                 <Link href="/dashboard/projects/create">
                                     <IconPlus className="h-4 w-4 mr-2" /> Create Project
                                 </Link>
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {!isLoadingSubscription && hasProjects && isLicenseLimitReached && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4 flex items-start">
-                        <IconInfoCircle className="h-5 w-5 text-yellow-500 mr-3 mt-0.5" />
-                        <div>
-                            <h4 className="font-medium text-yellow-800">License limit reached</h4>
-                            <p className="text-yellow-700 text-sm mt-1">
-                                Your current plan allows {licenseLimit} total license{licenseLimit === 1 ? "" : "s"}. Upgrade to create more.
-                            </p>
-                            <Button variant="outline" size="sm" className="mt-2" asChild>
-                                <Link href="/dashboard/billing">View Billing</Link>
                             </Button>
                         </div>
                     </div>

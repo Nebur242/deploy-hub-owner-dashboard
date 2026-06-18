@@ -40,7 +40,7 @@ export interface Subscription {
   trial_end: string | null;
   max_projects: number;
   max_github_accounts: number; // Max GitHub accounts per project (-1 = unlimited)
-  max_licenses_per_project: number; // Max total licenses an owner can create
+  max_licenses_per_project: number; // Max licenses that can be associated with a single project
   platform_fee_percent: number; // Platform fee percentage on license sales
   custom_domain_enabled: boolean;
   priority_support: boolean;
@@ -62,7 +62,7 @@ export interface PlanConfig {
   name: string;
   description: string;
   maxProjects: number;
-  maxLicensesPerProject: number; // Max total licenses an owner can create
+  maxLicensesPerProject: number; // Max licenses that can be associated with a single project
   maxGithubAccounts: number; // -1 = unlimited
   platformFeePercent: number; // Platform fee percentage (e.g., 50 = 50%)
   customDomainEnabled: boolean;

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CreateProjectDto } from "@/common/dtos";
+import { ModerationStatus } from "@/common/enums/project";
 import ProjectForm from "../../components/project-form";
 import { getErrorMessage } from "@/utils/functions";
 
@@ -217,6 +218,7 @@ export default function EditProjectPage() {
   // Add configurations section if project is loaded
   const hasConfigurations =
     project?.configurations && project.configurations.length > 0;
+  const isReviewLocked = project?.moderation_status === ModerationStatus.PENDING;
 
   return (
     <DashboardLayout
@@ -225,6 +227,16 @@ export default function EditProjectPage() {
       actions={actionButtons}
     >
       <div className="space-y-8">
+        {isReviewLocked && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-700" />
+            <AlertTitle className="text-yellow-800">Project under review</AlertTitle>
+            <AlertDescription className="text-yellow-700">
+              This project is locked while it is under review. You&apos;ll be able to edit it again after approval or rejection.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Project Form */}
         <ProjectForm
           isEditing={true}
@@ -235,19 +247,26 @@ export default function EditProjectPage() {
           error={updateError ? {
             message: getErrorMessage(updateError) || "An error occurred",
           } : null}
+          isDisabled={isReviewLocked}
         />
 
         {/* Deployment Setup Section */}
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Deployment Setup</h2>
-            <Button asChild>
-              <Link
-                href={`/dashboard/projects/${projectId}/configurations/create`}
-              >
+            {isReviewLocked ? (
+              <Button disabled>
                 <IconPlus className="h-4 w-4 mr-2" /> Add Setup
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link
+                  href={`/dashboard/projects/${projectId}/configurations/create`}
+                >
+                  <IconPlus className="h-4 w-4 mr-2" /> Add Setup
+                </Link>
+              </Button>
+            )}
           </div>
 
           {hasConfigurations ? (
@@ -294,18 +313,26 @@ export default function EditProjectPage() {
                       </div>
 
                       <div className="pt-4 flex justify-between">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link
-                            href={`/dashboard/projects/${projectId}/configurations/${config.id}/edit`}
-                          >
+                        {isReviewLocked ? (
+                          <Button variant="outline" size="sm" disabled>
                             <IconEdit className="h-4 w-4" />
                             Edit Setup
-                          </Link>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link
+                              href={`/dashboard/projects/${projectId}/configurations/${config.id}/edit`}
+                            >
+                              <IconEdit className="h-4 w-4" />
+                              Edit Setup
+                            </Link>
+                          </Button>
+                        )}
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => confirmDeleteConfig(config.id, `Setup #${config.id.substring(0, 4)}`)}
+                          disabled={isReviewLocked || isDeletingConfig}
                         >
                           {isDeletingConfig ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -335,14 +362,21 @@ export default function EditProjectPage() {
                   Add deployment setup to define how your project
                   should be built and deployed.
                 </p>
-                <Button asChild>
-                  <Link
-                    href={`/dashboard/projects/${projectId}/configurations/create`}
-                  >
+                {isReviewLocked ? (
+                  <Button disabled>
                     <IconPlus className="h-4 w-4 mr-2" /> Add Your First
                     Setup
-                  </Link>
-                </Button>
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <Link
+                      href={`/dashboard/projects/${projectId}/configurations/create`}
+                    >
+                      <IconPlus className="h-4 w-4 mr-2" /> Add Your First
+                      Setup
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

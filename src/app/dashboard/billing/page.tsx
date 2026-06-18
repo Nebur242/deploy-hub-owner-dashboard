@@ -34,6 +34,7 @@ import {
 } from "@/common/types/subscription";
 import { useSearchParams } from "next/navigation";
 import { buildPublicAppUrl } from "@/lib/public-app-url";
+import { AXIOS } from "@/config/api";
 
 type BillingErrorItem = {
     message?: string;
@@ -51,6 +52,12 @@ type BillingRequestError = {
     response?: {
         data?: BillingErrorData;
     };
+};
+
+type ProjectUsageItem = {
+    id: string;
+    name: string;
+    licenseCount: number;
 };
 
 const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
@@ -126,8 +133,10 @@ function BillingContent() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [billingInterval, setBillingInterval] = useState<BillingInterval>(BillingInterval.MONTHLY);
+    const [projectUsage, setProjectUsage] = useState<ProjectUsageItem[]>([]);
+    const [isLoadingProjectUsage, setIsLoadingProjectUsage] = useState(false);
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery({
-        limit: 1,
+        limit: 100,
         page: 1,
     });
     const { data: licensesData, isLoading: isLoadingLicenses } = useGetLicensesQuery({
@@ -150,6 +159,94 @@ function BillingContent() {
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (isLoadingProjects) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadProjectUsage = async () => {
+            try {
+                setIsLoadingProjectUsage(true);
+
+                const allProjects: Array<{ id: string; name: string }> = [];
+                let page = 1;
+                let totalPages = 1;
+
+                do {
+                    const projectsResponse = await AXIOS.get("projects", {
+                        params: {
+                            page,
+                            limit: 100,
+                        },
+                    });
+
+                    const projectsPayload = projectsResponse.data?.data || projectsResponse.data;
+                    const pageItems = projectsPayload?.items || [];
+                    const pageTotalPages = projectsPayload?.meta?.totalPages || 1;
+
+                    allProjects.push(
+                        ...pageItems.map((project: { id: string; name: string }) => ({
+                            id: project.id,
+                            name: project.name,
+                        })),
+                    );
+
+                    totalPages = pageTotalPages;
+                    page += 1;
+                } while (page <= totalPages);
+
+                if (allProjects.length === 0) {
+                    if (!cancelled) {
+                        setProjectUsage([]);
+                    }
+                    return;
+                }
+
+                const usage = await Promise.all(
+                    allProjects.map(async (project) => {
+                        const response = await AXIOS.get("licenses", {
+                            params: {
+                                project_id: project.id,
+                                page: 1,
+                                limit: 1,
+                            },
+                        });
+
+                        const payload = response.data?.data || response.data;
+                        const licenseCount = payload?.meta?.totalItems || 0;
+
+                        return {
+                            id: project.id,
+                            name: project.name,
+                            licenseCount,
+                        };
+                    }),
+                );
+
+                if (!cancelled) {
+                    setProjectUsage(usage);
+                }
+            } catch (error) {
+                console.error("Error loading project license usage:", error);
+                if (!cancelled) {
+                    setProjectUsage([]);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoadingProjectUsage(false);
+                }
+            }
+        };
+
+        void loadProjectUsage();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isLoadingProjects, projectsData?.meta?.totalItems]);
 
     useEffect(() => {
         const success = searchParams.get("success");
@@ -335,7 +432,7 @@ function BillingContent() {
 
     const currentProjectCount = projectsData?.meta?.totalItems || 0;
     const currentLicenseCount = licensesData?.meta?.totalItems || 0;
-    const isUsageLoading = isLoadingProjects || isLoadingLicenses;
+    const isUsageLoading = isLoadingProjects || isLoadingProjectUsage;
 
     const getPlanUsageConflicts = (plan: PlanConfig): string[] => {
         const conflicts: string[] = [];
@@ -346,13 +443,14 @@ function BillingContent() {
             );
         }
 
-        if (
-            plan.maxLicensesPerProject !== -1 &&
-            currentLicenseCount > plan.maxLicensesPerProject
-        ) {
-            conflicts.push(
-                `${currentLicenseCount} license${currentLicenseCount === 1 ? "" : "s"} in use, but ${plan.name} allows ${plan.maxLicensesPerProject}`,
-            );
+        if (plan.maxLicensesPerProject !== -1) {
+            projectUsage.forEach((project) => {
+                if (project.licenseCount > plan.maxLicensesPerProject) {
+                    conflicts.push(
+                        `${project.name} has ${project.licenseCount} license${project.licenseCount === 1 ? "" : "s"}, but ${plan.name} allows ${plan.maxLicensesPerProject} per project`,
+                    );
+                }
+            });
         }
 
         return conflicts;
@@ -669,11 +767,11 @@ function BillingContent() {
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Max Licenses</span>
+                                        <span className="text-sm font-medium">Max Licenses Per Project</span>
                                         <span className="text-sm text-muted-foreground">
                                             {subscription?.max_licenses_per_project === -1
                                                 ? "Unlimited"
-                                                : subscription?.max_licenses_per_project}
+                                                : `${subscription?.max_licenses_per_project}/project`}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
@@ -768,8 +866,8 @@ function BillingContent() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Downgrades check current usage</AlertTitle>
                         <AlertDescription>
-                            You currently have {currentProjectCount} project{currentProjectCount === 1 ? "" : "s"} and {currentLicenseCount} license{currentLicenseCount === 1 ? "" : "s"}.
-                            Plans that cannot fit both totals are disabled.
+                            You currently have {currentProjectCount} project{currentProjectCount === 1 ? "" : "s"}.
+                            Downgrades are blocked when a plan cannot fit your current project count or the license usage on any single project.
                         </AlertDescription>
                     </Alert>
 
@@ -873,8 +971,8 @@ function BillingContent() {
                                             <li className="flex items-center gap-2">
                                                 <Check className="h-4 w-4 text-green-600" />
                                                 {plan.maxLicensesPerProject === -1
-                                                    ? "Unlimited licenses"
-                                                    : `${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}`}
+                                                    ? "Unlimited licenses per project"
+                                                    : `${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}/project`}
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <Check className="h-4 w-4 text-green-600" />

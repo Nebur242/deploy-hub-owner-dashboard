@@ -121,6 +121,24 @@ function isGithubAccountMeaningful(account?: Partial<GithubAccountDto>): boolean
   );
 }
 
+function normalizeWorkflowContent(content: string): string {
+  return content.replace(/\r\n/g, "\n").trim();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findMissingEnvironmentVariables(
+  workflowContent: string,
+  environmentVariables: CreateConfigurationDto["deployment_option"]["environment_variables"]
+): string[] {
+  return environmentVariables
+    .map((variable) => variable.key.trim())
+    .filter(Boolean)
+    .filter((key) => !new RegExp(`\\b${escapeRegExp(key)}\\b`).test(workflowContent));
+}
+
 function countMeaningfulGithubAccounts(accounts?: Partial<GithubAccountDto>[]): number {
   return (accounts || []).filter(account => isGithubAccountMeaningful(account)).length;
 }
@@ -2440,6 +2458,69 @@ export default function ConfigurationForm({
       // If there are errors, show them and don't submit
       if (errors.length > 0) {
         setGithubValidationErrors(errors);
+        setValidatingGithub(false);
+        return;
+      }
+
+      const workflowContents = await Promise.all(
+        values.github_accounts.map(async (account, index) => {
+          const workflowResponse = await getGitHubAppWorkflowContent(
+            account.github_app_connection_token || "",
+            account.username,
+            account.repository,
+            account.workflow_file,
+          );
+
+          if (workflowResponse.error) {
+            throw new Error(
+              `Could not load workflow content for ${account.username}/${account.repository}:${account.workflow_file}. ${workflowResponse.error}`
+            );
+          }
+
+          return {
+            index,
+            repository: `${account.username}/${account.repository}`,
+            workflowFile: account.workflow_file,
+            content: normalizeWorkflowContent(workflowResponse.content),
+          };
+        })
+      );
+
+      if (workflowContents.length > 1) {
+        const expectedContent = workflowContents[0]?.content || "";
+        const mismatchedWorkflows = workflowContents.filter(
+          (workflow) => workflow.content !== expectedContent
+        );
+
+        if (mismatchedWorkflows.length > 0) {
+          setGithubValidationErrors(
+            mismatchedWorkflows.map((workflow) => ({
+              index: workflow.index,
+              message:
+                `Workflow content must match across GitHub accounts. ` +
+                `${workflow.repository}:${workflow.workflowFile} does not match the first account.`,
+            }))
+          );
+          setValidatingGithub(false);
+          return;
+        }
+      }
+
+      const referenceWorkflowContent = workflowContents[0]?.content || "";
+      const missingEnvironmentVariables = findMissingEnvironmentVariables(
+        referenceWorkflowContent,
+        values.deployment_option.environment_variables || []
+      );
+
+      if (missingEnvironmentVariables.length > 0) {
+        setGithubValidationErrors([
+          {
+            index: -1,
+            message:
+              `The workflow does not reference these configured environment variables: ` +
+              missingEnvironmentVariables.join(", "),
+          },
+        ]);
         setValidatingGithub(false);
         return;
       }

@@ -102,7 +102,7 @@ const defaultPricingPlans = [
     description: "Perfect for trying out the platform",
     features: [
       "Up to 1 project",
-      "1 license",
+      "1 license per project",
       "2 GitHub accounts per project",
     ],
     cta: "Get Started Free",
@@ -118,7 +118,7 @@ const defaultPricingPlans = [
     description: "For growing businesses",
     features: [
       "Up to 10 projects",
-      "3 licenses",
+      "3 licenses per project",
       "Unlimited GitHub accounts",
       "Advanced analytics",
     ],
@@ -135,7 +135,7 @@ const defaultPricingPlans = [
     description: "For professional teams",
     features: [
       "Up to 50 projects",
-      "Unlimited licenses",
+      "Unlimited licenses per project",
       "Unlimited GitHub accounts",
       "Priority support",
       "Advanced analytics",
@@ -189,9 +189,11 @@ const buildFeatures = (plan: PlanConfig): string[] => {
   }
 
   if (plan.maxLicensesPerProject === -1) {
-    features.push("Unlimited licenses");
+    features.push("Unlimited licenses per project");
   } else {
-    features.push(`${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''}`);
+    features.push(
+      `${plan.maxLicensesPerProject} license${plan.maxLicensesPerProject > 1 ? 's' : ''} per project`,
+    );
   }
 
   if (plan.maxGithubAccounts === -1) {

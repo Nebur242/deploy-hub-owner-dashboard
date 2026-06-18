@@ -89,6 +89,7 @@ export type LicenseSearchParams = {
   limit?: number;
   search?: string;
   currency?: string;
+  projectId?: string;
   sortBy?: string;
   sortDirection?: "ASC" | "DESC";
   status?: LicenseStatus;

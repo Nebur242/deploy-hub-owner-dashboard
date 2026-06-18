@@ -78,6 +78,7 @@ interface ProjectFormProps {
   isLoading: boolean;
   isSuccess: boolean;
   error: { message: string } | null;
+  isDisabled?: boolean;
 }
 
 export default function ProjectForm({
@@ -87,6 +88,7 @@ export default function ProjectForm({
   isLoading,
   isSuccess,
   error,
+  isDisabled = false,
 }: ProjectFormProps) {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
@@ -158,7 +160,10 @@ export default function ProjectForm({
           onSubmit={form.handleSubmit(handleSubmit)}
           className="space-y-6"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <fieldset
+            disabled={isDisabled || isLoading || isSuccess}
+            className="grid grid-cols-1 gap-6 md:grid-cols-3"
+          >
             {/* Basic Information */}
             <Card className="p-6 col-span-2">
               <h3 className="text-lg font-semibold mb-4">Project Information</h3>
@@ -425,7 +430,7 @@ export default function ProjectForm({
                 <div className="space-y-3">
                   <Button
                     type="submit"
-                    disabled={isLoading || isSuccess}
+                    disabled={isDisabled || isLoading || isSuccess}
                     className="w-full"
                   >
                     {isLoading && (
@@ -439,14 +444,14 @@ export default function ProjectForm({
                     type="button"
                     onClick={() => form.reset()}
                     className="w-full"
-                    disabled={isLoading}
+                    disabled={isDisabled || isLoading}
                   >
                     Reset Form
                   </Button>
                 </div>
               </Card>
             </div>
-          </div>
+          </fieldset>
         </form>
       </Form>
     </div>

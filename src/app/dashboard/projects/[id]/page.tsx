@@ -14,7 +14,6 @@ import { useGetProjectReviewsQuery } from "@/store/features/reviews";
 import { LicenseStatus } from "@/common/types/license";
 import { DeploymentStatusBadge } from "../../deployments/components";
 import {
-    IconArrowBack,
     IconLoader,
     IconEdit,
     IconTrash,
@@ -106,7 +105,7 @@ export default function ProjectPreviewPage() {
     const deployments = deploymentsData?.items || [];
 
     // Get project reviews
-    const { data: reviewsData, isLoading: isLoadingReviews, error: reviewsError } = useGetProjectReviewsQuery({
+    const { data: reviewsData, isLoading: isLoadingReviews } = useGetProjectReviewsQuery({
         projectId,
         page: 1,
         limit: 5,
@@ -218,7 +217,7 @@ export default function ProjectPreviewPage() {
     const getModerationStatusDescription = (status: ModerationStatus) => {
         switch (status) {
             case ModerationStatus.PENDING:
-                return "Your project is under review. We'll notify you once it's approved.";
+                return "Your project is under review. Editing is locked until it is approved or rejected.";
             case ModerationStatus.APPROVED:
                 return "Your project is approved and visible to the public.";
             case ModerationStatus.REJECTED:
@@ -234,6 +233,7 @@ export default function ProjectPreviewPage() {
     // Check if project can be submitted for review
     const canSubmitForReview = project?.moderation_status === ModerationStatus.DRAFT || 
         project?.moderation_status === ModerationStatus.REJECTED;
+    const isUnderReview = project?.moderation_status === ModerationStatus.PENDING;
 
     // Get the stable version if available
     const stableVersion = versions.find(v => v.is_stable);
@@ -292,17 +292,16 @@ export default function ProjectPreviewPage() {
         <>
             <Button
                 variant="outline"
-                asChild
+                onClick={() => router.push(`/dashboard/projects/${projectId}/edit`)}
+                disabled={isUnderReview}
             >
-                <Link href={`/dashboard/projects/${projectId}/edit`}>
-                    <IconEdit className="h-4 w-4 mr-2" />
-                    Edit Project
-                </Link>
+                <IconEdit className="h-4 w-4 mr-2" />
+                Edit Project
             </Button>
             <Button
                 variant="destructive"
                 onClick={() => setDeleteDialogOpen(true)}
-                disabled={isDeleting}
+                disabled={isUnderReview || isDeleting}
             >
                 {isDeleting ? (
                     <>
@@ -350,6 +349,20 @@ export default function ProjectPreviewPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Main Project Information */}
                         <div className="col-span-2 space-y-6">
+                            {isUnderReview && (
+                                <Card className="border-yellow-200 bg-yellow-50">
+                                    <CardContent className="flex items-start gap-3 pt-6">
+                                        <IconAlertCircle className="h-5 w-5 text-yellow-700 mt-0.5" />
+                                        <div>
+                                            <p className="font-medium text-yellow-800">Project under review</p>
+                                            <p className="text-sm text-yellow-700">
+                                                Editing is locked until the review is completed. If the project is rejected, you&apos;ll be able to update it and resubmit.
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
                             <Card>
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
@@ -495,11 +508,15 @@ export default function ProjectPreviewPage() {
                                             <p className="text-muted-foreground text-center">
                                                 No versions have been created for this project yet.
                                             </p>
-                                            <Button asChild>
-                                                <Link href={`/dashboard/projects/${projectId}/versions/create`}>
-                                                    Create First Version
-                                                </Link>
-                                            </Button>
+                                            {isUnderReview ? (
+                                                <Button disabled>Create First Version</Button>
+                                            ) : (
+                                                <Button asChild>
+                                                    <Link href={`/dashboard/projects/${projectId}/versions/create`}>
+                                                        Create First Version
+                                                    </Link>
+                                                </Button>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="rounded-md border">
@@ -850,12 +867,19 @@ export default function ProjectPreviewPage() {
                                     <CardTitle>Actions</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    <Button className="w-full" asChild>
-                                        <Link href={`/dashboard/projects/${projectId}/versions/create`}>
+                                    {isUnderReview ? (
+                                        <Button className="w-full" disabled>
                                             <IconGitBranch className="h-4 w-4 mr-2" />
                                             Create New Version
-                                        </Link>
-                                    </Button>
+                                        </Button>
+                                    ) : (
+                                        <Button className="w-full" asChild>
+                                            <Link href={`/dashboard/projects/${projectId}/versions/create`}>
+                                                <IconGitBranch className="h-4 w-4 mr-2" />
+                                                Create New Version
+                                            </Link>
+                                        </Button>
+                                    )}
 
                                     {hasConfigurations ? (
                                         <Button className="w-full" asChild variant="default">
@@ -865,12 +889,19 @@ export default function ProjectPreviewPage() {
                                             </Link>
                                         </Button>
                                     ) : (
-                                        <Button className="w-full" asChild variant="default">
-                                            <Link href={`/dashboard/projects/${projectId}/configurations/create`}>
+                                        isUnderReview ? (
+                                            <Button className="w-full" disabled variant="default">
                                                 <IconCode className="h-4 w-4 mr-2" />
                                                 Create Deployment Setup
-                                            </Link>
-                                        </Button>
+                                            </Button>
+                                        ) : (
+                                            <Button className="w-full" asChild variant="default">
+                                                <Link href={`/dashboard/projects/${projectId}/configurations/create`}>
+                                                    <IconCode className="h-4 w-4 mr-2" />
+                                                    Create Deployment Setup
+                                                </Link>
+                                            </Button>
+                                        )
                                     )}
 
                                     <Button className="w-full" asChild variant="outline">
@@ -1022,7 +1053,7 @@ export default function ProjectPreviewPage() {
                         <AlertDialogTitle>Submit for Review</AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to submit &quot;{project?.name}&quot; for review?
-                            Once submitted, our team will review your project before it can be displayed on the marketplace. Public projects now need at least one successful test deployment before review.
+                            Once submitted, the project will be locked for editing until it is approved or rejected. Make sure you already have a deployment configuration, a connected GitHub account with repository and workflow settings, and a successful test deployment.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

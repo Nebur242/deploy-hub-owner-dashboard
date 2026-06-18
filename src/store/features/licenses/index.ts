@@ -69,6 +69,7 @@ export const licensesApi = createApi({
           if (params.page) queryParams.append("page", params.page.toString());
           if (params.search) queryParams.append("search", params.search);
           if (params.currency) queryParams.append("currency", params.currency);
+          if (params.projectId) queryParams.append("project_id", params.projectId);
           if (params.sortBy) queryParams.append("sortBy", params.sortBy);
           if (params.sortDirection)
             queryParams.append("sortDirection", params.sortDirection);
